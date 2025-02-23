@@ -49,7 +49,7 @@ void NetworkIDObject::SetNetworkIDManager( NetworkIDManager *manager)
 	if (networkID == UNASSIGNED_NETWORK_ID)
 	{
 		// Prior ID not set
-		networkID = networkIDManager->GetNewNetworkID();
+		networkID = networkIDManager->GetNewNetworkID(); 
 	}
 
 	networkIDManager->TrackNetworkIDObject(this);

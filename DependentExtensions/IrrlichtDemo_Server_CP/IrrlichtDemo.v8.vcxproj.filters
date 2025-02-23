@@ -1,0 +1,289 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="miniupnpc-1.5">
+      <UniqueIdentifier>{e1aacc8e-238c-4ac0-9a23-ca573efbc569}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging">
+      <UniqueIdentifier>{715963a1-7282-4eaf-8534-abb25398a364}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\gradle">
+      <UniqueIdentifier>{250c9cf4-0fe5-40c1-983a-6d597a671ba2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\gradle\wrapper">
+      <UniqueIdentifier>{bfe25071-e36e-4438-8a40-a2603e3381f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app">
+      <UniqueIdentifier>{e0a68a33-23f2-451d-8d7f-b0fa36c30cf0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src">
+      <UniqueIdentifier>{df8af278-3a5e-40c9-9ebf-549953d7ecc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\androidTest">
+      <UniqueIdentifier>{9c69d912-72f3-4aa4-ad6b-5b681dc948eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\androidTest\java">
+      <UniqueIdentifier>{cc19ed3d-06a5-499d-82c1-fd0991f804fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\androidTest\java\com">
+      <UniqueIdentifier>{95cf8584-7e74-4003-9419-cbbf5eb1b7e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\androidTest\java\com\example">
+      <UniqueIdentifier>{1203f6b8-9183-4b7a-bde8-67259c315d25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\androidTest\java\com\example\irrlichtdemoCP">
+      <UniqueIdentifier>{1f3163a7-4ab2-4979-8492-4e5dad8e022a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main">
+      <UniqueIdentifier>{35b4e7f2-4042-4c0b-a036-d7477198e328}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\cpp">
+      <UniqueIdentifier>{a8adec9e-8e10-4234-a432-7014d2197059}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\java">
+      <UniqueIdentifier>{62ef4ce0-4501-4edb-93f2-14255706a29e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\java\com">
+      <UniqueIdentifier>{a2554163-b30c-4019-a901-f8dc8e6143a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\java\com\example">
+      <UniqueIdentifier>{f935bd96-c774-47e4-a63e-977e5a941a3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\java\com\example\irrlichtdemoCP">
+      <UniqueIdentifier>{275eb49b-daf4-4d7b-940a-0d3515d67fa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res">
+      <UniqueIdentifier>{c9968a83-a892-4002-afde-8b915cc191ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\drawable">
+      <UniqueIdentifier>{c5c5f043-65a0-4208-84bf-5dffae589003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\drawable-v24">
+      <UniqueIdentifier>{7c60f76e-a3d1-43b8-abed-1d6ab21381d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\layout">
+      <UniqueIdentifier>{1ad41664-9604-48f4-93e6-79691ff36c00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\mipmap-anydpi-v26">
+      <UniqueIdentifier>{043a86fc-7972-41b9-b9fe-7ec278ce8a63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\mipmap-hdpi">
+      <UniqueIdentifier>{7b6fcf35-2185-4289-a581-ed630de46274}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\mipmap-mdpi">
+      <UniqueIdentifier>{a4d35a45-8a52-4348-9a74-3c2d27b25931}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\mipmap-xhdpi">
+      <UniqueIdentifier>{01b52333-271b-47d7-9e9b-dcc857537b70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\mipmap-xxhdpi">
+      <UniqueIdentifier>{58624942-9d42-46ad-bbc2-fd9966da261a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\mipmap-xxxhdpi">
+      <UniqueIdentifier>{7033820a-2719-4ab5-8875-fdda43d8c790}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\main\res\values">
+      <UniqueIdentifier>{14982e7a-afed-4567-a7b9-0efa24b5f7ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\test">
+      <UniqueIdentifier>{b0e96e36-9e40-4170-ba0a-0c1f9d69edc5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\test\java">
+      <UniqueIdentifier>{6c665d36-b374-44a8-850e-38a393e458bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\test\java\com">
+      <UniqueIdentifier>{7f472cba-741e-430e-97fa-8b88a446b29a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\test\java\com\example">
+      <UniqueIdentifier>{468c68d9-be2c-4533-80ae-f9052fd934c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AndroidPackaging\app\src\test\java\com\example\irrlichtdemoCP">
+      <UniqueIdentifier>{f15321d3-84ee-4333-919b-e7ffe35de389}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\miniupnpc-1.5\connecthostport.c">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\igd_desc_parse.c">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\minisoap.c">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\miniupnpc.c">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\miniwget.c">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\minixml.c">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\upnpcommands.c">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\upnperrors.c">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\upnpreplyparse.c">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClCompile>
+    <ClCompile Include="CDemo.cpp" />
+    <ClCompile Include="CMainMenu.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="RakNetStuff.cpp" />
+    <ClCompile Include="AndroidPackaging\app\src\main\cpp\JniBindings.cpp">
+      <Filter>AndroidPackaging\app\src\main\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="AndroidPackaging\app\src\main\cpp\android_native_app_glue.c">
+      <Filter>AndroidPackaging\app\src\main\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="AndroidPackaging\app\src\main\cpp\AndroidDemo.cpp">
+      <Filter>AndroidPackaging\app\src\main\cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="AndroidPackaging\app\src\main\cpp\android_tools.cpp">
+      <Filter>AndroidPackaging\app\src\main\cpp</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\miniupnpc-1.5\connecthostport.h">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\igd_desc_parse.h">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\minisoap.h">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\miniupnpc.h">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\miniwget.h">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\minixml.h">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\upnpcommands.h">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\upnperrors.h">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\upnpreplyparse.h">
+      <Filter>miniupnpc-1.5</Filter>
+    </ClInclude>
+    <ClInclude Include="CDemo.h" />
+    <ClInclude Include="CMainMenu.h" />
+    <ClInclude Include="RakNetStuff.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_native_app_glue.h">
+      <Filter>AndroidPackaging\app\src\main\cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_tools.h">
+      <Filter>AndroidPackaging\app\src\main\cpp</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="readme.txt" />
+    <Text Include="AndroidPackaging\app\src\main\CMakeLists.txt">
+      <Filter>AndroidPackaging\app\src\main</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\gradle\wrapper\gradle-wrapper.jar">
+      <Filter>AndroidPackaging\gradle\wrapper</Filter>
+    </None>
+    <None Include="AndroidPackaging\gradle\wrapper\gradle-wrapper.properties">
+      <Filter>AndroidPackaging\gradle\wrapper</Filter>
+    </None>
+    <None Include="AndroidPackaging\build.gradle">
+      <Filter>AndroidPackaging</Filter>
+    </None>
+    <None Include="AndroidPackaging\gradle.properties">
+      <Filter>AndroidPackaging</Filter>
+    </None>
+    <None Include="AndroidPackaging\gradlew">
+      <Filter>AndroidPackaging</Filter>
+    </None>
+    <None Include="AndroidPackaging\gradlew.bat">
+      <Filter>AndroidPackaging</Filter>
+    </None>
+    <None Include="AndroidPackaging\settings.gradle">
+      <Filter>AndroidPackaging</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\androidTest\java\com\example\irrlichtdemoCP\ExampleInstrumentedTest.java">
+      <Filter>AndroidPackaging\app\src\androidTest\java\com\example\irrlichtdemoCP</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\java\com\example\irrlichtdemoCP\MainActivity.java">
+      <Filter>AndroidPackaging\app\src\main\java\com\example\irrlichtdemoCP</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\drawable\ic_launcher_background.xml">
+      <Filter>AndroidPackaging\app\src\main\res\drawable</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\drawable-v24\ic_launcher_foreground.xml">
+      <Filter>AndroidPackaging\app\src\main\res\drawable-v24</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\layout\activity_main.xml">
+      <Filter>AndroidPackaging\app\src\main\res\layout</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-anydpi-v26\ic_launcher.xml">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-anydpi-v26</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-anydpi-v26\ic_launcher_round.xml">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-anydpi-v26</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-hdpi\ic_launcher.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-hdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-hdpi\ic_launcher_round.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-hdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-mdpi\ic_launcher.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-mdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-mdpi\ic_launcher_round.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-mdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xhdpi\ic_launcher.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-xhdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xhdpi\ic_launcher_round.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-xhdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xxhdpi\ic_launcher.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-xxhdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xxhdpi\ic_launcher_round.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-xxhdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xxxhdpi\ic_launcher.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-xxxhdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xxxhdpi\ic_launcher_round.png">
+      <Filter>AndroidPackaging\app\src\main\res\mipmap-xxxhdpi</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\values\colors.xml">
+      <Filter>AndroidPackaging\app\src\main\res\values</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\values\strings.xml">
+      <Filter>AndroidPackaging\app\src\main\res\values</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\res\values\styles.xml">
+      <Filter>AndroidPackaging\app\src\main\res\values</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\test\java\com\example\irrlichtdemoCP\ExampleUnitTest.java">
+      <Filter>AndroidPackaging\app\src\test\java\com\example\irrlichtdemoCP</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\build.gradle">
+      <Filter>AndroidPackaging\app</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\proguard-rules.pro">
+      <Filter>AndroidPackaging\app</Filter>
+    </None>
+    <None Include="AndroidPackaging\app\src\main\AndroidManifest.xml">
+      <Filter>AndroidPackaging\app\src\main</Filter>
+    </None>
+  </ItemGroup>
+</Project>

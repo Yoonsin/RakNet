@@ -1,0 +1,65 @@
+apply plugin: 'com.android.application'
+
+
+android {
+    compileSdkVersion 33
+    buildToolsVersion "33.0.2"
+    ndkVersion "23.2.8568313"
+    namespace "com.example.irrlichtdemoCP"
+    defaultConfig {
+        applicationId "com.example.irrlichtdemoCP"
+        minSdkVersion 30
+        targetSdkVersion 33
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        ndk {
+            abiFilters "x86_64"  // 여기에 맞는 ABI 추가
+        }
+        
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++17 -frtti -fexceptions"
+                arguments "-DANDROID_STL=c++_shared"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/CMakeLists.txt"   // CMake 파일 경로 지정
+            version "3.22.1"  // Gradle이 사용하는 CMake 버전
+        }
+    }
+
+ 
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/jniLibs']
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "IrrlichtDemo-Debug.apk"
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}
+
+
+copy {
+    from "../../irrlicht"
+    into "src/main/assets"
+    include 'media/**'
+}

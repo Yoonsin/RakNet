@@ -14,7 +14,7 @@
 // Get Irrlicht from http://irrlicht.sourceforge.net/ , it's a great engine
 #include <irrlicht.h>
 
-#define IRRLICHT_MEDIA_PATH "IrrlichtMedia/"
+#define IRRLICHT_MEDIA_PATH "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo/IrrlichtMedia/"
 
 #ifdef _WIN32__
 #include "WindowsIncludes.h" // Prevent 'fd_set' : 'struct' type redefinition

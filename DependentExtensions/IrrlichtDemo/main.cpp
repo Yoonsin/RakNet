@@ -29,6 +29,8 @@ int main(int argc, char* argv[])
 	bool vsync = false;
 	bool aa = false;
 	core::stringw playerName;
+	
+	//video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;

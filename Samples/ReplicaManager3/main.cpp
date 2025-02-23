@@ -82,6 +82,7 @@ struct SampleReplica : public Replica3
 		PrintStringInBitstream(destructionBitstream);
 		return true;
 	}
+	
 	virtual void DeallocReplica(RakNet::Connection_RM3 *sourceConnection) {
 		delete this;
 	}
@@ -222,12 +223,16 @@ struct ClientCreatible_ClientSerialized : public SampleReplica {
 	{
 		return SampleReplica::Serialize(serializeParameters);
 	}
+	
+	//destination에 존재하지 않는 객체를 전송해야 하는지?
 	virtual RM3ConstructionState QueryConstruction(RakNet::Connection_RM3 *destinationConnection, ReplicaManager3 *replicaManager3) {
+		//클라이언트가 이 요청을 받고 객체를 만들 수 있도록 허용 (물론 서버도)
 		return QueryConstruction_ClientConstruction(destinationConnection,topology!=CLIENT);
 	}
 	virtual bool QueryRemoteConstruction(RakNet::Connection_RM3 *sourceConnection) {
+		//DeserializeConstruction()을 허출했을 때 이 객체를 만들 수 있는지?
 		return QueryRemoteConstruction_ClientConstruction(sourceConnection,topology!=CLIENT);
-	}
+	}          
 
 	virtual RM3QuerySerializationResult QuerySerialization(RakNet::Connection_RM3 *destinationConnection) {
 		return QuerySerialization_ClientSerializable(destinationConnection,topology!=CLIENT);
@@ -324,6 +329,8 @@ public:
 
 	virtual Replica3 *AllocReplica(RakNet::BitStream *allocationId, ReplicaManager3 *replicaManager3)
 	{
+		//외부에서 객체 생성시
+		//ID를 확인 한 후 ID에 맞으면 생성
 		RakNet::RakString typeName;
 		allocationId->Read(typeName);
 		if (typeName=="ClientCreatible_ClientSerialized") return new ClientCreatible_ClientSerialized;

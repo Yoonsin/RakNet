@@ -884,7 +884,7 @@ public:
 	/// \note Defaults are provided: QueryRemoteConstruction_PeerToPeer(), QueryRemoteConstruction_ServerConstruction(), QueryRemoteConstruction_ClientConstruction(). Return one of these functions for a working default for the relevant topology.
 	/// \param[in] sourceConnection Which system sent us the object creation request message.
 	/// \return True to allow the object to pass onto DeserializeConstruction() (where it may also be rejected), false to immediately reject the remote construction request
-	virtual bool QueryRemoteConstruction(RakNet::Connection_RM3 *sourceConnection)=0;
+	virtual bool QueryRemoteConstruction(RakNet::Connection_RM3 *sourceConnection)=0; 
 
 	/// \brief We got a message from a connection to destroy this replica
 	/// Return true to automatically relay the destruction message to all our other connections

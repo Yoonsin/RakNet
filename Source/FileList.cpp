@@ -31,6 +31,7 @@
 
 
 #else
+#include<sys//io.h>
 #include <sys/stat.h>
 #endif
 

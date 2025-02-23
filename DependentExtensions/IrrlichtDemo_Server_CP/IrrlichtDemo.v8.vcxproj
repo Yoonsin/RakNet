@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Android-x86_64">
+      <Configuration>Debug</Configuration>
+      <Platform>Android-x86_64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Android-x86_64">
+      <Configuration>Release</Configuration>
+      <Platform>Android-x86_64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectName>IrrlichtDemo_Server_CP</ProjectName>
+    <ProjectGuid>{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}</ProjectGuid>
+    <RootNamespace>IrrlichtDemo</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Android-x86_64'">
+    <PlatformToolset>Clang</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">
+    <PlatformToolset>Clang</PlatformToolset>
+    <AndroidNdkVersion>23.2.8568313</AndroidNdkVersion>
+    <AndroidMinSdkVersion>30</AndroidMinSdkVersion>
+    <AddressSanitizer>None</AddressSanitizer>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>17.0.35527.80</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-x86_64'">
+    <AndroidEnablePackaging>true</AndroidEnablePackaging>
+    <AndroidGradleBuildDir>$(MSBuildProjectDirectory)\AndroidPackaging\</AndroidGradleBuildDir>
+    <AndroidApplicationModule>app</AndroidApplicationModule>
+    <AndroidGradleBuildType>$(Configuration)</AndroidGradleBuildType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">
+    <AndroidEnablePackaging>true</AndroidEnablePackaging>
+    <AndroidGradleBuildDir>$(MSBuildProjectDirectory)\AndroidPackaging\</AndroidGradleBuildDir>
+    <AndroidApplicationModule>app</AndroidApplicationModule>
+    <AndroidGradleBuildType>$(Configuration)</AndroidGradleBuildType>
+    <AndroidGradlePackageOutputName>$(AndroidApkName)</AndroidGradlePackageOutputName>
+    <AndroidGradleBuildOutputDir>
+    </AndroidGradleBuildOutputDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>./;./../../Source;C:\irrlicht-1.7.2\include;./../../DependentExtensions/miniupnpc-1.5;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>ws2_32.lib;IPHlpApi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)IrrlichtDemo_Server_CP.exe</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention />
+      <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>C:\GitHub\RakNet\Source</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy C:\irrlicht-1.7.2\bin\Win32-VisualStudio\Irrlicht.dll .\
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>./;./../../Source;C:\irrlicht-1.7.2\include;./../../DependentExtensions/miniupnpc-1.5;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>ws2_32.lib;IPHlpApi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)IrrlichtDemo_Server.exe</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention />
+      <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>C:\GitHub\RakNet\Source</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy C:\irrlicht-1.7.2\bin\Win32-VisualStudio\Irrlicht.dll .\</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>./;./../../Source;C:\irrlicht-ogl-es\include;./../../DependentExtensions/miniupnpc-1.5;C:\GitHub\RakNet\Source;C:\GitHub\RakNet\DependentExtensions\IrrlichtDemo_Server_CP\AndroidPackaging\app\src\main\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OmitFramePointers>true</OmitFramePointers>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>C:\GitHub\RakNet\Source</AdditionalLibraryDirectories>
+      <AdditionalDependencies>C:\irrlicht-ogl-es\source\Irrlicht\Android\obj\local\x86_64\libIrrlicht.a;C:\irrlicht-ogl-es\source\Irrlicht\Android\obj\local\x86_64\libandroid_native_app_glue.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <LibraryDependencies>atomic;android;EGL;log;GLESv1_CM;GLESv2;z;m;</LibraryDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\miniupnpc-1.5\connecthostport.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\igd_desc_parse.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\minisoap.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\miniupnpc.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\miniwget.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\minixml.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\upnpcommands.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\upnperrors.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\miniupnpc-1.5\upnpreplyparse.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="AndroidPackaging\app\src\main\cpp\AndroidDemo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="AndroidPackaging\app\src\main\cpp\android_native_app_glue.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="AndroidPackaging\app\src\main\cpp\android_tools.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="AndroidPackaging\app\src\main\cpp\JniBindings.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="CDemo.cpp" />
+    <ClCompile Include="CMainMenu.cpp" />
+    <ClCompile Include="main.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="RakNetStuff.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\miniupnpc-1.5\connecthostport.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\igd_desc_parse.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\minisoap.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\miniupnpc.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\miniwget.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\minixml.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\upnpcommands.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\upnperrors.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\miniupnpc-1.5\upnpreplyparse.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_native_app_glue.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_tools.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="CDemo.h" />
+    <ClInclude Include="CMainMenu.h" />
+    <ClInclude Include="RakNetStuff.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="AndroidPackaging\app\src\main\CMakeLists.txt" />
+    <Text Include="readme.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Lib\LibStatic\LibStatic_vc9.vcxproj">
+      <Project>{6533bdae-0f0c-45e4-8fe7-add0f37fe063}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\build.gradle" />
+    <None Include="AndroidPackaging\app\proguard-rules.pro" />
+    <None Include="AndroidPackaging\app\src\androidTest\java\com\example\irrlichtdemoCP\ExampleInstrumentedTest.java" />
+    <None Include="AndroidPackaging\app\src\main\java\com\example\irrlichtdemoCP\MainActivity.java" />
+    <None Include="AndroidPackaging\app\src\test\java\com\example\irrlichtdemoCP\ExampleUnitTest.java" />
+    <None Include="AndroidPackaging\build.gradle" />
+    <None Include="AndroidPackaging\gradle.properties" />
+    <None Include="AndroidPackaging\gradlew" />
+    <None Include="AndroidPackaging\gradlew.bat" />
+    <None Include="AndroidPackaging\gradle\wrapper\gradle-wrapper.jar" />
+    <None Include="AndroidPackaging\gradle\wrapper\gradle-wrapper.properties" />
+    <None Include="AndroidPackaging\settings.gradle" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\drawable\ic_launcher_background.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\drawable-v24\ic_launcher_foreground.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\layout\activity_main.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-anydpi-v26\ic_launcher.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-anydpi-v26\ic_launcher_round.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-hdpi\ic_launcher.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-hdpi\ic_launcher_round.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-mdpi\ic_launcher.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-mdpi\ic_launcher_round.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xhdpi\ic_launcher.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xhdpi\ic_launcher_round.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xxhdpi\ic_launcher.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xxhdpi\ic_launcher_round.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xxxhdpi\ic_launcher.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\mipmap-xxxhdpi\ic_launcher_round.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\values\colors.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\values\strings.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\res\values\styles.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AndroidPackaging\app\src\main\AndroidManifest.xml" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

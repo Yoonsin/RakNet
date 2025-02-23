@@ -1,3 +1,4 @@
+
 // This is a Demo of the Irrlicht Engine (c) 2005-2009 by N.Gebhardt.
 // This file is not documented.
 
@@ -767,7 +768,7 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 	core::line3d<f32> line(start, end);
 
 	// get intersection point with map
-	scene::ISceneNode* hitNode;
+	const scene::ISceneNode* hitNode;
 	if (sm->getSceneCollisionManager()->getCollisionPoint(
 		line, mapSelector, end, triangle, hitNode))
 	{
@@ -997,7 +998,8 @@ void CDemo::UpdateRakNet(void)
 			{
 				DataStructures::List<RakNet::SystemAddress> addresses;
 				DataStructures::List<RakNet::RakNetGUID> guids;
-				fullyConnectedMesh2->GetVerifiedJoinRequiredProcessingList(packet->guid, addresses, guids);
+				DataStructures::List<RakNet::BitStream*> userData;
+				fullyConnectedMesh2->GetVerifiedJoinRequiredProcessingList(packet->guid, addresses, guids, userData);
 				for (unsigned int i=0; i < guids.Size(); i++)
 					natPunchthroughClient->OpenNAT(guids[i], facilitatorSystemAddress);
 			}
@@ -1031,6 +1033,7 @@ void CDemo::UpdateRakNet(void)
 			break;
 		case ID_CONNECTION_REQUEST_ACCEPTED:
 			{
+				//(클라이언트 측에서) 연결을 허락 받았을 때
 				PushMessage(RakNet::RakString("Connection request to ") + targetName + RakNet::RakString(" accepted."));
 				if (packet->systemAddress==facilitatorSystemAddress)
 				{
@@ -1176,7 +1179,7 @@ void CDemo::UpdateRakNet(void)
 	{
 		unsigned int idx;
 		for (idx=0; idx < replicaManager3->GetReplicaCount(); idx++)
-			((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);;
+			((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);
 	}	
 }
 

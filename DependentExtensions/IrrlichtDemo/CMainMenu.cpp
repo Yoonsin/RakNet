@@ -46,7 +46,7 @@ public:
 		color.Hue = ( (timeMs + Phase) % Frequency  ) * ( 2.f * irr::core::PI / Frequency );
 		color.Saturation = 1.f;
 		color.Luminance = 0.5f;
-		color.toRGB(rgb);
+		color.toRGB(rgb.toSColor());
 
 		video::SLight light = l->getLightData();
 		light.DiffuseColor = rgb;
