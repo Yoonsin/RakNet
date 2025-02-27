@@ -8,6 +8,7 @@
 #include <sys/auxv.h>
 #endif
 
+
 //! we want the lights follow the model when it's moving
 class CSceneNodeAnimatorFollowBoundingBox : public irr::scene::ISceneNodeAnimator
 {
@@ -126,12 +127,10 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	
 #else
 	driverType = video::EDT_BURNINGSVIDEO;
-	mediaPath = "../../media/";
+	mediaPath = "IrrlichtMedia/";
 	MenuDevice = createDevice(driverType,
 		core::dimension2d<u32>(512, 384), 16, false, false, false, this);
 #endif //__ANDROID__
-
-	
 
 	if (MenuDevice->getFileSystem()->existFile("irrlicht.dat"))
 		MenuDevice->getFileSystem()->addFileArchive("irrlicht.dat", true, true, io::EFAT_ZIP);
@@ -424,24 +423,24 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 					core::position2d<int>(0, 0), core::rect<int>(0, 0, 512, 384));
 #endif // __ANDROID__
 
-			
-
 			smgr->drawAll();
 			guienv->drawAll();
 			driver->endScene();
 		}
+#ifdef __ANDROID__
 		MenuDevice->yield(); // probably nicer to the battery
 		++runCounter;
 		++loop;
+#else
+#endif //__ANDROID__
+
 	}
 
 #ifdef __ANDROID__
 #else
-	playerName = nameEditBox->getText();
+	//if(nameEditBox) playerName = nameEditBox->getText();
 #endif // __ANDROID__
-
-	
-	MenuDevice->drop();
+	//if(MenuDevice != nullptr) MenuDevice->drop();
 
 	outFullscreen = fullscreen;
 	outMusic = music;
@@ -463,7 +462,6 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 #ifdef __ANDROID__
 	outDriver = video::EDT_OGLES2;
 #endif // __ANDROID__
-
 
 	return start;
 }
@@ -562,9 +560,9 @@ bool CMainMenu::OnEvent(const SEvent& event)
 	if (event.EventType == EET_GUI_EVENT)
 	{
 		s32 id = event.GUIEvent.Caller->getID();
-		char strDisplay[100];
-		sprintf(strDisplay, "gui id:(%d)\n", id);
-		MenuDevice->getLogger()->log(strDisplay);
+		//char strDisplay[100];
+		//sprintf(strDisplay, "gui id:(%d)\n", id);
+		//MenuDevice->getLogger()->log(strDisplay);
 		
 		switch(id)
 		{

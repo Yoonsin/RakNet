@@ -98,10 +98,14 @@ void InstantiateRakNetClasses(bool isServer)
 	// Using fixed port so we can use AdvertiseSystem and connect on the LAN if the server is not available.
 	RakNet::SocketDescriptor sd((topology==SERVER)? SERVER_PORT : 1234, 0);
 	sd.socketFamily = AF_INET; // Only IPV4 supports broadcast on 255.255.255.255
+	
+#ifdef __ANDROID__
+#else
 	if (topology == CLIENT) {
 		while (IRNS2_Berkley::IsPortInUse(sd.port, sd.hostAddress, sd.socketFamily, SOCK_DGRAM) == true)
 			sd.port++;
 	}
+#endif // __ANDROID__
 
 	// +1 is for the connection to the NAT punchthrough server
 	RakNet::StartupResult sr;

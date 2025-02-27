@@ -10,7 +10,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
- 
+# 프로젝트 루트 경로 설정
+set(IRRLICHT_PROJECT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
+set(ASSETS_DIR ${IRRLICHT_PROJECT_PATH}/assets)
+
+
+
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds it for you.
@@ -48,7 +53,7 @@ add_library( # Sets the name of the library.
              # file are automatically included.
              C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/CDemo.cpp
              C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/CMainMenu.cpp
-              C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/RakNetStuff.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/RakNetStuff.cpp
              C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/cpp/AndroidDemo.cpp
              C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/cpp/android_tools.cpp
 )

@@ -11,6 +11,20 @@
 #include "Itoa.h"
 #include "RakNetSmartPtr.h"
 
+#ifdef __ANDROID__
+#include "android_tools.h"
+#include <sys/auxv.h>
+#include <android/log.h>
+#define LOG_TAG "CDemo"
+#define _LOG(priority, fmt, ...) \
+  ((void)__android_log_print(priority, LOG_TAG, fmt, ##__VA_ARGS__))
+
+//#define LOGE(fmt, ...) _LOG(ANDROID_LOG_ERROR, fmt, ##__VA_ARGS__)
+#define LOGE(fmt, ...) _LOG(ANDROID_LOG_ERROR, fmt, ##__VA_ARGS__)
+#define LOGW(fmt, ...) _LOG(ANDROID_LOG_WARN, fmt, ##__VA_ARGS__)
+#define LOGI(fmt, ...) _LOG(ANDROID_LOG_INFO, fmt, ##__VA_ARGS__)
+#endif
+
 //#include "miniupnpc.h"
 //#include "upnpcommands.h"
 //#include "upnperrors.h"
@@ -29,8 +43,14 @@ CDemo::CDemo(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_
  campFire(0), metaSelector(0), mapSelector(0), sceneStartTime(0),
  timeForThisScene(0), whenOutputMessageStarted(0), isConnectedToNATPunchthroughServer(false)
 {
+#ifdef __ANDROID__
+	mediaPath = "media/"; //"irrlicht/media/";
+#else
+	mediaPath = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/IrrlichtMedia/";
+#endif //__ANDROID__
 	for (u32 i=0; i<KEY_KEY_CODES_COUNT; ++i)
 		KeyIsDown[i] = false;
+
 }
 
 
@@ -51,72 +71,139 @@ CDemo::~CDemo()
 
 void CDemo::run()
 {
-	core::dimension2d<u32> resolution ( 640, 480 );
+	video::E_DRIVER_TYPE driverType = video::EDT_BURNINGSVIDEO;
+	
+#ifdef __ANDROID__
+	driverType = video::EDT_OGLES2;//video::EDT_OGLES2;
+	irr::android::SDisplayMetrics displayMetrics;
+	memset(&displayMetrics, 0, sizeof displayMetrics);
+	irr::android::getDisplayMetrics(state, displayMetrics);
+	TouchID = -1;
 
+	SIrrlichtCreationParameters param;
+	param.DriverType = driverType;				// android:glEsVersion in AndroidManifest.xml should be "0x00020000"
+	param.WindowSize = core::dimension2d<u32>(displayMetrics.widthPixels, displayMetrics.heightPixels);	// using 0,0 it will automatically set it to the maximal size
+	param.PrivateData = state;
+	param.Bits = 24;
+	param.ZBufferBits = 16;
+	param.AntiAlias = 0;
+	param.EventReceiver = this;
+	device = createDeviceEx(param);
+
+	char filePath[1024] = "/media";
+	char absPath[5000];
+	if (realpath(filePath, absPath)) {
+		LOGI("Absolute path: %s", absPath);
+	}
+	else {
+		LOGI("File not found: %s", filePath);
+	}
+
+#else
+	core::dimension2d<u32> resolution(640, 480);
+	mediaPath = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/IrrlichtMedia/";
 	irr::SIrrlichtCreationParameters params;
 
-	if ( driverType == video::EDT_BURNINGSVIDEO || driverType == video::EDT_SOFTWARE )
+	if (driverType == video::EDT_BURNINGSVIDEO || driverType == video::EDT_SOFTWARE)
 	{
 		resolution.Width = 640;
 		resolution.Height = 480;
 	}
-	
 	/*
 	if (isServer) params.DriverType = video::EDT_NULL;
 	else params.DriverType = driverType;
 	*/
 
 	params.DriverType = driverType;
-    params.WindowSize=resolution;
-	params.Bits=32;
-	params.Fullscreen=fullscreen;
-	params.Stencilbuffer=shadows;
-	params.Vsync=vsync;
-	params.AntiAlias=aa;
-	params.EventReceiver=this;
+	params.WindowSize = resolution;
+	params.Bits = 32;
+	params.Fullscreen = fullscreen;
+	params.Stencilbuffer = shadows;
+	params.Vsync = vsync;
+	params.AntiAlias = aa;
+	params.EventReceiver = this;
 
 	device = createDeviceEx(params);
-	if (!device)
-		return;
-
-	if (device->getFileSystem()->existFile("irrlicht.dat"))
-		device->getFileSystem()->addFileArchive("irrlicht.dat", true, true, io::EFAT_ZIP);
-	else
-		device->getFileSystem()->addFileArchive(IRRLICHT_MEDIA_PATH "irrlicht.dat", true, true, io::EFAT_ZIP);
-	if (device->getFileSystem()->existFile("map-20kdm2.pk3"))
-		device->getFileSystem()->addFileArchive("map-20kdm2.pk3", true, true, io::EFAT_ZIP);
-	else
-		device->getFileSystem()->addFileArchive(IRRLICHT_MEDIA_PATH "map-20kdm2.pk3", true, true, io::EFAT_ZIP);
+#endif //__ANDROID__
 
 	video::IVideoDriver* driver = device->getVideoDriver();
 	scene::ISceneManager* smgr = device->getSceneManager();
 	gui::IGUIEnvironment* guienv = device->getGUIEnvironment();
+	io::IFileSystem* fs = device->getFileSystem();
+	ILogger* logger = device->getLogger();
 
 	device->setWindowCaption(L"Irrlicht Engine Demo");
 
 	// set ambient light
 	smgr->setAmbientLight ( video::SColorf ( 0x00c0c0c0 ) );
 
+#ifdef __ANDROID__
+	ANativeWindow* nativeWindow = static_cast<ANativeWindow*>(driver->getExposedVideoData().OGLESAndroid.Window);
+	int32_t windowWidth = ANativeWindow_getWidth(state->window);
+	int32_t windowHeight = ANativeWindow_getHeight(state->window);
+	core::dimension2d<s32> dim(driver->getScreenSize());
+
+	char strDisplay[1000];
+	sprintf(strDisplay, "!!Window size:(%d/%d)\nDisplay size:(%d/%d)\ngetScreenSize:(%d/%d)", windowWidth, windowHeight, displayMetrics.widthPixels, displayMetrics.heightPixels, dim.Width, dim.Height);
+	logger->log(strDisplay);
+
+	for (u32 i = 0; i < fs->getFileArchiveCount(); ++i)
+	{
+		io::IFileArchive* archive = fs->getFileArchive(i);
+		if (archive->getType() == io::E_FILE_ARCHIVE_TYPE::EFAT_ANDROID_ASSET)
+		{
+			archive->addDirectoryToFileList(mediaPath);
+			break;
+		}
+	}
+#endif //__ANDROID__
+
+	if (device->getFileSystem()->existFile("irrlicht.dat"))
+		device->getFileSystem()->addFileArchive("irrlicht.dat", true, true, io::EFAT_ZIP);
+	else
+		device->getFileSystem()->addFileArchive(mediaPath + "irrlicht.dat", true, true, io::EFAT_ZIP);
+	if (device->getFileSystem()->existFile("map-20kdm2.pk3"))
+		device->getFileSystem()->addFileArchive("map-20kdm2.pk3", true, true, io::EFAT_ZIP);
+	else {
+		device->getFileSystem()->addFileArchive(mediaPath + "map-20kdm2.pk3", true, true, io::EFAT_ZIP);
+		if (device->getFileSystem()->existFile(mediaPath + "map-20kdm2.pk3")) {
+			LOGI("맵 파일이 존재함!");
+		}
+		else {
+			LOGI("맵 파일이 없음!");
+		}
+	}
 
 //	wchar_t tmp[255];
 
 	// RakNet startup
-	char dest[1024];
-	memset(dest,0,sizeof(dest));
-	wcstombs(dest, playerName.c_str(), playerName.size());
+	//char dest[1024];
+	//memset(dest,0,sizeof(dest));
+	//wcstombs(dest, playerName.c_str(), playerName.size());
 	InstantiateRakNetClasses(isServer);
 
 	// Hook RakNet stuff into this class
-	playerReplica->playerName=RakNet::RakString(dest);
+	//playerReplica->playerName = RakNet::RakString(dest);
 	playerReplica->demo=this;
 	replicaManager3->demo=this;
 
 	CalculateSyndeyBoundingBox();
 
 	// draw everything
+	char strDisplay_2[100];
+	sprintf(strDisplay_2, "Rendering Scene");
+	logger->log(strDisplay_2);
 
 	s32 now = 0;
+#ifdef __ANDROID__
+	//에뮬레이터에서 getTime이 0을 반환하므로 임의로 설정
 	sceneStartTime = device->getTimer()->getTime();
+	sceneStartTime = device->getTimer()->getRealTime();
+	RakNet::TimeMS curTime = RakNet::GetTimeMS();
+#else
+	sceneStartTime = device->getTimer()->getTime();
+#endif 
+	
 	while(device->run() && driver)
 	{
 		// RakNet: Render even if not active, multiplayer never stops
@@ -125,12 +212,19 @@ void CDemo::run()
 #ifdef USE_IRRKLANG
 			// update 3D position for sound engine
 			scene::ICameraSceneNode* cam = smgr->getActiveCamera();
-			if (cam && irrKlang)
+			if (cam && irrKlang){
 				//irrKlang->setListenerPosition(cam->getAbsolutePosition(), cam->getTarget());
+		    }
 #endif
 
 			// load next scene if necessary
+#ifdef __ANDROID__
+		    now = device->getTimer()->getRealTime();
+#else
 			now = device->getTimer()->getTime();
+#endif // __ANDROID__
+
+			
 			if (now - sceneStartTime > timeForThisScene && timeForThisScene!=-1)
 				switchToNextScene();
 
@@ -192,6 +286,68 @@ bool CDemo::OnEvent(const SEvent& event)
 {
 	if (!device)
 		return false;
+#ifdef __ANDROID__
+	if (event.EventType == EET_TOUCH_INPUT_EVENT)
+	{
+		/*
+			For now we fake mouse-events. Touch-events will be handled inside Irrlicht in the future, but until
+			that is implemented you can use this workaround to get a GUI which works at least for simple elements like
+			buttons. That workaround does ignore multi-touch events - if you need several buttons pressed at the same
+			time you have to handle that yourself.
+		*/
+		SEvent fakeMouseEvent;
+		fakeMouseEvent.EventType = EET_MOUSE_INPUT_EVENT;
+		fakeMouseEvent.MouseInput.X = event.TouchInput.X;
+		fakeMouseEvent.MouseInput.Y = event.TouchInput.Y;
+		fakeMouseEvent.MouseInput.Shift = false;
+		fakeMouseEvent.MouseInput.Control = false;
+		fakeMouseEvent.MouseInput.ButtonStates = 0;
+		fakeMouseEvent.MouseInput.Event = EMIE_COUNT;
+
+		/*char strDisplay[100];
+		sprintf(strDisplay, "fakeeee event type:(%d) / event TouchInput type:(%d) \n", fakeMouseEvent.EventType, event.TouchInput.Event);
+		MenuDevice->getLogger()->log(strDisplay);*/
+
+		switch (event.TouchInput.Event)
+		{
+		case ETIE_PRESSED_DOWN:
+		{
+			// We only work with the first for now.force opengl error
+			if (TouchID == -1)
+			{
+				fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_PRESSED_DOWN;
+
+				if (device)
+				{
+					TouchID = event.TouchInput.ID;
+				}
+			}
+			break;
+		}
+		case ETIE_MOVED:
+			if (TouchID == event.TouchInput.ID)
+			{
+				fakeMouseEvent.MouseInput.Event = EMIE_MOUSE_MOVED;
+				fakeMouseEvent.MouseInput.ButtonStates = EMBSM_LEFT;
+
+			}
+			break;
+		case ETIE_LEFT_UP:
+			if (TouchID == event.TouchInput.ID)
+			{
+				fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_LEFT_UP;
+				TouchID = -1;
+			}
+			break;
+		default:
+			break;
+		}
+
+		if (fakeMouseEvent.MouseInput.Event != EMIE_COUNT && device)
+		{
+		    device->postEventFromUser(fakeMouseEvent);
+		}
+	}
 
 	// Remember whether each key is down or up
 	if (event.EventType == irr::EET_KEY_INPUT_EVENT)
@@ -210,7 +366,7 @@ bool CDemo::OnEvent(const SEvent& event)
 		// RakNet: Escape to get the mouse back
 		if (GetSceneManager()->getActiveCamera()->isVisible())
 		{
-			device->getCursorControl()->setVisible(true);
+			if(device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(true);
 			GetSceneManager()->getActiveCamera()->setVisible(false);
 		}
 		else
@@ -219,55 +375,59 @@ bool CDemo::OnEvent(const SEvent& event)
 		}
 	}
 	else
-	if (
-		// RakNet: Use space to jump, not shoot
-//		(event.EventType == EET_KEY_INPUT_EVENT &&
-//		event.KeyInput.Key == KEY_SPACE &&
-//		event.KeyInput.PressedDown == false) ||
-		(event.EventType == EET_MOUSE_INPUT_EVENT &&
-		event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP) &&
-		//currentScene == 3
-		currentScene == 1
-		)
-	{
-
-		// RakNet: Click without focus to get focus back
-		if (GetSceneManager()->getActiveCamera()->isVisible()==false)
+		if (
+			// RakNet: Use space to jump, not shoot
+	//		(event.EventType == EET_KEY_INPUT_EVENT &&
+	//		event.KeyInput.Key == KEY_SPACE &&
+	//		event.KeyInput.PressedDown == false) ||
+			(event.EventType == EET_MOUSE_INPUT_EVENT &&
+				event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP) &&
+			//currentScene == 3
+			currentScene == 1
+			)
 		{
-			device->getCursorControl()->setVisible(false);
-			GetSceneManager()->getActiveCamera()->setVisible(true);
+
+			// RakNet: Click without focus to get focus back
+			if (GetSceneManager()->getActiveCamera()->isVisible() == false)
+			{
+				if(device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
+				GetSceneManager()->getActiveCamera()->setVisible(true);
+			}
+			else
+			{
+				// shoot
+				shoot();
+			}
 		}
 		else
-		{
-			// shoot
-			shoot();
-		}
-	}
-	else
-	if (event.EventType == EET_KEY_INPUT_EVENT &&
-		event.KeyInput.Key == KEY_F9 &&
-		event.KeyInput.PressedDown == false)
-	{
-		video::IImage* image = device->getVideoDriver()->createScreenShot();
-		if (image)
-		{
-			device->getVideoDriver()->writeImageToFile(image, "screenshot.bmp");
-			device->getVideoDriver()->writeImageToFile(image, "screenshot.png");
-			device->getVideoDriver()->writeImageToFile(image, "screenshot.tga");
-			device->getVideoDriver()->writeImageToFile(image, "screenshot.ppm");
-			device->getVideoDriver()->writeImageToFile(image, "screenshot.jpg");
-			device->getVideoDriver()->writeImageToFile(image, "screenshot.pcx");
-			image->drop();
-		}
-	}
-	else
-	if (device->getSceneManager()->getActiveCamera())
-	{
-		device->getSceneManager()->getActiveCamera()->OnEvent(event);
-		return true;
-	}
+			if (event.EventType == EET_KEY_INPUT_EVENT &&
+				event.KeyInput.Key == KEY_F9 &&
+				event.KeyInput.PressedDown == false)
+			{
+				video::IImage* image = device->getVideoDriver()->createScreenShot();
+				if (image)
+				{
+					device->getVideoDriver()->writeImageToFile(image, "screenshot.bmp");
+					device->getVideoDriver()->writeImageToFile(image, "screenshot.png");
+					device->getVideoDriver()->writeImageToFile(image, "screenshot.tga");
+					device->getVideoDriver()->writeImageToFile(image, "screenshot.ppm");
+					device->getVideoDriver()->writeImageToFile(image, "screenshot.jpg");
+					device->getVideoDriver()->writeImageToFile(image, "screenshot.pcx");
+					image->drop();
+				}
+			}
+			else
+				if (device->getSceneManager()->getActiveCamera())
+				{
+					device->getSceneManager()->getActiveCamera()->OnEvent(event);
+					return true;
+				}
 
 	return false;
+#else
+
+#endif //__ANDROID__
+
 }
 
 
@@ -431,8 +591,11 @@ void CDemo::switchToNextScene()
 		break;
 	}
 
+#ifdef __ANDROID__
+	sceneStartTime = device->getTimer()->getRealTime();
+#else
 	sceneStartTime = device->getTimer()->getTime();
-
+#endif // __ANDROID__
 }
 
 
@@ -446,7 +609,17 @@ void CDemo::loadSceneData()
 	// Quake3 Shader controls Z-Writing
 	sm->getParameters()->setAttribute(scene::ALLOW_ZWRITE_ON_TRANSPARENT, true);
 
-	quakeLevelMesh = (scene::IQ3LevelMesh*) sm->getMesh("maps/20kdm2.bsp");
+	quakeLevelMesh = (scene::IQ3LevelMesh*) sm->getMesh("20kdm2.bsp");
+
+#ifdef __ANDROID__
+	if (!quakeLevelMesh) {
+		LOGI("Error: Quake3 Level Mesh 로드 실패!");
+	}
+	scene::IMesh* levelMesh = quakeLevelMesh->getMesh(scene::quake3::E_Q3_MESH_GEOMETRY);
+	if (!levelMesh) {
+		LOGI("Error: Quake Level Mesh Geometry가 NULL!");
+	}
+#endif // __ANDROID__
 
 	if (quakeLevelMesh)
 	{
@@ -544,12 +717,12 @@ void CDemo::loadSceneData()
 	// create sky box
 	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
 	skyboxNode = sm->addSkyBoxSceneNode(
-		driver->getTexture(IRRLICHT_MEDIA_PATH "irrlicht2_up.jpg"),
-		driver->getTexture(IRRLICHT_MEDIA_PATH "irrlicht2_dn.jpg"),
-		driver->getTexture(IRRLICHT_MEDIA_PATH "irrlicht2_lf.jpg"),
-		driver->getTexture(IRRLICHT_MEDIA_PATH "irrlicht2_rt.jpg"),
-		driver->getTexture(IRRLICHT_MEDIA_PATH "irrlicht2_ft.jpg"),
-		driver->getTexture(IRRLICHT_MEDIA_PATH "irrlicht2_bk.jpg"));
+		driver->getTexture(mediaPath+ "irrlicht2_up.jpg"),
+		driver->getTexture(mediaPath+ "irrlicht2_dn.jpg"),
+		driver->getTexture(mediaPath+ "irrlicht2_lf.jpg"),
+		driver->getTexture(mediaPath+ "irrlicht2_rt.jpg"),
+		driver->getTexture(mediaPath+ "irrlicht2_ft.jpg"),
+		driver->getTexture(mediaPath+ "irrlicht2_bk.jpg"));
 	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
 
 	//driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
@@ -591,7 +764,7 @@ void CDemo::loadSceneData()
 		bill = sm->addBillboardSceneNode(0, core::dimension2d<f32>(100,100),
 			waypoint[r]+ core::vector3df(0,20,0));
 		bill->setMaterialFlag(video::EMF_LIGHTING, false);
-		bill->setMaterialTexture(0, driver->getTexture(IRRLICHT_MEDIA_PATH "portal1.bmp"));
+		bill->setMaterialTexture(0, driver->getTexture(mediaPath+ "portal1.bmp"));
 		bill->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
 		bill->addAnimator(anim);
 	}
@@ -614,7 +787,7 @@ void CDemo::loadSceneData()
 	bill = device->getSceneManager()->addBillboardSceneNode(
 		light, core::dimension2d<f32>(40,40));
 	bill->setMaterialFlag(video::EMF_LIGHTING, false);
-	bill->setMaterialTexture(0, driver->getTexture(IRRLICHT_MEDIA_PATH "particlewhite.bmp"));
+	bill->setMaterialTexture(0, driver->getTexture(mediaPath+ "particlewhite.bmp"));
 	bill->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
 
 	// create meta triangle selector with all triangles selectors in it.
@@ -644,7 +817,7 @@ void CDemo::loadSceneData()
 
 	campFire->setMaterialFlag(video::EMF_LIGHTING, false);
 	campFire->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
-	campFire->setMaterialTexture(0, driver->getTexture(IRRLICHT_MEDIA_PATH "fireball.bmp"));
+	campFire->setMaterialTexture(0, driver->getTexture(mediaPath+ "fireball.bmp"));
 	campFire->setMaterialType(video::EMT_TRANSPARENT_VERTEX_ALPHA);
 
 	// load music
@@ -668,7 +841,7 @@ void CDemo::createLoadingScreen()
 {
 	core::dimension2d<u32> size = device->getVideoDriver()->getScreenSize();
 
-	device->getCursorControl()->setVisible(false);
+	if(device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
 
 	// setup loading screen
 
@@ -680,7 +853,7 @@ void CDemo::createLoadingScreen()
 	inOutFader->setColor(backColor,	video::SColor ( 0, 230, 230, 230 ));
 
 	// irrlicht logo
-	device->getGUIEnvironment()->addImage(device->getVideoDriver()->getTexture("../../media/irrlichtlogo2.png"),
+	device->getGUIEnvironment()->addImage(device->getVideoDriver()->getTexture(mediaPath +"irrlichtlogo2.png"),
 		core::position2d<s32>(5,5));
 
 	// loading text
@@ -697,7 +870,7 @@ void CDemo::createLoadingScreen()
 	// load bigger font
 
 	device->getGUIEnvironment()->getSkin()->setFont(
-		device->getGUIEnvironment()->getFont(IRRLICHT_MEDIA_PATH "fonthaettenschweiler.bmp"));
+		device->getGUIEnvironment()->getFont(mediaPath+ "fonthaettenschweiler.bmp"));
 
 	// set new font color
 
@@ -709,7 +882,7 @@ void CDemo::CalculateSyndeyBoundingBox(void)
 	// Find the extents of the player character's model (for networking collision checks)
 	scene::IAnimatedMesh* mesh = 0;
 	scene::ISceneManager *sm = device->getSceneManager();
-	mesh = sm->getMesh(IRRLICHT_MEDIA_PATH "sydney.md2");
+	mesh = sm->getMesh(mediaPath + "sydney.md2");
 	irr::scene::IAnimatedMeshSceneNode* model;
 	model = sm->addAnimatedMeshSceneNode(mesh, 0);
 	model->setScale(core::vector3df(2,2,2));
@@ -816,7 +989,7 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 		core::dimension2d<f32>(BALL_DIAMETER,BALL_DIAMETER), start);
 
 	node->setMaterialFlag(video::EMF_LIGHTING, false);
-	node->setMaterialTexture(0, device->getVideoDriver()->getTexture(IRRLICHT_MEDIA_PATH "fireball.bmp"));
+	node->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "fireball.bmp"));
 	node->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
 
 	f32 length = (f32)(end - start).getLength();
@@ -917,7 +1090,7 @@ void CDemo::createParticleImpacts()
 			paf->drop();
 
 			pas->setMaterialFlag(video::EMF_LIGHTING, false);
-			pas->setMaterialTexture(0, device->getVideoDriver()->getTexture(IRRLICHT_MEDIA_PATH "smoke.bmp"));
+			pas->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath+ "smoke.bmp"));
 			pas->setMaterialType(video::EMT_TRANSPARENT_VERTEX_ALPHA);
 
 			scene::ISceneNodeAnimator* anim = sm->createDeleteAnimator(2000);

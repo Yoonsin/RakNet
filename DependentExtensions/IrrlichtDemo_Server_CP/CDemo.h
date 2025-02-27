@@ -14,7 +14,11 @@
 // Get Irrlicht from http://irrlicht.sourceforge.net/ , it's a great engine
 #include <irrlicht.h>
 
-#define IRRLICHT_MEDIA_PATH "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/IrrlichtMedia/"
+#ifdef __ANDROID__
+#define IRRLICHT_MEDIA_PATH  "media/"
+#else
+#define IRRLICHT_MEDIA_PATH  "../../media/"
+#endif // __ANDROID__
 
 #ifdef _WIN32__
 #include "WindowsIncludes.h" // Prevent 'fd_set' : 'struct' type redefinition
@@ -35,6 +39,8 @@ using namespace irr;
 	#endif
 
 #ifdef  __ANDROID__
+#include <android/native_activity.h>
+#include "android_native_app_glue.h"
 #else
 #pragma comment (lib, "irrKlang-1.1.3/irrKlang.lib")
 #endif //  __ANDROID__
@@ -81,6 +87,11 @@ public:
 	void EnableInput(bool enabled);
 	void PushMessage(RakNet::RakString rs);
 
+#ifdef __ANDROID__
+	android_app* state;
+#endif
+
+
 private:
 
 	void createLoadingScreen();
@@ -100,6 +111,7 @@ private:
 	IrrlichtDevice *device;
 
 	bool isServer;
+	irr::core::stringc mediaPath;
 
 #ifdef USE_IRRKLANG
 	void startIrrKlang();
@@ -160,6 +172,11 @@ private:
 	void CalculateSyndeyBoundingBox(void);
 
 	bool isConnectedToNATPunchthroughServer;
+
+#ifdef __ANDROID__
+	core::position2d<irr::s32> TouchStartPos;
+	s32 TouchID;
+#endif
 };
 
 #endif
