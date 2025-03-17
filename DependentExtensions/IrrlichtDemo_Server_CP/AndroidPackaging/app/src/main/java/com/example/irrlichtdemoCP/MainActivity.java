@@ -21,6 +21,7 @@ public class MainActivity extends NativeActivity {
         // Example of a call to a native method
         TextView tv = findViewById(R.id.sample_text);
         tv.setText(stringFromJNI());
+        
     }
 
     public native String stringFromJNI();

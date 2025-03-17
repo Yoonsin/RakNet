@@ -126,8 +126,8 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	MenuDevice = createDeviceEx(param);
 	
 #else
-	driverType = video::EDT_BURNINGSVIDEO;
-	mediaPath = "IrrlichtMedia/";
+	driverType = video::EDT_DIRECT3D9;
+	mediaPath = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/IrrlichtMedia/";
 	MenuDevice = createDevice(driverType,
 		core::dimension2d<u32>(512, 384), 16, false, false, false, this);
 #endif //__ANDROID__

@@ -100,6 +100,10 @@ void InstantiateRakNetClasses(bool isServer)
 	sd.socketFamily = AF_INET; // Only IPV4 supports broadcast on 255.255.255.255
 	
 #ifdef __ANDROID__
+	if (topology == CLIENT) {
+		while (IRNS2_Berkley::IsPortInUse(sd.port, sd.hostAddress, sd.socketFamily, SOCK_DGRAM) == true)
+			sd.port++;
+	}
 #else
 	if (topology == CLIENT) {
 		while (IRNS2_Berkley::IsPortInUse(sd.port, sd.hostAddress, sd.socketFamily, SOCK_DGRAM) == true)
@@ -156,7 +160,11 @@ void InstantiateRakNetClasses(bool isServer)
 	//RakAssert(car==CONNECTION_ATTEMPT_STARTED);
 
 	if (topology == CLIENT) {
-		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT , 0, 0);
+#if __ANDROID__
+		ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); //"127.0.0.1"
+#else
+		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //"127.0.0.1"
+#endif // __ANDROID__
 		RakAssert(car == CONNECTION_ATTEMPT_STARTED);
 	}
 	

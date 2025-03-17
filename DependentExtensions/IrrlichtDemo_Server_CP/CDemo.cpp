@@ -23,6 +23,51 @@
 #define LOGE(fmt, ...) _LOG(ANDROID_LOG_ERROR, fmt, ##__VA_ARGS__)
 #define LOGW(fmt, ...) _LOG(ANDROID_LOG_WARN, fmt, ##__VA_ARGS__)
 #define LOGI(fmt, ...) _LOG(ANDROID_LOG_INFO, fmt, ##__VA_ARGS__)
+/* Irrlicht Extension stuff */
+#include <IExtendableSkin.h>
+#include <ScrollBarSkinExtension.h>
+#include <AggregatableGUIElementAdapter.h>
+#include <AggregateGUIElement.h>
+#include <timing.h>
+#include <utilities.h>
+#include <StringHelpers.h>
+#include <ScrollBar.h>
+#include <Drawer2D.h>
+#include <BeautifulGUIImage.h>
+#include <AggregateSkinExtension.h>
+#include <DraggableGUIElement.h>
+#include <DragPlaceGUIElement.h>
+#include <JoyStickElement.h>
+#include <NotificationBox.h>
+#include <mathUtils.h>
+
+class AppSkin : public IExtendableSkin {
+
+public:
+
+	enum SkinIDs {
+		DEFAULT_AGGREGATABLE,
+		REGULAR_SCROLLBAR,
+		REGULAR_AGGREGATION,
+		NO_HIGHLIGHT_AGGREGATION,
+		INVISIBLE_AGGREGATION,
+		ID_COUNT
+	};
+
+	AppSkin(irr::IrrlichtDevice* device, Drawer2D* drawer) :
+		IExtendableSkin(device->getGUIEnvironment()->createSkin(gui::EGST_WINDOWS_CLASSIC), drawer) {
+		registerExtension(new ScrollBarSkinExtension(this, { video::SColor(255,255,255,255), video::SColor(255,196,198,201) }, .1f, .3f), REGULAR_SCROLLBAR);
+		registerExtension(new AggregateSkinExtension(this, false, true), REGULAR_AGGREGATION);
+		registerExtension(new AggregateSkinExtension(this, false, true), NO_HIGHLIGHT_AGGREGATION);
+		registerExtension(new AggregateSkinExtension(this, false, false), INVISIBLE_AGGREGATION);
+		registerExtension(new DefaultAggregatableSkin(this, false), DEFAULT_AGGREGATABLE);
+	}
+
+	~AppSkin() {
+		parent->drop();//drop required here since parent is created in this constructor
+	}
+
+};
 #endif
 
 //#include "miniupnpc.h"
@@ -71,7 +116,7 @@ CDemo::~CDemo()
 
 void CDemo::run()
 {
-	video::E_DRIVER_TYPE driverType = video::EDT_BURNINGSVIDEO;
+	video::E_DRIVER_TYPE driverType = video::EDT_DIRECT3D9;
 	
 #ifdef __ANDROID__
 	driverType = video::EDT_OGLES2;//video::EDT_OGLES2;
@@ -89,6 +134,7 @@ void CDemo::run()
 	param.AntiAlias = 0;
 	param.EventReceiver = this;
 	device = createDeviceEx(param);
+	//device->getTimer()->start();
 
 	char filePath[1024] = "/media";
 	char absPath[5000];
@@ -132,6 +178,13 @@ void CDemo::run()
 	io::IFileSystem* fs = device->getFileSystem();
 	ILogger* logger = device->getLogger();
 
+	//Android에서 MIP_MAPS를 끄지 않으면 퀘이크 맵 전체가 검게보임
+#ifdef __ANDROID__
+	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
+#else
+	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
+#endif __ANDROID__
+
 	device->setWindowCaption(L"Irrlicht Engine Demo");
 
 	// set ambient light
@@ -156,6 +209,28 @@ void CDemo::run()
 			break;
 		}
 	}
+	
+	isRotate = false;
+
+	//IrrlichtDemo Extensions
+	core::rect<irr::s32> winRect(0, 0, 9 * displayMetrics.widthPixels / 10, 9 * displayMetrics.heightPixels / 10);
+	Drawer2D* drawer = new Drawer2D(device);
+	AppSkin* skin = new AppSkin(device, drawer);
+	assert(isExtendableSkin(skin));
+	guienv->setSkin(skin);
+	skin->drop();
+
+	//joystick
+	int offset = 150;
+	core::rect<s32> testArea3(20, winRect.getHeight() / 2 + 20 + offset, winRect.getWidth() / 4, winRect.getHeight() + offset);
+	bool scrollable = false;
+	bool horizontal = false;
+	//JoyStickElement* joyStick = new JoyStickElement(drawer, env, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,false, AppSkin::DEFAULT_AGGREGATABLE,video::SColor(255,255,255,255),NULL,NULL,testArea3);
+	AggregateGUIElement* a3 = new AggregateGUIElement(guienv, 1.f, 1.f, 1.f, 1.f, true, horizontal, scrollable, {
+		new JoyStickElement(drawer, guienv, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,true,  AppSkin::DEFAULT_AGGREGATABLE, video::SColor(255,255,255,255), static_cast<void*>(&KeyIsDown)) },
+		{}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea3);
+
+	//AppSkin::DEFAULT_AGGREGATABLE
 #endif //__ANDROID__
 
 	if (device->getFileSystem()->existFile("irrlicht.dat"))
@@ -166,12 +241,14 @@ void CDemo::run()
 		device->getFileSystem()->addFileArchive("map-20kdm2.pk3", true, true, io::EFAT_ZIP);
 	else {
 		device->getFileSystem()->addFileArchive(mediaPath + "map-20kdm2.pk3", true, true, io::EFAT_ZIP);
+#ifdef __ANDROID__
 		if (device->getFileSystem()->existFile(mediaPath + "map-20kdm2.pk3")) {
 			LOGI("맵 파일이 존재함!");
 		}
 		else {
 			LOGI("맵 파일이 없음!");
 		}
+#endif // __ANDROID__
 	}
 
 //	wchar_t tmp[255];
@@ -198,7 +275,7 @@ void CDemo::run()
 #ifdef __ANDROID__
 	//에뮬레이터에서 getTime이 0을 반환하므로 임의로 설정
 	sceneStartTime = device->getTimer()->getTime();
-	sceneStartTime = device->getTimer()->getRealTime();
+	//sceneStartTime = device->getTimer()->getRealTime();
 	RakNet::TimeMS curTime = RakNet::GetTimeMS();
 #else
 	sceneStartTime = device->getTimer()->getTime();
@@ -219,7 +296,8 @@ void CDemo::run()
 
 			// load next scene if necessary
 #ifdef __ANDROID__
-		    now = device->getTimer()->getRealTime();
+		    //now = device->getTimer()->getRealTime();
+			now = device->getTimer()->getTime();
 #else
 			now = device->getTimer()->getTime();
 #endif // __ANDROID__
@@ -237,6 +315,10 @@ void CDemo::run()
 
 			driver->endScene();
 
+			//char k[1000];
+			//sprintf(k, "!!time:(%d)\n)", now);
+			//logger->log(k);
+			
 			/*
 			// write statistics
 			static s32 lastfps = 0;
@@ -284,9 +366,10 @@ void CDemo::run()
 
 bool CDemo::OnEvent(const SEvent& event)
 {
+#ifdef __ANDROID__
 	if (!device)
 		return false;
-#ifdef __ANDROID__
+
 	if (event.EventType == EET_TOUCH_INPUT_EVENT)
 	{
 		/*
@@ -304,9 +387,9 @@ bool CDemo::OnEvent(const SEvent& event)
 		fakeMouseEvent.MouseInput.ButtonStates = 0;
 		fakeMouseEvent.MouseInput.Event = EMIE_COUNT;
 
-		/*char strDisplay[100];
-		sprintf(strDisplay, "fakeeee event type:(%d) / event TouchInput type:(%d) \n", fakeMouseEvent.EventType, event.TouchInput.Event);
-		MenuDevice->getLogger()->log(strDisplay);*/
+		SEvent fakeKeyEvent;
+		fakeKeyEvent.EventType = EET_KEY_INPUT_EVENT;
+		fakeKeyEvent.KeyInput.Key = KEY_KEY_CODES_COUNT;
 
 		switch (event.TouchInput.Event)
 		{
@@ -315,40 +398,187 @@ bool CDemo::OnEvent(const SEvent& event)
 			// We only work with the first for now.force opengl error
 			if (TouchID == -1)
 			{
-				fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_PRESSED_DOWN;
-
 				if (device)
 				{
-					TouchID = event.TouchInput.ID;
+					core::position2d<s32> touchPoint(event.TouchInput.X, event.TouchInput.Y);
+					gui::IGUIElement* joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
+					gui::IGUIElement* jump_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(GUI_JUMP);
+					gui::IGUIElement* fire_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(GUI_FIRE);
+
+					if (joy_stick && joy_stick->isPointInside(touchPoint)) {
+						device->getLogger()->log("joyStick Press!!");
+
+					}
+					else
+					if (jump_button && jump_button->isPointInside(touchPoint)) {
+							device->getLogger()->log("jumpButton Press!!");
+							fakeKeyEvent.KeyInput.Key = KEY_SPACE;
+							fakeKeyEvent.KeyInput.PressedDown = true;
+							TouchID = event.TouchInput.ID;
+					}
+					else
+					if (fire_button && fire_button->isPointInside(touchPoint)) {
+								device->getLogger()->log("fireButton Press!!");
+								fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_PRESSED_DOWN;
+								TouchID = event.TouchInput.ID;
+					}
+					else
+					{
+								device->getLogger()->log("ViewPort Rotate start!!");
+								isRotate = true;
+								if (fpsCamAnim) {
+									fpsCamAnim->isRotate = isRotate;
+									fpsCamAnim->TouchStartPos = touchPoint;
+									fpsCamAnim->TouchCurrentPos = touchPoint;
+									fpsCamAnim->startRotation = fpsCamAnim->relativeRotation;
+								}
+					}
 				}
 			}
 			break;
 		}
 		case ETIE_MOVED:
+		{
+			core::position2d<s32> touchPoint(event.TouchInput.X, event.TouchInput.Y);
+			gui::IGUIElement* joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
+			gui::IGUIElement* jump_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(GUI_JUMP);
+			gui::IGUIElement* fire_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(GUI_FIRE);
+
+			bool is_gui_viewport = (joy_stick && joy_stick->isPointInside(touchPoint)) || (jump_button && jump_button->isPointInside(touchPoint)) || (fire_button && fire_button->isPointInside(touchPoint));
+			
+			if (isRotate) {
+				if (is_gui_viewport) {
+					device->getLogger()->log("ViewPort Rotate End!!");
+					isRotate = false;
+					if (fpsCamAnim) {
+						fpsCamAnim->isRotate = isRotate;
+					}
+				}
+				else {
+					device->getLogger()->log("ViewPort Rotating!!");
+					if (fpsCamAnim) {
+						fpsCamAnim->TouchCurrentPos = touchPoint;
+					}
+				}
+			}
+
 			if (TouchID == event.TouchInput.ID)
 			{
 				fakeMouseEvent.MouseInput.Event = EMIE_MOUSE_MOVED;
 				fakeMouseEvent.MouseInput.ButtonStates = EMBSM_LEFT;
-
 			}
+
 			break;
+		}
 		case ETIE_LEFT_UP:
+		{
 			if (TouchID == event.TouchInput.ID)
 			{
-				fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_LEFT_UP;
+				core::position2d<s32> touchPoint(event.TouchInput.X, event.TouchInput.Y);
+				gui::IGUIElement* joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
+				gui::IGUIElement* jump_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(GUI_JUMP);
+				gui::IGUIElement* fire_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(GUI_FIRE);
+
+				if (joy_stick && joy_stick->isPointInside(touchPoint)) {
+					device->getLogger()->log("joyStick Left!!");
+
+				}
+				else
+				if (jump_button && jump_button->isPointInside(touchPoint)) {
+						device->getLogger()->log("jumpButton Left!");
+						fakeKeyEvent.KeyInput.Key = KEY_SPACE;
+						fakeKeyEvent.KeyInput.PressedDown = false;
+				}
+				else
+				if (fire_button && fire_button->isPointInside(touchPoint)) {
+						device->getLogger()->log("fireButton Left!!");
+						fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_LEFT_UP;
+							//실제 이벤트가 아님. Fire를 위한 식별자로만 사용
+						fakeMouseEvent.UserEvent.UserData1 = GUI_FIRE;
+				}
+
+				if (isRotate) {
+					   device->getLogger()->log("ViewPort Rotate End!!");
+					   
+				}
+
+				isRotate = false;
+				if (fpsCamAnim) fpsCamAnim->isRotate = isRotate;
 				TouchID = -1;
 			}
 			break;
+		}
 		default:
 			break;
 		}
 
-		if (fakeMouseEvent.MouseInput.Event != EMIE_COUNT && device)
-		{
+		if (fakeMouseEvent.MouseInput.Event != EMIE_COUNT && device){
 		    device->postEventFromUser(fakeMouseEvent);
 		}
+
+		if (fakeKeyEvent.KeyInput.Key != KEY_KEY_CODES_COUNT && device) {
+			device->postEventFromUser(fakeKeyEvent);
+		}
+
+	}else
+	if (event.EventType == irr::EET_KEY_INPUT_EVENT) {
+		KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
 	}
 
+	if (event.EventType == EET_KEY_INPUT_EVENT && event.KeyInput.Key == KEY_ESCAPE && event.KeyInput.PressedDown == false)
+	{
+		// RakNet: Escape to get the mouse back
+		if (GetSceneManager()->getActiveCamera()->isVisible())
+		{
+			if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(true);
+			GetSceneManager()->getActiveCamera()->setVisible(false);
+		}
+		else
+		{
+			device->closeDevice();
+		}
+	}
+	else if 
+		((event.EventType == EET_MOUSE_INPUT_EVENT && event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP) && currentScene == 1)
+		{
+		    //단순히 버튼을 눌렀을 때만 작동해야됨
+			// RakNet: Click without focus to get focus back
+			if (GetSceneManager()->getActiveCamera()->isVisible() == false)
+			{
+				if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
+				GetSceneManager()->getActiveCamera()->setVisible(true);
+			}
+			else
+			{
+				if(event.UserEvent.UserData1 == GUI_FIRE)
+				  shoot();
+			}
+		}
+		else if (event.EventType == EET_KEY_INPUT_EVENT && event.KeyInput.Key == KEY_F9 && event.KeyInput.PressedDown == false)
+		{
+			video::IImage* image = device->getVideoDriver()->createScreenShot();
+			if (image)
+			{
+				device->getVideoDriver()->writeImageToFile(image, "screenshot.bmp");
+				device->getVideoDriver()->writeImageToFile(image, "screenshot.png");
+				device->getVideoDriver()->writeImageToFile(image, "screenshot.tga");
+				device->getVideoDriver()->writeImageToFile(image, "screenshot.ppm");
+				device->getVideoDriver()->writeImageToFile(image, "screenshot.jpg");
+				device->getVideoDriver()->writeImageToFile(image, "screenshot.pcx");
+				image->drop();
+			}
+		}
+		else if (device->getSceneManager()->getActiveCamera())
+		{
+		    device->getCursorControl();
+			device->getSceneManager()->getActiveCamera()->OnEvent(event);
+			return false;
+		}
+
+
+#else
+if (!device)
+return false;
 	// Remember whether each key is down or up
 	if (event.EventType == irr::EET_KEY_INPUT_EVENT)
 		KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
@@ -366,7 +596,7 @@ bool CDemo::OnEvent(const SEvent& event)
 		// RakNet: Escape to get the mouse back
 		if (GetSceneManager()->getActiveCamera()->isVisible())
 		{
-			if(device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(true);
+			if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(true);
 			GetSceneManager()->getActiveCamera()->setVisible(false);
 		}
 		else
@@ -390,7 +620,7 @@ bool CDemo::OnEvent(const SEvent& event)
 			// RakNet: Click without focus to get focus back
 			if (GetSceneManager()->getActiveCamera()->isVisible() == false)
 			{
-				if(device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
+				if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
 				GetSceneManager()->getActiveCamera()->setVisible(true);
 			}
 			else
@@ -423,11 +653,9 @@ bool CDemo::OnEvent(const SEvent& event)
 					return true;
 				}
 
-	return false;
-#else
-
+	
 #endif //__ANDROID__
-
+	return false;
 }
 
 
@@ -549,7 +777,11 @@ void CDemo::switchToNextScene()
 			campFire->setVisible(true);
 			timeForThisScene = -1;
 
+#ifdef __ANDROID__
+			SKeyMap keyMap[11];
+#else
 			SKeyMap keyMap[9];
+#endif // __ANDROID__
 			keyMap[0].Action = EKA_MOVE_FORWARD;
 			keyMap[0].KeyCode = KEY_UP;
 			keyMap[1].Action = EKA_MOVE_FORWARD;
@@ -574,9 +806,31 @@ void CDemo::switchToNextScene()
 			//keyMap[8].KeyCode = KEY_KEY_J;
 			keyMap[8].KeyCode = KEY_SPACE;
 
+			//rotate
+#ifdef __ANDROID__
+			keyMap[9].Action = EKA_ROTATE_LEFT;
+			keyMap[9].KeyCode = KEY_KEY_0;
+			keyMap[10].Action = EKA_ROTATE_RIGHT;
+			keyMap[10].KeyCode = KEY_KEY_1;
+			camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, false, 7.f);
+
+			scene::ISceneNodeAnimatorList list = camera->getAnimators();
+			scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
+			while (ait != list.end())
+			{
+				//scene::Fps tmp = *ait;;
+				fpsCamAnim = *ait;
+				break;
+			}
+
+#else
 			// Last parameter is jump speed
 			// Tweaked so you can get up ladders
 			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 2.05f);
+#endif // __ANDROID__
+			
+
+			
 			camera->setPosition(core::vector3df(108,140,-140));
 
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
@@ -592,7 +846,8 @@ void CDemo::switchToNextScene()
 	}
 
 #ifdef __ANDROID__
-	sceneStartTime = device->getTimer()->getRealTime();
+	sceneStartTime = device->getTimer()->getTime();
+	//sceneStartTime = device->getTimer()->getRealTime();
 #else
 	sceneStartTime = device->getTimer()->getTime();
 #endif // __ANDROID__
@@ -723,9 +978,11 @@ void CDemo::loadSceneData()
 		driver->getTexture(mediaPath+ "irrlicht2_rt.jpg"),
 		driver->getTexture(mediaPath+ "irrlicht2_ft.jpg"),
 		driver->getTexture(mediaPath+ "irrlicht2_bk.jpg"));
+	
+#ifdef __ANDROID__
+#else
 	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
-
-	//driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
+#endif // __ANDROID__
 
 	// create walk-between-portals animation
 
@@ -748,7 +1005,7 @@ void CDemo::loadSceneData()
 	{
 		core::stringc tmp(IRRLICHT_MEDIA_PATH "portal");
 		tmp += g;
-		tmp += ".bmp";
+		tmp += ".png";
 		video::ITexture* t = driver->getTexture( tmp );
 		textures.push_back(t);
 	}
@@ -764,7 +1021,7 @@ void CDemo::loadSceneData()
 		bill = sm->addBillboardSceneNode(0, core::dimension2d<f32>(100,100),
 			waypoint[r]+ core::vector3df(0,20,0));
 		bill->setMaterialFlag(video::EMF_LIGHTING, false);
-		bill->setMaterialTexture(0, driver->getTexture(mediaPath+ "portal1.bmp"));
+		bill->setMaterialTexture(0, driver->getTexture(mediaPath+ "portal1.png"));
 		bill->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
 		bill->addAnimator(anim);
 	}
@@ -833,6 +1090,31 @@ void CDemo::loadSceneData()
 		startSound();
 #endif
 
+
+#ifdef __ANDROID__
+	// set game UI
+	core::dimension2d<u32> size = device->getVideoDriver()->getScreenSize();
+	//int yOffset = 480;
+	//core::rect<int> upPos(225, 0+yOffset, 375, 200+yOffset);
+	//device->getGUIEnvironment()->addButton(upPos, 0, GUI_MOVE_UP, L"UP");
+
+	//core::rect<int> downPos(225, 400+yOffset , 375, 600 + yOffset);
+	//device->getGUIEnvironment()->addButton(downPos, 0, GUI_MOVE_DOWN, L"DOWN");
+
+	//core::rect<int> leftPos(0, 200+yOffset, 150, 400+yOffset);
+	//device->getGUIEnvironment()->addButton(leftPos, 0, GUI_MOVE_LEFT, L"LEFT");
+
+	//core::rect<int> rightPos(450,200+yOffset ,600 ,400+yOffset );
+	//device->getGUIEnvironment()->addButton(rightPos, 0, GUI_MOVE_RIGHT, L"RIGHT");
+
+	int offset = 50;
+	core::rect<int> jumpPos(size.Width-150-offset, size.Height-200 - offset, size.Width, size.Height );
+	device->getGUIEnvironment()->addButton(jumpPos, 0, GUI_JUMP, L"JUMP");
+
+	core::rect<int> firePos(size.Width-150 - offset, size.Height-550 - offset, size.Width ,size.Height-350);
+	device->getGUIEnvironment()->addButton(firePos, 0, GUI_FIRE, L"FIRE");
+
+#endif // __ANDROID__
 }
 
 
@@ -849,8 +1131,8 @@ void CDemo::createLoadingScreen()
 
 	// create in fader
 
-	inOutFader = device->getGUIEnvironment()->addInOutFader();
-	inOutFader->setColor(backColor,	video::SColor ( 0, 230, 230, 230 ));
+	//inOutFader = device->getGUIEnvironment()->addInOutFader();
+	//inOutFader->setColor(backColor,	video::SColor ( 0, 230, 230, 230 ));
 
 	// irrlicht logo
 	device->getGUIEnvironment()->addImage(device->getVideoDriver()->getTexture(mediaPath +"irrlichtlogo2.png"),
@@ -861,11 +1143,11 @@ void CDemo::createLoadingScreen()
 	const int lwidth = size.Width - 20;
 	const int lheight = 16;
 
-	core::rect<int> pos(10, size.Height-lheight-10, 10+lwidth, size.Height-10);
+	//core::rect<int> pos(10, size.Height-lheight-10, 10+lwidth, size.Height-10);
 
-	device->getGUIEnvironment()->addImage(pos);
-	statusText = device->getGUIEnvironment()->addStaticText(L"Loading...",	pos, true);
-	statusText->setOverrideColor(video::SColor(255,205,200,200));
+	//device->getGUIEnvironment()->addImage(pos);
+	//statusText = device->getGUIEnvironment()->addStaticText(L"Loading...",	pos, true);
+	//statusText->setOverrideColor(video::SColor(255,205,200,200));
 
 	// load bigger font
 
@@ -876,6 +1158,9 @@ void CDemo::createLoadingScreen()
 
 	device->getGUIEnvironment()->getSkin()->setColor(gui::EGDC_BUTTON_TEXT,
 		video::SColor(255,100,100,100));
+
+
+
 }
 void CDemo::CalculateSyndeyBoundingBox(void)
 {

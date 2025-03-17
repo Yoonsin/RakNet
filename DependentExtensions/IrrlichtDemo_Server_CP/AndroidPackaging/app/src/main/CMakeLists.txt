@@ -3,7 +3,7 @@ project(IrrlichtDemo_Server_CP)  # 🔹 프로젝트 이름 설정
 
 set(CMAKE_SYSTEM_NAME Android)
 set(CMAKE_SYSTEM_VERSION 30)  # Android API 레벨
-set(CMAKE_ANDROID_ARCH_ABI "x86_64")  # 사용할 ABI
+set(CMAKE_ANDROID_ARCH_ABI "x86_64" )  # 사용할 ABI #arm64-v8a #x86_64
 
 # 추가적으로 사용되지 않는 변수를 올바르게 설정
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -32,15 +32,15 @@ add_library( # Sets the name of the library.
             # C:/android-sdk/ndk/23.2.8568313/sources/android/native_app_glue/android_native_app_glue.c
 C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/cpp/android_native_app_glue.c )
  
-
 # now build app's shared lib
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -frtti")
 
 # Export ANativeActivity_onCreate(),
 # Refer to: https://github.com/android-ndk/ndk/issues/381.
 set(CMAKE_SHARED_LINKER_FLAGS
     "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
-
 
 add_library( # Sets the name of the library.
              native-lib
@@ -61,7 +61,10 @@ add_library( # Sets the name of the library.
 # Specifies a path to native header files.
 #add_library에 소스파일, include_directories에 헤더파일 경로 추가
 #include_directories(C:/android-sdk/ndk/23.2.8568313/sources/android/native_app_glue/)
-include_directories(C:/irrlicht-ogl-es/include/)
+#include_directories(C:/irrlicht-ogl-es/include/)
+include_directories(C:/GitHub/CommonLibraries/Irrlicht/include/)
+include_directories(C:/GitHub/CommonLibraries/IrrlichtExtensions/)
+include_directories(C:/GitHub/CommonLibraries/Common/)
 include_directories(C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/)
 include_directories(C:/GitHub/RakNet/Source/)
 include_directories(C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/cpp/)
@@ -81,13 +84,18 @@ find_library( # Sets the name of the path variable.
               # Specifies the name of the NDK library that
               # you want CMake to locate.
               log )
- 
+
+
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in the
 # build script, prebuilt third-party libraries, or system libraries.
  
-target_link_libraries( 
+target_link_libraries(  
                        native-lib
+                       C:/GitHub/CommonLibraries/Irrlicht/source/Irrlicht/Android/obj/local/${CMAKE_ANDROID_ARCH_ABI}/libIrrlicht.a
+                       C:/GitHub/CommonLibraries/Common/Android/obj/local/${CMAKE_ANDROID_ARCH_ABI}/libCommon.a
+                       C:/GitHub/CommonLibraries/IrrlichtExtensions/android/obj/local/${CMAKE_ANDROID_ARCH_ABI}/libIrrlichtExtension.a
+                       C:/GitHub/CommonLibraries/IrrlichtExtensions/android/obj/local/${CMAKE_ANDROID_ARCH_ABI}/libandroid_native_app_glue.a
                        app-glue
                        android
                        EGL
@@ -96,9 +104,10 @@ target_link_libraries(
                        GLESv2
                        z
                        m
-                       ${log-lib}
-                       C:/irrlicht-ogl-es/source/Irrlicht/Android/obj/local/${CMAKE_ANDROID_ARCH_ABI}/libIrrlicht.a
-                       C:/GitHub/RakNet/Lib/LibStatic/Debug/Android-x86_64/x86_64/libRakNet_VS2008.so
+                       ${log-lib}       
+                       C:/GitHub/RakNet/Lib/LibStatic/Debug/Android-${CMAKE_ANDROID_ARCH_ABI}/${CMAKE_ANDROID_ARCH_ABI}/libRakNet_VS2008.so
 )
+
+ #C:/irrlicht-ogl-es/source/Irrlicht/Android/obj/local/${CMAKE_ANDROID_ARCH_ABI}/libIrrlicht.a
 #>>>    NOTE: Just like above, this should be your path. This one is mine.
 #>>>          Links to the appropriate ABI. CAREFUL: You must have >ALL< Irrlicht ABIs built ("arm64-v8a", "armeabi", "armeabi-v7a", "mips64", "x86", "x86_64") otherwise you may run into installation errors on your virtual device.

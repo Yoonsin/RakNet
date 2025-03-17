@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectName>IrrlichtDemo_Server</ProjectName>
-    <ProjectGuid>{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}</ProjectGuid>
+    <ProjectGuid>{52E3A474-8319-4077-80C4-D98A01191823}</ProjectGuid>
     <RootNamespace>IrrlichtDemo</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>

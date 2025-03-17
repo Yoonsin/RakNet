@@ -72,6 +72,53 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
+/* Irrlicht Extension stuff */
+#include <IExtendableSkin.h>
+#include <ScrollBarSkinExtension.h>
+#include <AggregatableGUIElementAdapter.h>
+#include <AggregateGUIElement.h>
+#include <timing.h>
+#include <utilities.h>
+#include <StringHelpers.h>
+#include <ScrollBar.h>
+#include <Drawer2D.h>
+#include <BeautifulGUIImage.h>
+#include <AggregateSkinExtension.h>
+#include <DraggableGUIElement.h>
+#include <DragPlaceGUIElement.h>
+#include <JoyStickElement.h>
+#include <NotificationBox.h>
+#include <mathUtils.h>
+
+class AppSkin : public IExtendableSkin {
+
+public:
+
+    enum SkinIDs {
+        DEFAULT_AGGREGATABLE,
+        REGULAR_SCROLLBAR,
+        REGULAR_AGGREGATION,
+        NO_HIGHLIGHT_AGGREGATION,
+        INVISIBLE_AGGREGATION,
+        ID_COUNT
+    };
+
+    AppSkin(irr::IrrlichtDevice* device, Drawer2D* drawer) :
+        IExtendableSkin(device->getGUIEnvironment()->createSkin(gui::EGST_WINDOWS_CLASSIC), drawer) {
+        registerExtension(new ScrollBarSkinExtension(this, { SColor(255,255,255,255), SColor(255,196,198,201) }, .1f, .3f), REGULAR_SCROLLBAR);
+        registerExtension(new AggregateSkinExtension(this, true, true), REGULAR_AGGREGATION);
+        registerExtension(new AggregateSkinExtension(this, false, true), NO_HIGHLIGHT_AGGREGATION);
+        registerExtension(new AggregateSkinExtension(this, false, false), INVISIBLE_AGGREGATION);
+        registerExtension(new DefaultAggregatableSkin(this, true), DEFAULT_AGGREGATABLE);
+    }
+
+    ~AppSkin() {
+        parent->drop();//drop required here since parent is created in this constructor
+    }
+
+};
+
+
 //! we want the lights follow the model when it's moving
 class CSceneNodeAnimatorFollowBoundingBox : public irr::scene::ISceneNodeAnimator
 {
@@ -628,84 +675,85 @@ int OnSensorEvent(int /* fd */, int /* events */, void* data) {
     return 1;
 }
 
-//void test(android_app* state) {
-//    stringc mediaPath = "media/";
-//    irr::android::SDisplayMetrics displayMetrics;
-//    memset(&displayMetrics, 0, sizeof displayMetrics);
-//    irr::android::getDisplayMetrics(state, displayMetrics);
-//    video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
-//
-//    SIrrlichtCreationParameters param;
-//    param.DriverType = driverType;				// android:glEsVersion in AndroidManifest.xml should be "0x00020000"
-//    param.WindowSize = core::dimension2d<u32>(displayMetrics.widthPixels, displayMetrics.heightPixels);	// using 0,0 it will automatically set it to the maximal size
-//    param.PrivateData = state;
-//    param.Bits = 24;
-//    param.ZBufferBits = 16;
-//    param.AntiAlias = 0;
-//    MyEventReceiver receiver;
-//    param.EventReceiver = &receiver;
-//    IrrlichtDevice* device = createDeviceEx(param);
-//  
-//    video::IVideoDriver* driver = device->getVideoDriver();
-//    scene::ISceneManager* smgr = device->getSceneManager();
-//    io::IFileSystem* fs = device->getFileSystem();
-//    ILogger* logger = device->getLogger();
-//
-//    for (u32 i = 0; i < fs->getFileArchiveCount(); ++i)
-//    {
-//        io::IFileArchive* archive = fs->getFileArchive(i);
-//        if (archive->getType() == io::E_FILE_ARCHIVE_TYPE::EFAT_ANDROID_ASSET)
-//        {
-//            archive->addDirectoryToFileList(mediaPath);
-//            break;
-//        }
-//    }
-//
-//    device->getFileSystem()->addFileArchive(mediaPath + "map-20kdm2.pk3", true, true, io::EFAT_ZIP);
-//    scene::IAnimatedMesh* mesh = smgr->getMesh("20kdm2.bsp");
-//    scene::ISceneNode* node = 0;
-//
-//    if (mesh)
-//        node = smgr->addOctreeSceneNode(mesh->getMesh(0), 0, -1, 1024);
-//    if (node)
-//        node->setPosition(core::vector3df(-1300, -144, -1249));
-//    smgr->addCameraSceneNodeFPS();
-//    //device->getCursorControl()->setVisible(false);
-//
-//    int lastFPS = -1;
-//
-//    while (device->run())
-//    {
-//        if (device->isWindowActive())
-//        {
-//            driver->beginScene(video::ECBF_COLOR | video::ECBF_DEPTH, video::SColor(255, 200, 200, 200));
-//            smgr->drawAll();
-//            driver->endScene();
-//
-//            int fps = driver->getFPS();
-//
-//            if (lastFPS != fps)
-//            {
-//                core::stringw str = L"Irrlicht Engine - Quake 3 Map example [";
-//                str += driver->getName();
-//                str += L"] FPS:";
-//                str += fps;
-//
-//                device->setWindowCaption(str.c_str());
-//                lastFPS = fps;
-//            }
-//            device->yield();
-//        }
-//        else
-//            device->yield();
-//    }
-//
-//    /*
-//    In the end, delete the Irrlicht device.
-//    */
-//    device->drop();
-//
-//}
+//example 2
+void test(android_app* state) {
+    stringc mediaPath = "media/";
+    irr::android::SDisplayMetrics displayMetrics;
+    memset(&displayMetrics, 0, sizeof displayMetrics);
+    irr::android::getDisplayMetrics(state, displayMetrics);
+    video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
+
+    SIrrlichtCreationParameters param;
+    param.DriverType = driverType;				// android:glEsVersion in AndroidManifest.xml should be "0x00020000"
+    param.WindowSize = core::dimension2d<u32>(displayMetrics.widthPixels, displayMetrics.heightPixels);	// using 0,0 it will automatically set it to the maximal size
+    param.PrivateData = state;
+    param.Bits = 24;
+    param.ZBufferBits = 16;
+    param.AntiAlias = 0;
+    MyEventReceiver receiver(state);
+    param.EventReceiver = &receiver;
+    IrrlichtDevice* device = createDeviceEx(param);
+  
+    video::IVideoDriver* driver = device->getVideoDriver();
+    scene::ISceneManager* smgr = device->getSceneManager();
+    io::IFileSystem* fs = device->getFileSystem();
+    ILogger* logger = device->getLogger();
+
+    for (u32 i = 0; i < fs->getFileArchiveCount(); ++i)
+    {
+        io::IFileArchive* archive = fs->getFileArchive(i);
+        if (archive->getType() == io::E_FILE_ARCHIVE_TYPE::EFAT_ANDROID_ASSET)
+        {
+            archive->addDirectoryToFileList(mediaPath);
+            break;
+        }
+    }
+
+    device->getFileSystem()->addFileArchive(mediaPath + "map-20kdm2.pk3", true, true, io::EFAT_ZIP);
+    scene::IAnimatedMesh* mesh = smgr->getMesh("20kdm2.bsp");
+    scene::ISceneNode* node = 0;
+
+    if (mesh)
+        node = smgr->addOctreeSceneNode(mesh->getMesh(0), 0, -1, 1024);
+    if (node)
+        node->setPosition(core::vector3df(-1300, -144, -1249));
+    smgr->addCameraSceneNodeFPS();
+    //device->getCursorControl()->setVisible(false);
+
+    int lastFPS = -1;
+
+    while (device->run())
+    {
+        if (device->isWindowActive())
+        {
+            driver->beginScene(video::ECBF_COLOR | video::ECBF_DEPTH, video::SColor(255, 200, 200, 200));
+            smgr->drawAll();
+            driver->endScene();
+
+            int fps = driver->getFPS();
+
+            if (lastFPS != fps)
+            {
+                core::stringw str = L"Irrlicht Engine - Quake 3 Map example [";
+                str += driver->getName();
+                str += L"] FPS:";
+                str += fps;
+
+                device->setWindowCaption(str.c_str());
+                lastFPS = fps;
+            }
+            device->yield();
+        }
+        else
+            device->yield();
+    }
+
+    /*
+    In the end, delete the Irrlicht device.
+    */
+    device->drop();
+
+}
 
 
 /**
@@ -714,14 +762,17 @@ int OnSensorEvent(int /* fd */, int /* events */, void* data) {
  * event loop for receiving input events and doing other things.
  */
  void android_CMainMenu(Engine* engine, android_app* state) {
+     irr::android::SDisplayMetrics displayMetrics;
+     memset(&displayMetrics, 0, sizeof displayMetrics);
+     irr::android::getDisplayMetrics(state, displayMetrics);
 
      stringc mediaPath = "media/";
      /* Irrlicht stuff */
      MyEventReceiver receiver(state);
      SIrrlichtCreationParameters param;
-     //	param.DriverType = EDT_OGLES1;				// android:glEsVersion in AndroidManifest.xml should be "0x00010000" (requesting 0x00020000 will also guarantee that ES1 works)
+     //param.DriverType = EDT_OGLES1;				// android:glEsVersion in AndroidManifest.xml should be "0x00010000" (requesting 0x00020000 will also guarantee that ES1 works)
      param.DriverType = EDT_OGLES2;				// android:glEsVersion in AndroidManifest.xml should be "0x00020000"
-     param.WindowSize = dimension2d<u32>(512, 384);	// using 0,0 it will automatically set it to the maximal size
+     param.WindowSize = core::dimension2d<u32>(displayMetrics.widthPixels, displayMetrics.heightPixels);	// using 0,0 it will automatically set it to the maximal size
      param.PrivateData = state;
      param.Bits = 24;
      param.ZBufferBits = 16;
@@ -739,6 +790,7 @@ int OnSensorEvent(int /* fd */, int /* events */, void* data) {
      IGUIEnvironment* guienv = device->getGUIEnvironment();
      ILogger* logger = device->getLogger();
      IFileSystem* fs = device->getFileSystem();
+     IGUIEnvironment* env = device->getGUIEnvironment();
  
      /* Access to the Android native window. You often need this when accessing NDK functions like we are doing here.
         Note that windowWidth/windowHeight have already subtracted things like the taskbar which your device might have,
@@ -750,9 +802,6 @@ int OnSensorEvent(int /* fd */, int /* events */, void* data) {
  
      /* Get display metrics. We are accessing the Java functions of the JVM directly in this case as there is no NDK function for that yet.
         Checkout android_tools.cpp if you want to know how that is done. */
-     irr::android::SDisplayMetrics displayMetrics;
-     memset(&displayMetrics, 0, sizeof displayMetrics);
-     irr::android::getDisplayMetrics(state, displayMetrics);
  
      char strDisplay[1000];
      sprintf(strDisplay, "Window size:(%d/%d)\nDisplay size:(%d/%d)", windowWidth, windowHeight, displayMetrics.widthPixels, displayMetrics.heightPixels);
@@ -763,6 +812,17 @@ int OnSensorEvent(int /* fd */, int /* events */, void* data) {
      logger->log(strDisplay);
  
     
+     // irrlicht logo and background
+    // add irrlicht logo
+     //bool oldMipMapState = driver->getTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS);
+     driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
+
+     guienv->addImage(driver->getTexture(mediaPath + "irrlichtlogo2.png"),
+         core::position2d<s32>(5, 5));
+
+     video::ITexture* irrlichtBack = driver->getTexture(mediaPath + "demoback.jpg");
+
+     //driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, oldMipMapState);
  
      // The Android assets file-system does not know which sub-directories it has (blame google).
      // So we have to add all sub-directories in assets manually. Otherwise we could still open the files,
@@ -777,17 +837,6 @@ int OnSensorEvent(int /* fd */, int /* events */, void* data) {
          }
      }
  
-     /* Set the font-size depending on your device.
-        dpi=dots per inch. 1 inch = 2.54 cm. */
-     IGUISkin* skin = guienv->getSkin();
-     IGUIFont* font = 0;
-     if (displayMetrics.xdpi < 100)	// just guessing some value where fontsize might start to get too small
-         font = guienv->getFont(mediaPath + "fonthaettenschweiler.bmp");
-     else
-         font = guienv->getFont(mediaPath + "bigfont.png");
-     if (font)
-         skin->setFont(font);
- 
      /* CMainMenu */
      s32 selected;
      bool start;
@@ -800,72 +849,144 @@ int OnSensorEvent(int /* fd */, int /* events */, void* data) {
      bool aa;
      bool isServer;
      gui::IGUIButton* startButton;
-     irr::gui::IGUIEditBox* nameEditBox;
-     video::SColor SkinColor[gui::EGDC_COUNT];
- 
-     // add images
- 
-     const s32 leftX = 260;
- 
-     // add tab control
-     gui::IGUITabControl* tabctrl = guienv->addTabControl(core::rect<int>(leftX, 10, 512 - 10, 384 - 10),
-         0, true, true);
-     gui::IGUITab* optTab = tabctrl->addTab(L"Demo");
-     gui::IGUITab* aboutTab = tabctrl->addTab(L"About");
- 
-     // add list box
- 
-     gui::IGUIListBox* box = guienv->addListBox(core::rect<int>(10, 10, 220, 120), optTab, 1);
-     box->addItem(L"OpenGL 1.5");
-     box->addItem(L"Direct3D 8.1");
-     box->addItem(L"Direct3D 9.0c");
-     box->addItem(L"Burning's Video 0.39");
-     box->addItem(L"Irrlicht Software Renderer 1.0");
-     box->setSelected(selected);
- 
-     // add button
- 
-     startButton = guienv->addButton(core::rect<int>(30, 295, 200, 324), optTab, 2, L"Start Demo");
- 
-     // add checkbox
- 
-     const s32 d = 50;
- 
-     guienv->addCheckBox(fullscreen, core::rect<int>(20, 85 + d, 130, 110 + d),
-         optTab, 3, L"Fullscreen");
-     guienv->addCheckBox(music, core::rect<int>(135, 85 + d, 245, 110 + d),
-         optTab, 4, L"Music & Sfx");
-     guienv->addCheckBox(shadows, core::rect<int>(20, 110 + d, 135, 135 + d),
-         optTab, 5, L"Realtime shadows");
-     guienv->addCheckBox(additive, core::rect<int>(20, 135 + d, 230, 160 + d),
-         optTab, 6, L"Old HW compatible blending");
-     guienv->addCheckBox(vsync, core::rect<int>(20, 160 + d, 230, 185 + d),
-         optTab, 7, L"Vertical synchronisation");
-     guienv->addCheckBox(aa, core::rect<int>(135, 110 + d, 245, 135 + d),
-         optTab, 8, L"Antialiasing");
-     guienv->addCheckBox(isServer, core::rect<int>(135, 160 + d, 245, 185 + d),
-         optTab, 9, L"Server");
- 
-     // RakNet: Add edit box
-     nameEditBox = guienv->addEditBox(L"Your name here", core::rect<int>(20, 185 + d, 230, 210 + d), true, optTab, 9);
- 
- 
-     // add about text
- 
-     wchar_t* text2 = L"This is the tech demo of the Irrlicht engine. To start, "\
-         L"select a video driver which works best with your hardware and press 'Start Demo'.\n"\
-         L"What you currently see is displayed using the Burning Software Renderer (Thomas Alten).\n"\
-         L"The Irrlicht Engine was written by me, Nikolaus Gebhardt. The models, "\
-         L"maps and textures were placed at my disposal by B.Collins, M.Cook and J.Marton. The music was created by "\
-         L"M.Rohde and is played back by irrKlang.\n"\
-         L"For more informations, please visit the homepage of the Irrlicht engine:\nhttp://irrlicht.sourceforge.net\n"\
-         L"\n*** MULTIPLAYER UPDATE ***\n"\
-         L"Peer to peer multiplayer added in two days using RakNet.\n"\
-         L"For a description of the networking design, see included readme.txt .\n";
- 
-     guienv->addStaticText(text2, core::rect<int>(10, 10, 230, 320),
-         true, true, aboutTab);
- 
+
+     rect<irr::s32> winRect(0, 0, 9 * displayMetrics.widthPixels / 10, 9 * displayMetrics.heightPixels / 10);
+     Drawer2D* drawer = new Drawer2D(device);
+
+     device->setWindowCaption(L"Manual Tests for GUI Stuff");
+
+     AppSkin* skin = new AppSkin(device, drawer);
+     assert(isExtendableSkin(skin));
+     env->setSkin(skin);
+     skin->drop();
+
+     /* Set the font-size depending on your device.
+      dpi=dots per inch. 1 inch = 2.54 cm. */
+
+     IGUIFont* font = 0;
+     if (displayMetrics.xdpi < 100)	// just guessing some value where fontsize might start to get too small
+         font = guienv->getFont(mediaPath + "fonthaettenschweiler.bmp");
+     else
+         font = guienv->getFont(mediaPath + "bigfont.png");
+     if (font)
+         skin->setFont(font);
+
+     rect<s32> testArea(20, 20, winRect.getWidth() / 4, winRect.getHeight() / 4);
+     bool scrollable = true;
+     bool horizontal = true;
+     new AggregateGUIElement(env, 1.f, 1.f, 1.f, 1.f, false, horizontal, scrollable, {
+         new AggregatableGUIElementAdapter(env, .3f, 10.f / 1.f, true, env->addStaticText(L"Test. Blabla.", rect<s32>(0,0,0,0), true), true, AppSkin::DEFAULT_AGGREGATABLE),
+         new AggregatableGUIElementAdapter(env, .5f, 1.f / 1.f, true, env->addEditBox(L"Edit me", rect<s32>(0,0,0,0)), true, AppSkin::DEFAULT_AGGREGATABLE),
+         new EmptyGUIElement(env, .5f, 1.f / 1.f, true, true, AppSkin::DEFAULT_AGGREGATABLE),
+         new AggregatableGUIElementAdapter(env, .9f, 2.f / 1.f, true, env->addComboBox(rect<s32>(0,0,0,0)), true, AppSkin::DEFAULT_AGGREGATABLE)
+         }, {}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea);
+
+
+     rect<s32> testArea2(20, winRect.getHeight() / 4 + 20, winRect.getWidth() / 4, winRect.getHeight() / 2);
+     scrollable = false;
+     horizontal = false;
+     new AggregateGUIElement(env, 1.f, 1.f, 1.f, 1.f, false, horizontal, scrollable, {
+         new AggregatableGUIElementAdapter(env, .3f, 10.f / 1.f, true, env->addStaticText(L"Test. Blabla.", rect<s32>(0,0,0,0), true), true, AppSkin::DEFAULT_AGGREGATABLE),
+         new AggregatableGUIElementAdapter(env, .5f, 1.f / 1.f, true, env->addEditBox(L"Edit me", rect<s32>(0,0,0,0)), false, AppSkin::DEFAULT_AGGREGATABLE),
+         new EmptyGUIElement(env, .5f, 1.f / 1.f, true, false, AppSkin::DEFAULT_AGGREGATABLE),
+         new AggregatableGUIElementAdapter(env, .9f, 2.f / 1.f, true, env->addComboBox(rect<s32>(0,0,0,0)), false, AppSkin::DEFAULT_AGGREGATABLE)
+         }, {}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea2);
+
+     //여기에 대체
+     //rect<s32> testArea3(20, winRect.getHeight() / 2 + 20, winRect.getWidth() / 4, winRect.getHeight());
+     //scrollable = true;
+     //horizontal = false;
+     //AggregateGUIElement* a3 = new AggregateGUIElement(env, 1.f, 1.f, 1.f, 1.f, false, horizontal, scrollable, {}, {}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea3);
+     //for (int i = 0; i < 10; i++) {
+     //    AggregateGUIElement* row = new AggregateGUIElement(env, .3, 1.f, .3, 1.f, false, true, true, {
+     //        new AggregatableGUIElementAdapter(env, .6f, 10.f / 1.f, true, env->addStaticText(std::wstring(L"Label ").append(convertToWString(i)).c_str(), rect<s32>(0,0,0,0), true), false, AppSkin::DEFAULT_AGGREGATABLE),
+     //        new AggregatableGUIElementAdapter(env, .5f, 2.f / 1.f, true, env->addEditBox(L"Edit me", rect<s32>(0,0,0,0)), false, AppSkin::DEFAULT_AGGREGATABLE)
+     //        }, {}, true, AppSkin::REGULAR_AGGREGATION);
+     //    a3->addSubElement(row);
+     //    //GUI 하나 마다 가로 스크롤 
+     //    ScrollBar* rowScroll = new ScrollBar(env, .05f, true, AppSkin::REGULAR_SCROLLBAR);
+     //    rowScroll->linkToScrollable(row);
+     //    a3->addSubElement(rowScroll);
+     //}
+     //rect<s32> s1Rect(winRect.getWidth() / 4 + 20, winRect.getHeight() / 2 + 20, 5 * winRect.getWidth() / 16, winRect.getHeight());
+     //ScrollBar* s1 = new ScrollBar(env, .1f, false, AppSkin::REGULAR_SCROLLBAR, NULL, NULL, s1Rect);
+     //s1->linkToScrollable(a3);
+     ////a3->setMultiSelectable(true);
+
+     rect<s32> testArea3(20, winRect.getHeight() / 2 + 20, winRect.getWidth() / 4, winRect.getHeight());
+     scrollable = false;
+     horizontal = false;
+     //JoyStickElement* joyStick = new JoyStickElement(drawer, env, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,false, AppSkin::DEFAULT_AGGREGATABLE,SColor(255,255,255,255),NULL,NULL,testArea3);
+     AggregateGUIElement* a3 = new AggregateGUIElement(env, 1.f, 1.f, 1.f, 1.f, true, horizontal, scrollable, {
+         new JoyStickElement(drawer, env, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,true, AppSkin::DEFAULT_AGGREGATABLE) },
+         {}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea3);
+
+     rect<s32> testArea4(winRect.getWidth() / 4 + 20, 20, 3 * winRect.getWidth() / 4, winRect.getHeight() / 2);
+     scrollable = true;
+     horizontal = false;
+     AggregateGUIElement* a4 = new AggregateGUIElement(env, 1.f, 1.f, 1.f, 1.f, false, horizontal, scrollable, {}, {}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea4);
+     for (int i = 0; i < 20; i++) {
+         AggregateGUIElement* row = new AggregateGUIElement(env, .15, 1.f, .3, 1.f, false, true, false, {
+             new EmptyGUIElement(env, .025f, 1.f / 1.f, false, false, AppSkin::DEFAULT_AGGREGATABLE),
+             new AggregateGUIElement(env, .1, 1.f, .1, 1.f, false, false, false, {
+                 new EmptyGUIElement(env, .1f, 1.f / 1.f, false, false, AppSkin::DEFAULT_AGGREGATABLE),
+                 new BeautifulGUIImage(drawer, driver->getTexture("media/boxGradient.png"), env, .8f, false, AppSkin::DEFAULT_AGGREGATABLE, SColor(255,i % 10 * 25,i % 6 * 42,i % 3 * 85)),
+                 new EmptyGUIElement(env, .1f, 1.f / 1.f, false, false, AppSkin::DEFAULT_AGGREGATABLE)
+             }, {}, false, AppSkin::INVISIBLE_AGGREGATION),
+             addAggregatableStaticText(env, L"xy%", EGUIA_CENTER, EGUIA_CENTER, .2f),
+             new BeautifulGUIImage(drawer, driver->getTexture(i % 2 == 0 ? "media/bin.png" : "media/rename.png"), env, .3f, true, AppSkin::DEFAULT_AGGREGATABLE),
+             addAggregatableStaticText(env, L"Txy", EGUIA_CENTER, EGUIA_CENTER, .15f),
+             addAggregatableStaticText(env, L"TOOLTYPE", EGUIA_CENTER, EGUIA_CENTER, .4f),
+             addAggregatableStaticText(env, L"BASIC INFORMATION", EGUIA_CENTER, EGUIA_CENTER, .5f),
+             new AggregatableGUIElementAdapter(env, .2f, 2.f / 1.f, true, env->addButton(rect<s32>(0,0,0,0), NULL, -1, L"Delete"), false, AppSkin::DEFAULT_AGGREGATABLE)
+             }, {
+                 addAggregatableStaticText(env, L"Test", EGUIA_CENTER, EGUIA_CENTER, .2f),
+             }, true, AppSkin::NO_HIGHLIGHT_AGGREGATION);
+             a4->addSubElement(row);
+     }
+
+     rect<s32> s2Rect(3 * winRect.getWidth() / 4 + 20, 20, 13 * winRect.getWidth() / 16, winRect.getHeight() / 2);
+     ScrollBar* s2 = new ScrollBar(env, .1f, false, AppSkin::REGULAR_SCROLLBAR, NULL, NULL, s2Rect);
+     s2->linkToScrollable(a4);
+
+     //Targets where tools can be dropped
+     rect<s32> testArea6(5 * winRect.getWidth() / 16 + 20, 3 * winRect.getHeight() / 4 + 20, 3 * winRect.getWidth() / 4, winRect.getHeight());
+     scrollable = false;
+     horizontal = true;
+     AggregateGUIElement* a6 = new AggregateGUIElement(env, 1.f, 1.f, 1.f, 1.f, false, horizontal, scrollable, {}, {}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea6);
+     std::list<DragPlaceGUIElement*> targets;
+     for (int i = 0; i < 5; i++) {
+         DragPlaceGUIElement* dp = new DragPlaceGUIElement(env, .3f, 1.f, false, AppSkin::DEFAULT_AGGREGATABLE, new BeautifulGUIImage(drawer, driver->getTexture("media/reminder.png"), env, 1.f, true, AppSkin::DEFAULT_AGGREGATABLE), NULL);
+         a6->addSubElement(dp);
+         targets.push_back(dp);
+     }
+
+     //Tools
+     rect<s32> testArea5(5 * winRect.getWidth() / 16 + 20, winRect.getHeight() / 2 + 20, 3 * winRect.getWidth() / 4, 3 * winRect.getHeight() / 4);
+     scrollable = true;
+     horizontal = true;
+     AggregateGUIElement* a5 = new AggregateGUIElement(env, 1.f, 1.f, 1.f, 1.f, false, horizontal, scrollable, {}, {}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea5);
+     vector2d<u32> verticalScrollThreshold(~(u32)0, testArea5.getHeight() / 8);
+     for (int i = 0; i < 20; i++) {
+         DragPlaceGUIElement* dp = new DragPlaceGUIElement(env, .3f, 1.f, false, AppSkin::DEFAULT_AGGREGATABLE, NULL, NULL);
+         new DraggableGUIElement(env, -1, dimension2d<u32>(.1 * winRect.getWidth(), .2 * winRect.getHeight()), dp, targets, verticalScrollThreshold,
+             new AggregateGUIElement(env, .6, 1.f, .3, 1.f, false, true, false, {
+                 new BeautifulGUIImage(drawer, driver->getTexture("media/bin.png"), env, .7, true, AppSkin::DEFAULT_AGGREGATABLE),
+                 addAggregatableStaticText(env, std::wstring(L"Blablabla\nT").append(convertToWString(i)).c_str(), EGUIA_CENTER, EGUIA_CENTER, .3f)
+                 }, {}, true, AppSkin::NO_HIGHLIGHT_AGGREGATION),
+             new BeautifulGUIImage(drawer, driver->getTexture("media/bin.png"), env, .7, true, AppSkin::DEFAULT_AGGREGATABLE),
+             new AggregateGUIElement(env, .3, 1.f, .3, 1.f, false, false, false, {
+                 new BeautifulGUIImage(drawer, driver->getTexture("media/bin.png"), env, .7, true, AppSkin::DEFAULT_AGGREGATABLE),
+                 addAggregatableStaticText(env, std::wstring(L"T").append(convertToWString(i)).c_str(), EGUIA_CENTER, EGUIA_CENTER, .3f)
+                 }, {}, true, AppSkin::NO_HIGHLIGHT_AGGREGATION));
+         a5->addSubElement(dp);
+     }
+
+     new NotificationBox(10000, device, L"Blablabla Blablabla Blablabla Blablabla Blablabla Blablabla Blablabla Blablabla Blablabla", .75, .75, L"Ok", NULL, -1, -1, false);
+
+
+
+
      // add md2 model
  
      scene::IAnimatedMesh* mesh = smgr->getMesh(mediaPath + "faerie.md2");
@@ -907,6 +1028,18 @@ int OnSensorEvent(int /* fd */, int /* events */, void* data) {
      bill->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
      bill->setMaterialTexture(0, driver->getTexture(mediaPath + "particlered.bmp"));
  
+     //add
+     device->getFileSystem()->addFileArchive(mediaPath + "map-20kdm2.pk3");
+     scene::IAnimatedMesh* mapMesh = smgr->getMesh("20kdm2.bsp");
+     scene::ISceneNode* node = 0;
+
+    if (mapMesh)
+        node = smgr->addOctreeSceneNode(mapMesh->getMesh(0), 0, -1, 1024);
+    if (node)
+        node->setPosition(core::vector3df(-1300, -144, -1249));
+    
+    //device->getCursorControl()->setVisible(false);
+
  #if 1
      // add light 2 (nearly red)
      scene::ILightSceneNode* light2 =
@@ -956,39 +1089,10 @@ int OnSensorEvent(int /* fd */, int /* events */, void* data) {
  #endif
  
      // create a fixed camera
-     smgr->addCameraSceneNode(0, core::vector3df(45, 0, 0), core::vector3df(0, 0, 10));
- 
-     // irrlicht logo and background
-     // add irrlicht logo
-     bool oldMipMapState = driver->getTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS);
-     driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
- 
-     guienv->addImage(driver->getTexture(mediaPath + "irrlichtlogo2.png"),
-         core::position2d<s32>(5, 5));
- 
-     video::ITexture* irrlichtBack = driver->getTexture(mediaPath + "demoback.jpg");
- 
-     driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, oldMipMapState);
- 
-     // query original skin color
-     //getOriginalSkinColor();
-     for (s32 i = 0; i < gui::EGDC_COUNT; ++i)
-     {
-         SkinColor[i] = skin->getColor((gui::EGUI_DEFAULT_COLOR)i);
-     }
- 
-     // set transparency
-     //setTransparency();
-     for (u32 i = 0; i < gui::EGDC_COUNT; ++i)
-     {
-         video::SColor col = SkinColor[i];
- 
-         if (false == transparent)
-             col.setAlpha(255);
- 
-         skin->setColor((gui::EGUI_DEFAULT_COLOR)i, col);
-     }
- 
+     //smgr->addCameraSceneNode(0, core::vector3df(45, 0, 0), core::vector3df(0, 0, 10));
+     smgr->addCameraSceneNodeFPS();
+
+   
  
      /*
          Mainloop. Applications usually never quit themself in Android. The OS is responsible for that.
@@ -1020,18 +1124,17 @@ void android_main(android_app* state) {
     bool isServer = false;
     video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
 
-    /*
-    CMainMenu menu;
-    menu.state = state;
-
-    if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer))
-    {
-        CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer);
-        demo.run();
-    }*/
-
-    android_CMainMenu(&engine, state);
-
+    
+    //CMainMenu menu;
+    //menu.state = state;
+    //android_CMainMenu(&engine, state);
+    
+   
+    CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer);
+    demo.state = state;
+    demo.run();
+    
+    //test(state);
 }
 
 #else

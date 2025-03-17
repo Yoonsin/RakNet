@@ -13,11 +13,10 @@
 // 1.6 or higher may be used in linux
 // Get Irrlicht from http://irrlicht.sourceforge.net/ , it's a great engine
 #include <irrlicht.h>
-
 #ifdef __ANDROID__
 #define IRRLICHT_MEDIA_PATH  "media/"
 #else
-#define IRRLICHT_MEDIA_PATH  "../../media/"
+#define IRRLICHT_MEDIA_PATH  "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/IrrlichtMedia/" //"../../media/"
 #endif // __ANDROID__
 
 #ifdef _WIN32__
@@ -167,6 +166,9 @@ private:
 	const char *GetCurrentMessage(void);
 	// We use this array to store the current state of each key
 	bool KeyIsDown[KEY_KEY_CODES_COUNT];
+	
+
+
 	// Bounding box of syndney.md2, extended by BALL_DIAMETER/2 for collision against shots
 	core::aabbox3df syndeyBoundingBox;
 	void CalculateSyndeyBoundingBox(void);
@@ -174,8 +176,18 @@ private:
 	bool isConnectedToNATPunchthroughServer;
 
 #ifdef __ANDROID__
-	core::position2d<irr::s32> TouchStartPos;
 	s32 TouchID;
+	bool isRotate;
+	enum GUI_MOBILE_ID {
+		GUI_MOVE_UP,
+		GUI_MOVE_RIGHT,
+		GUI_MOVE_LEFT,
+		GUI_MOVE_DOWN,
+		GUI_FIRE,
+		GUI_JUMP,
+	};
+	
+	scene::ISceneNodeAnimator* fpsCamAnim;
 #endif
 };
 

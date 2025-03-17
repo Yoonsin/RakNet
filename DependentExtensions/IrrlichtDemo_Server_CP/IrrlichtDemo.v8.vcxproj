@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Android-arm64-v8a">
+      <Configuration>Debug</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Android-x86_64">
       <Configuration>Debug</Configuration>
       <Platform>Android-x86_64</Platform>
@@ -8,6 +12,10 @@
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Android-arm64-v8a">
+      <Configuration>Release</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Android-x86_64">
       <Configuration>Release</Configuration>
@@ -40,7 +48,16 @@
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Android-x86_64'">
     <PlatformToolset>Clang</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'" Label="Configuration">
+    <PlatformToolset>Clang</PlatformToolset>
+  </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">
+    <PlatformToolset>Clang</PlatformToolset>
+    <AndroidNdkVersion>23.2.8568313</AndroidNdkVersion>
+    <AndroidMinSdkVersion>30</AndroidMinSdkVersion>
+    <AddressSanitizer>None</AddressSanitizer>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'" Label="Configuration">
     <PlatformToolset>Clang</PlatformToolset>
     <AndroidNdkVersion>23.2.8568313</AndroidNdkVersion>
     <AndroidMinSdkVersion>30</AndroidMinSdkVersion>
@@ -75,6 +92,12 @@
     <AndroidApplicationModule>app</AndroidApplicationModule>
     <AndroidGradleBuildType>$(Configuration)</AndroidGradleBuildType>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <AndroidEnablePackaging>true</AndroidEnablePackaging>
+    <AndroidGradleBuildDir>$(MSBuildProjectDirectory)\AndroidPackaging\</AndroidGradleBuildDir>
+    <AndroidApplicationModule>app</AndroidApplicationModule>
+    <AndroidGradleBuildType>$(Configuration)</AndroidGradleBuildType>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">
     <AndroidEnablePackaging>true</AndroidEnablePackaging>
     <AndroidGradleBuildDir>$(MSBuildProjectDirectory)\AndroidPackaging\</AndroidGradleBuildDir>
@@ -83,6 +106,14 @@
     <AndroidGradlePackageOutputName>$(AndroidApkName)</AndroidGradlePackageOutputName>
     <AndroidGradleBuildOutputDir>
     </AndroidGradleBuildOutputDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <AndroidEnablePackaging>true</AndroidEnablePackaging>
+    <AndroidGradleBuildDir>$(MSBuildProjectDirectory)\AndroidPackaging\</AndroidGradleBuildDir>
+    <AndroidApplicationModule>app</AndroidApplicationModule>
+    <AndroidGradleBuildType>$(Configuration)</AndroidGradleBuildType>
+    <AndroidGradlePackageOutputName>$(AndroidApkName)</AndroidGradlePackageOutputName>
+    <AndroidGradleBuildOutputDir />
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -138,42 +169,62 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>./;./../../Source;C:\irrlicht-ogl-es\include;./../../DependentExtensions/miniupnpc-1.5;C:\GitHub\RakNet\Source;C:\GitHub\RakNet\DependentExtensions\IrrlichtDemo_Server_CP\AndroidPackaging\app\src\main\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\GitHub\CommonLibraries\IrrlichtExtensions;C:\GitHub\CommonLibraries\Common;./;./../../Source;C:\GitHub\CommonLibraries\Irrlicht\include;./../../DependentExtensions/miniupnpc-1.5;C:\GitHub\RakNet\Source;C:\GitHub\RakNet\DependentExtensions\IrrlichtDemo_Server_CP\AndroidPackaging\app\src\main\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>C:\GitHub\RakNet\Source</AdditionalLibraryDirectories>
-      <AdditionalDependencies>C:\irrlicht-ogl-es\source\Irrlicht\Android\obj\local\x86_64\libIrrlicht.a;C:\irrlicht-ogl-es\source\Irrlicht\Android\obj\local\x86_64\libandroid_native_app_glue.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\GitHub\CommonLibraries\Irrlicht\source\Irrlicht\Android\obj\local\$(ANDROID_ABI)\libIrrlicht.a;C:\GitHub\CommonLibraries\Irrlicht\source\Irrlicht\Android\obj\local\$(ANDROID_ABI)\libandroid_native_app_glue.a;C:\GitHub\CommonLibraries\IrrlichtExtensions\android\obj\local\$(ANDROID_ABI)\libIrrlichtExtension.a;C:\GitHub\CommonLibraries\IrrlichtExtensions\android\obj\local\$(ANDROID_ABI)\libandroid_native_app_glue.a;C:\GitHub\CommonLibraries\Common\Android\obj\local\$(ANDROID_ABI)\libCommon.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <LibraryDependencies>atomic;android;EGL;log;GLESv1_CM;GLESv2;z;m;</LibraryDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\GitHub\CommonLibraries\IrrlichtExtensions;C:\GitHub\CommonLibraries\Common;./;./../../Source;C:\GitHub\CommonLibraries\Irrlicht\include;./../../DependentExtensions/miniupnpc-1.5;C:\GitHub\RakNet\Source;C:\GitHub\RakNet\DependentExtensions\IrrlichtDemo_Server_CP\AndroidPackaging\app\src\main\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OmitFramePointers>true</OmitFramePointers>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>C:\GitHub\RakNet\Source</AdditionalLibraryDirectories>
+      <AdditionalDependencies>C:\GitHub\CommonLibraries\Irrlicht\source\Irrlicht\Android\obj\local\$(ANDROID_ABI)\libIrrlicht.a;C:\GitHub\CommonLibraries\Irrlicht\source\Irrlicht\Android\obj\local\$(ANDROID_ABI)\libandroid_native_app_glue.a;C:\GitHub\CommonLibraries\IrrlichtExtensions\android\obj\local\$(ANDROID_ABI)\libIrrlichtExtension.a;C:\GitHub\CommonLibraries\IrrlichtExtensions\android\obj\local\$(ANDROID_ABI)\libandroid_native_app_glue.a;C:\GitHub\CommonLibraries\Common\Android\obj\local\$(ANDROID_ABI)\libCommon.a;%(AdditionalDependencies)</AdditionalDependencies>
       <LibraryDependencies>atomic;android;EGL;log;GLESv1_CM;GLESv2;z;m;</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\miniupnpc-1.5\connecthostport.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\miniupnpc-1.5\igd_desc_parse.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\miniupnpc-1.5\minisoap.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\miniupnpc-1.5\miniupnpc.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\miniupnpc-1.5\miniwget.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\miniupnpc-1.5\minixml.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\miniupnpc-1.5\upnpcommands.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\miniupnpc-1.5\upnperrors.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\miniupnpc-1.5\upnpreplyparse.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="AndroidPackaging\app\src\main\cpp\AndroidDemo.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -192,36 +243,46 @@
     <ClCompile Include="CMainMenu.cpp" />
     <ClCompile Include="main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="RakNetStuff.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\miniupnpc-1.5\connecthostport.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\miniupnpc-1.5\igd_desc_parse.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\miniupnpc-1.5\minisoap.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\miniupnpc-1.5\miniupnpc.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\miniupnpc-1.5\miniwget.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\miniupnpc-1.5\minixml.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\miniupnpc-1.5\upnpcommands.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\miniupnpc-1.5\upnperrors.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\miniupnpc-1.5\upnpreplyparse.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_native_app_glue.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
