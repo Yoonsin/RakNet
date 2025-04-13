@@ -3,7 +3,7 @@ project(IrrlichtDemo_Server_CP)  # 🔹 프로젝트 이름 설정
 
 set(CMAKE_SYSTEM_NAME Android)
 set(CMAKE_SYSTEM_VERSION 30)  # Android API 레벨
-set(CMAKE_ANDROID_ARCH_ABI "x86_64" )  # 사용할 ABI #arm64-v8a #x86_64
+set(CMAKE_ANDROID_ARCH_ABI "arm64-v8a" )  # 사용할 ABI #arm64-v8a #x86_64
 
 # 추가적으로 사용되지 않는 변수를 올바르게 설정
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -13,8 +13,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # 프로젝트 루트 경로 설정
 set(IRRLICHT_PROJECT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
 set(ASSETS_DIR ${IRRLICHT_PROJECT_PATH}/assets)
-
-
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.

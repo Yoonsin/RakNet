@@ -15,8 +15,19 @@
 #include "RakNetTime.h"
 #include "GetTime.h"
 #include "SocketLayer.h"
+#include "RakNetStatistics.h"
+#include "StatisticsHistory.h"
+#include <stdio.h>
+#include <time.h>
+
+#ifdef __linux__
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 using namespace RakNet;
+using namespace std;
 
 RakPeerInterface *rakPeer;
 NetworkIDManager *networkIDManager;
@@ -26,6 +37,7 @@ CloudClient *cloudClient;
 RakNet::FullyConnectedMesh2 *fullyConnectedMesh2;
 PlayerReplica *playerReplica;
 
+StatisticsHistoryPlugin* statisticsPlugin;
 Topology topology;
 
 
@@ -161,11 +173,18 @@ void InstantiateRakNetClasses(bool isServer)
 
 	if (topology == CLIENT) {
 #if __ANDROID__
-		ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); //"127.0.0.1"
+		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
 #else
-		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //"127.0.0.1"
+		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜 
 #endif // __ANDROID__
 		RakAssert(car == CONNECTION_ATTEMPT_STARTED);
+	}
+	else if (topology == SERVER) {
+		statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
+		statisticsPlugin->SetTrackConnections(true, 0, true);
+		rakPeer->AttachPlugin(statisticsPlugin);
 	}
 	
 	// Advertise ourselves on the lAN if the NAT punchthrough server is not available
@@ -179,7 +198,9 @@ void DeinitializeRakNetClasses(void)
 	replicaManager3->BroadcastDestructionList(replicaListOut, RakNet::UNASSIGNED_SYSTEM_ADDRESS);
 	
 	// Shutdown so the server knows we stopped
+	//if (topology == SERVER) SaveStatisticsToCSV();
 	rakPeer->Shutdown(100,0);
+
 	RakNet::RakPeerInterface::DestroyInstance(rakPeer);
 	delete networkIDManager;
 	delete replicaManager3;
@@ -190,6 +211,116 @@ void DeinitializeRakNetClasses(void)
 	playerReplica->PreDestruction(0);
 	delete playerReplica;
 }
+
+void SaveStatisticsToCSV()
+{
+#ifdef _WIN32
+	//디렉토리 경로 파악
+	char buffer[MAX_PATH];
+	DWORD length = GetCurrentDirectoryA(MAX_PATH, buffer);
+	if (length > 0) {
+		printf("현재 디렉토리: %s", buffer);
+	}
+	else {
+		printf("디렉토리 경로를 가져올 수 없습니다.");
+	}
+#endif // _WIN32
+
+	unsigned short connectionCount = rakPeer->NumberOfConnections();
+	RakNet::SystemAddress systems[256];
+	rakPeer->GetConnectionList(systems, &connectionCount);
+
+	const char* metricNames[] = {
+		"USER_MESSAGE_BYTES_PUSHED",
+		"USER_MESSAGE_BYTES_SENT",
+		"USER_MESSAGE_BYTES_RESENT",
+		"USER_MESSAGE_BYTES_RECEIVED_PROCESSED",
+		"USER_MESSAGE_BYTES_RECEIVED_IGNORED",
+		"ACTUAL_BYTES_SENT",
+		"ACTUAL_BYTES_RECEIVED"
+	};
+
+	const char* priorityNames[] = { "IMMEDIATE", "HIGH", "MEDIUM", "LOW" };
+
+	
+
+#ifdef __linux__
+	// 현재 시간
+	time_t now = time(nullptr);
+	struct tm* t = localtime(&now);
+
+	// 타임스탬프 문자열 생성
+	char timeStr[64];
+	strftime(timeStr, sizeof(timeStr), "%Y%m%d_%H%M%S", t);
+
+	// 절대 디렉토리
+	const char* outputDir = "/home/parts/stats";
+	mkdir(outputDir, 0777);  // 이미 있으면 실패하지만 무시됨
+
+	// 경로 + 파일명 조합
+	char fullpath[512];
+	snprintf(fullpath, sizeof(fullpath), "%s/full_stats_%s.csv", outputDir, timeStr);
+
+	// 파일 열기
+	FILE* f = fopen(fullpath, "w");
+	if (!f) {
+		perror("파일 열기 실패");
+		return;
+	}
+#else
+	// 파일명 + 경로
+	char filename[256];
+	time_t now = time(nullptr);
+	strftime(filename, sizeof(filename), "%s/full_stats_%Y%m%d_%H%M%S.csv", localtime(&now));
+
+	FILE* f = fopen(filename, "w");
+	if (!f) return;
+#endif // __linux__
+
+	// 헤더
+	fprintf(f, "PeerIP,Section,Key,Value\n");
+	Time curTime = RakNet::GetTime();
+	//time_t curTimeSec = static_cast<time_t>(curTime / 1000); 
+	char* timeBuf = filename;
+	//strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", localtime(&curTimeSec)); 
+
+	for (unsigned short i = 0; i < connectionCount; ++i)
+	{
+		RakNet::SystemAddress addr = systems[i];
+		char ipStr[64];
+		addr.ToString(false, ipStr);
+
+		RakNetGUID guid = rakPeer->GetGuidFromSystemAddress(addr);
+		uint64_t objectId = guid.g;
+
+		// 현재 등록된 통계 키 가져오기
+		DataStructures::List<RakString> keys;
+		statisticsPlugin->statistics.GetUniqueKeyList(keys);
+
+		for (unsigned int k = 0; k < keys.Size(); ++k)
+		{
+			StatisticsHistory::TimeAndValueQueue* history;
+			if (statisticsPlugin->statistics.GetHistoryForKey(objectId, keys[k], &history, curTime) != StatisticsHistory::SH_OK)
+				continue;
+
+			// 초당 값 (최근)
+			if (history->values.Size() > 0)
+			{
+				StatisticsHistory::TimeAndValue latest = history->values.PeekTail();
+				fprintf(f, "%s,%s,PerSecond,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), latest.val);
+			}
+
+			// 전체 누적 (long term)
+			fprintf(f, "%s,%s,CumulativeSum,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), history->GetLongTermSum());
+			fprintf(f, "%s,%s,CumulativeAvg,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), history->GetLongTermAverage());
+			fprintf(f, "%s,%s,Max,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), history->GetLongTermHighest());
+			fprintf(f, "%s,%s,Min,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), history->GetLongTermLowest());
+		}
+	}
+
+	fclose(f);
+}
+
 BaseIrrlichtReplica::BaseIrrlichtReplica()
 {
 }
@@ -405,7 +536,7 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 }
 void PlayerReplica::UpdateAnimation(irr::scene::EMD2_ANIMATION_TYPE anim)
 {
-	if (anim!=curAnim)
+	if (anim!=curAnim && model)
 		model->setMD2Animation(anim);
 	curAnim=anim;
 }

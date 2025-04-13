@@ -17,7 +17,7 @@ using namespace irr;
 #ifdef  __ANDROID__
 #else
 #ifdef _WIN32
-#pragma comment(lib, "Irrlicht.lib")
+//#pragma comment(lib, "Irrlicht.lib")
 INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR strCmdLine, INT)
 #else
 int main(int argc, char* argv[])
@@ -41,6 +41,8 @@ int main(int argc, char* argv[])
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
 #endif
 
+
+#ifdef _WIN32
 	CMainMenu menu;
 
 	//#ifndef _DEBUG
@@ -50,6 +52,13 @@ int main(int argc, char* argv[])
 		CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer);
 		demo.run();
 	}
+#else
+	isServer = true;
+	CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer);
+	demo.run();
+#endif // _WIN32
+
+	
 
 	return 0;
 }

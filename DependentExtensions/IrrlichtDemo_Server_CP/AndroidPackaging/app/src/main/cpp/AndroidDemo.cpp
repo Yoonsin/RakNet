@@ -258,6 +258,8 @@ public:
             fakeMouseEvent.MouseInput.ButtonStates = 0;
             fakeMouseEvent.MouseInput.Event = EMIE_COUNT;
 
+           
+
             switch (event.TouchInput.Event)
             {
             case ETIE_PRESSED_DOWN:

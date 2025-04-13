@@ -16,7 +16,13 @@
 #ifdef __ANDROID__
 #define IRRLICHT_MEDIA_PATH  "media/"
 #else
+#ifdef _WIN32
 #define IRRLICHT_MEDIA_PATH  "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/IrrlichtMedia/" //"../../media/"
+#else
+#define IRRLICHT_MEDIA_PATH  "../../../src/IrrlichtMedia/"
+#endif // _WIN32
+
+
 #endif // __ANDROID__
 
 #ifdef _WIN32__
@@ -99,6 +105,8 @@ private:
 	void shoot();
 	void createParticleImpacts();
 
+	void SaveStatisticsToCSV();
+	
 	bool fullscreen;
 	bool music;
 	bool shadows;
@@ -178,15 +186,15 @@ private:
 #ifdef __ANDROID__
 	s32 TouchID;
 	bool isRotate;
-	enum GUI_MOBILE_ID {
-		GUI_MOVE_UP,
-		GUI_MOVE_RIGHT,
-		GUI_MOVE_LEFT,
-		GUI_MOVE_DOWN,
-		GUI_FIRE,
-		GUI_JUMP,
-	};
-	
+	struct CurTouchID {
+		s32 move = -1;
+		s32 fire = -1;
+		s32 jump = -1;
+		s32 exit = -1;
+		s32 viewRotate = -1;
+};
+	CurTouchID curTouchID;
+
 	scene::ISceneNodeAnimator* fpsCamAnim;
 #endif
 };

@@ -1,0 +1,7 @@
+/cygdrive/c/irrlicht-1.7.2/source/Irrlicht/CMakeFiles/Irrlicht.dir
+/cygdrive/c/irrlicht-1.7.2/source/Irrlicht/CMakeFiles/edit_cache.dir
+/cygdrive/c/irrlicht-1.7.2/source/Irrlicht/CMakeFiles/rebuild_cache.dir
+/cygdrive/c/irrlicht-1.7.2/source/Irrlicht/CMakeFiles/list_install_components.dir
+/cygdrive/c/irrlicht-1.7.2/source/Irrlicht/CMakeFiles/install.dir
+/cygdrive/c/irrlicht-1.7.2/source/Irrlicht/CMakeFiles/install/local.dir
+/cygdrive/c/irrlicht-1.7.2/source/Irrlicht/CMakeFiles/install/strip.dir

@@ -126,8 +126,16 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	MenuDevice = createDeviceEx(param);
 	
 #else
+#ifdef _WIN32
 	driverType = video::EDT_DIRECT3D9;
 	mediaPath = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/IrrlichtMedia/";
+#else
+	driverType = video::EDT_OPENGL;
+	mediaPath = "../../../src/IrrlichtMedia/";
+#endif // _WIN32
+
+	
+	
 	MenuDevice = createDevice(driverType,
 		core::dimension2d<u32>(512, 384), 16, false, false, false, this);
 #endif //__ANDROID__
@@ -593,6 +601,7 @@ bool CMainMenu::OnEvent(const SEvent& event)
 				sprintf(strDisplay, "start button click!!!");
 				MenuDevice->getLogger()->log(strDisplay);*/
 				
+
 				MenuDevice->closeDevice();
 				MenuDevice->drop();
 				start = true;
