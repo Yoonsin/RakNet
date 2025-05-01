@@ -297,6 +297,15 @@ void CDemo::run()
 	sceneStartTime = device->getTimer()->getTime();
 #endif 
 	
+	//서버가 게임을 측정할 시간
+	s32 logTime = 1 * 1000 * 60; //1분
+	//현재 시간
+	s32 startTime = device->getTimer()->getTime();
+	//최대 인원
+	s32 logMaxPlayer = 2;
+	bool isLogStart = false;
+
+
 	while(device->run() && driver)
 	{
 		// RakNet: Render even if not active, multiplayer never stops
@@ -311,14 +320,8 @@ void CDemo::run()
 #endif
 
 			// load next scene if necessary
-#ifdef __ANDROID__
-		    //now = device->getTimer()->getRealTime();
 			now = device->getTimer()->getTime();
-#else
-			now = device->getTimer()->getTime();
-#endif // __ANDROID__
 
-			
 			if (now - sceneStartTime > timeForThisScene && timeForThisScene!=-1)
 				switchToNextScene();
 
@@ -333,7 +336,7 @@ void CDemo::run()
 			
 #ifdef __ANDROID__
 			//60frame
-			/*char k[1000];
+		/*	char k[1000];
 			static s32 lastfps = 0;
 			s32 nowfps = driver->getFPS();
 			sprintf(k, "!!fps:(%d)\n)", nowfps);
@@ -370,7 +373,7 @@ void CDemo::run()
 			}
 			else
 			{
-		//		statusText->setText(tmp);
+		        //statusText->setText(tmp);
 				if(statusText != nullptr)
 				  statusText->setText(0);
 			}
@@ -379,6 +382,24 @@ void CDemo::run()
 		// RakNet per 
 		// update
 		UpdateRakNet();
+		if (isServer) {
+			PrintStatistics(false);
+			if (isLogStart == false && replicaManager3->GetConnectionCount() == logMaxPlayer) {
+				isLogStart = true;
+				startTime = device->getTimer()->getTime();
+			}
+			else if (isLogStart == true) {
+				//char display[100];
+				//sprintf(display, "second : %d \n", (now - startTime) / 1000 );
+				//OutputDebugStringA(display);
+
+				if (now - startTime >= logTime) {
+					/*OutputDebugStringA("log complete. close now!");*/
+					device->closeDevice();
+				}	
+			}
+		}
+		
 	}
 
 	// RakNet shutdown
@@ -433,7 +454,7 @@ bool CDemo::OnEvent(const SEvent& event)
 					gui::IGUIElement* exit_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_EXIT);
 
 					if (joy_stick && joy_stick->isPointInside(touchPoint)) {
-						device->getLogger()->log("joyStick Press!!");
+						//device->getLogger()->log("joyStick Press!!");
 						fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_PRESSED_DOWN;
 						fakeMouseEvent.UserEvent.UserData2 = AppSkin::REGULAR_AGGREGATION;
 						curTouchID.move = id;
@@ -506,7 +527,7 @@ bool CDemo::OnEvent(const SEvent& event)
 			}
 
 			if (is_joy_stick && id == curTouchID.move) {
-				device->getLogger()->log("joystick Rotating!!");
+				//device->getLogger()->log("joystick Rotating!!");
 				fakeMouseEvent.MouseInput.Event = EMIE_MOUSE_MOVED;
 				fakeMouseEvent.MouseInput.ButtonStates = EMBSM_LEFT;
 				fakeMouseEvent.UserEvent.UserData2 = AppSkin::REGULAR_AGGREGATION;
@@ -529,7 +550,7 @@ bool CDemo::OnEvent(const SEvent& event)
 				gui::IGUIElement* exit_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_EXIT);
 
 				if (id == curTouchID.move) {
-					device->getLogger()->log("joyStick Left!!");
+					//device->getLogger()->log("joyStick Left!!");
 					fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_LEFT_UP;
 					fakeMouseEvent.UserEvent.UserData2 = AppSkin::REGULAR_AGGREGATION;
 					curTouchID.move = -1;
@@ -900,11 +921,12 @@ void CDemo::switchToNextScene()
 #else
 			// Last parameter is jump speed
 			// Tweaked so you can get up ladders
-			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 2.05f);
+			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/);
 			camera->setPosition(core::vector3df(108, 140, -140));
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
 				sm->createCollisionResponseAnimator(
 					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, quakeLevelMesh ? -10.f : 0.0f, 0), core::vector3df(0, 45, 0), 0.005f);
+
 			camera->addAnimator(collider);
 			collider->drop();
 
@@ -914,12 +936,8 @@ void CDemo::switchToNextScene()
 		break;
 	}
 
-#ifdef __ANDROID__
 	sceneStartTime = device->getTimer()->getTime();
-	//sceneStartTime = device->getTimer()->getRealTime();
-#else
-	sceneStartTime = device->getTimer()->getTime();
-#endif // __ANDROID__
+
 }
 
 
@@ -1176,7 +1194,6 @@ void CDemo::loadSceneData()
 
 #endif // __ANDROID__
 }
-
 
 
 void CDemo::createLoadingScreen()
@@ -1504,7 +1521,7 @@ void CDemo::createParticleImpacts()
 /// RakNet stuff
 void CDemo::UpdateRakNet(void)
 {
-	RakNet::SystemAddress facilitatorSystemAddress(DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP, DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_PORT);
+
 	RakNet::Packet *packet;
 	RakNet::TimeMS curTime = RakNet::GetTimeMS();
 	RakNet::RakString targetName;
@@ -1524,36 +1541,26 @@ void CDemo::UpdateRakNet(void)
 		case ID_IP_RECENTLY_CONNECTED:
 			{
 				PushMessage(RakNet::RakString("This IP address recently connected from ") + targetName + RakNet::RakString("."));
-				if (packet->systemAddress==facilitatorSystemAddress)
-					PushMessage("Multiplayer will not work without the NAT punchthrough server!");
 			}
 			break;
 		case ID_INCOMPATIBLE_PROTOCOL_VERSION:
 			{
 				PushMessage(RakNet::RakString("Incompatible protocol version from ") + targetName + RakNet::RakString("."));
-				if (packet->systemAddress==facilitatorSystemAddress)
-					PushMessage("Multiplayer will not work without the NAT punchthrough server!");
 			}
 			break;
 		case ID_DISCONNECTION_NOTIFICATION:
 			{
 				PushMessage(RakNet::RakString("Disconnected from ") + targetName + RakNet::RakString("."));
-				if (packet->systemAddress==facilitatorSystemAddress)
-					isConnectedToNATPunchthroughServer=false;
 			}
 			break;
 		case ID_CONNECTION_LOST:
 			{
 				PushMessage(RakNet::RakString("Connection to ") + targetName + RakNet::RakString(" lost."));
-				if (packet->systemAddress==facilitatorSystemAddress)
-					isConnectedToNATPunchthroughServer=false;
 			}
 			break;
 		case ID_NO_FREE_INCOMING_CONNECTIONS:
 			{
 				PushMessage(RakNet::RakString("No free incoming connections to ") + targetName + RakNet::RakString("."));
-				if (packet->systemAddress==facilitatorSystemAddress)
-					PushMessage("Multiplayer will not work without the NAT punchthrough server!");
 			}
 			break;
 		case ID_NEW_INCOMING_CONNECTION:
@@ -1563,15 +1570,6 @@ void CDemo::UpdateRakNet(void)
 				RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(packet->systemAddress, rakPeer->GetGuidFromSystemAddress(packet->systemAddress));
 				//replicaManager3에 추적될 수 있도록 할당
 				replicaManager3->PushConnection(connection);
-				//replicaManager3->PushConnection(replicaManager3->AllocConnection(packet->systemAddress, rakPeer->GetGuidFromSystemAddress(packet->systemAddress)));
-
-				/*
-				if (fullyConnectedMesh2->IsHostSystem())
-				{
-					PushMessage(RakNet::RakString("Sending player list to new connection"));
-					fullyConnectedMesh2->StartVerifiedJoin(packet->guid);
-				}
-				*/
 			}
 			break;
 		case ID_CONNECTION_REQUEST_ACCEPTED:
@@ -1582,182 +1580,13 @@ void CDemo::UpdateRakNet(void)
 			RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(packet->systemAddress, rakPeer->GetGuidFromSystemAddress(packet->systemAddress));
 			//replicaManager3에 추적될 수 있도록 할당
 			replicaManager3->PushConnection(connection);
-
 			//객체 생성
-
 			replicaManager3->Reference(playerReplica);
-
-			//if (packet->systemAddress==facilitatorSystemAddress)
-			//{
-			//	isConnectedToNATPunchthroughServer=true;
-
-			//	// Open UPNP.
-			//	struct UPNPDev * devlist = 0;
-			//	devlist = upnpDiscover(1000, 0, 0, 0);
-			//	if (devlist)
-			//	{
-			//		char lanaddr[64];	/* my ip address on the LAN */
-			//		struct UPNPUrls urls;
-			//		struct IGDdatas data;
-			//		if (UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr))==1)
-			//		{
-			//			// External port is the port people will be connecting to us on. This is our port as seen by the directory server
-			//			// Internal port is the port RakNet was internally started on
-			//			char eport[32], iport[32];
-			//			natPunchthroughClient->GetUPNPPortMappings(eport, iport, facilitatorSystemAddress);
-
-			//			int r = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
-			//				eport, iport, lanaddr, 0, "UDP", 0);
-
-			//			if(r==UPNPCOMMAND_SUCCESS)
-			//			{
-			//				// UPNP done
-			//			}
-
-			//		}
-			//	}
-			//	
-			//	// Query cloud for other running game instances
-			//	RakNet::CloudQuery cloudQuery;
-			//	cloudQuery.keys.Push(RakNet::CloudKey("IrrlichtDemo",0),_FILE_AND_LINE_);
-			//	cloudClient->Get(&cloudQuery, packet->guid);
-			//}
 		}
 		    break;
-		case ID_FCM2_VERIFIED_JOIN_START:
-			{
-				DataStructures::List<RakNet::SystemAddress> addresses;
-				DataStructures::List<RakNet::RakNetGUID> guids;
-				DataStructures::List<RakNet::BitStream*> userData;
-				fullyConnectedMesh2->GetVerifiedJoinRequiredProcessingList(packet->guid, addresses, guids, userData);
-				for (unsigned int i=0; i < guids.Size(); i++)
-					natPunchthroughClient->OpenNAT(guids[i], facilitatorSystemAddress);
-			}
-			break;
-		case ID_FCM2_VERIFIED_JOIN_FAILED:
-			{
-				PushMessage(RakNet::RakString("Failed to join game session"));
-			}
-			break;
-		case ID_FCM2_VERIFIED_JOIN_CAPABLE:
-			{
-				fullyConnectedMesh2->RespondOnVerifiedJoinCapable(packet, true, 0);
-			}
-			break;
-		case ID_FCM2_VERIFIED_JOIN_ACCEPTED:
-			{
-				DataStructures::List<RakNet::RakNetGUID> systemsAccepted;
-				bool thisSystemAccepted;
-				fullyConnectedMesh2->GetVerifiedJoinAcceptedAdditionalData(packet, &thisSystemAccepted, systemsAccepted, 0);
-				if (thisSystemAccepted)
-					PushMessage("Game join request accepted\n");
-				else
-					PushMessage(RakNet::RakString("System %s joined the mesh\n", systemsAccepted[0].ToString()));
-				
-				// DataStructures::List<RakNetGUID> participantList;
-				// fullyConnectedMesh2->GetParticipantList(participantList);
-
-				for (unsigned int i=0; i < systemsAccepted.Size(); i++)
-					replicaManager3->PushConnection(replicaManager3->AllocConnection(rakPeer->GetSystemAddressFromGuid(systemsAccepted[i]), systemsAccepted[i]));
-			}
-			break;
-		case ID_FCM2_NEW_HOST:
-			{
-				if (packet->guid==rakPeer->GetMyGUID())
-				{
-					// Original host dropped. I am the new session host. Upload to the cloud so new players join this system.
-					RakNet::CloudKey cloudKey("IrrlichtDemo",0);
-					cloudClient->Post(&cloudKey, 0, 0, rakPeer->GetGuidFromSystemAddress(facilitatorSystemAddress));
-				}
-			}
-			break;
-		case ID_CLOUD_GET_RESPONSE:
-			{
-				RakNet::CloudQueryResult cloudQueryResult;
-				cloudClient->OnGetReponse(&cloudQueryResult, packet);
-				if (cloudQueryResult.rowsReturned.Size()>0)
-				{	
-					PushMessage(RakNet::RakString("NAT punch to existing game instance"));
-					natPunchthroughClient->OpenNAT(cloudQueryResult.rowsReturned[0]->clientGUID, facilitatorSystemAddress);
-				}
-				else
-				{
-					PushMessage(RakNet::RakString("Publishing new game instance"));
-
-					// Start as a new game instance because no other games are running
-					RakNet::CloudKey cloudKey("IrrlichtDemo",0);
-					cloudClient->Post(&cloudKey, 0, 0, packet->guid);
-				}
-
-				cloudClient->DeallocateWithDefaultAllocator(&cloudQueryResult);
-			}
-			break;
 		case ID_CONNECTION_ATTEMPT_FAILED:
 			{
 				PushMessage(RakNet::RakString("Connection attempt to ") + targetName + RakNet::RakString(" failed."));
-				if (packet->systemAddress==facilitatorSystemAddress)
-					PushMessage("Multiplayer will not work without the NAT punchthrough server!");
-			}
-			break;
-		case ID_NAT_TARGET_NOT_CONNECTED:
-			{
-				RakNet::RakNetGUID recipientGuid;
-				RakNet::BitStream bs(packet->data,packet->length,false);
-				bs.IgnoreBytes(sizeof(RakNet::MessageID));
-				bs.Read(recipientGuid);
-				targetName=recipientGuid.ToString();
-				PushMessage(RakNet::RakString("NAT target ") + targetName + RakNet::RakString(" not connected."));
-			}
-			break;
-		case ID_NAT_TARGET_UNRESPONSIVE:
-			{
-				RakNet::RakNetGUID recipientGuid;
-				RakNet::BitStream bs(packet->data,packet->length,false);
-				bs.IgnoreBytes(sizeof(RakNet::MessageID));
-				bs.Read(recipientGuid);
-				targetName=recipientGuid.ToString();
-				PushMessage(RakNet::RakString("NAT target ") + targetName + RakNet::RakString(" unresponsive."));
-			}
-			break;
-		case ID_NAT_CONNECTION_TO_TARGET_LOST:
-			{
-				RakNet::RakNetGUID recipientGuid;
-				RakNet::BitStream bs(packet->data,packet->length,false);
-				bs.IgnoreBytes(sizeof(RakNet::MessageID));
-				bs.Read(recipientGuid);
-				targetName=recipientGuid.ToString();
-				PushMessage(RakNet::RakString("NAT target connection to ") + targetName + RakNet::RakString(" lost."));
-			}
-			break;
-		case ID_NAT_ALREADY_IN_PROGRESS:
-			{
-				RakNet::RakNetGUID recipientGuid;
-				RakNet::BitStream bs(packet->data,packet->length,false);
-				bs.IgnoreBytes(sizeof(RakNet::MessageID));
-				bs.Read(recipientGuid);
-				targetName=recipientGuid.ToString();
-				PushMessage(RakNet::RakString("NAT punchthrough to ") + targetName + RakNet::RakString(" in progress (skipping)."));
-			}
-			break;
-
-		case ID_NAT_PUNCHTHROUGH_SUCCEEDED:
-			{
-				if (packet->data[1]==1)
-				{
-					PushMessage(RakNet::RakString("Connecting to existing game instance"));
-					RakNet::ConnectionAttemptResult car = rakPeer->Connect(packet->systemAddress.ToString(false), packet->systemAddress.GetPort(), 0, 0);
-					RakAssert(car==RakNet::CONNECTION_ATTEMPT_STARTED);
-				}
-			}
-			break;
-
-		case ID_ADVERTISE_SYSTEM:
-			if (packet->guid!=rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
-			{
-				char hostIP[32];
-				packet->systemAddress.ToString(false,hostIP);
-				RakNet::ConnectionAttemptResult car = rakPeer->Connect(hostIP,packet->systemAddress.GetPort(),0,0);
-				RakAssert(car==RakNet::CONNECTION_ATTEMPT_STARTED);
 			}
 			break;
 		}

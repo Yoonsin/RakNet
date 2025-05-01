@@ -54,6 +54,7 @@ int main(int argc, char* argv[])
 	}
 #else
 	isServer = true;
+	vsync = true;
 	CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer);
 	demo.run();
 #endif // _WIN32

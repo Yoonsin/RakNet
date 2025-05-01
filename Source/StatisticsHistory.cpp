@@ -159,6 +159,7 @@ void StatisticsHistory::AddValueByIndex(unsigned int index, RakString key, SHVal
 	if (queue->longTermHighest < tav.val)
 		queue->longTermHighest = tav.val;
 }
+
 StatisticsHistory::SHErrorCode StatisticsHistory::GetHistoryForKey(uint64_t objectId, RakString key, StatisticsHistory::TimeAndValueQueue **values, Time curTime) const
 {
 	if (values == 0)
@@ -774,6 +775,8 @@ void StatisticsHistoryPlugin::Update(void)
 				"RN_packetlossLastSecond",
 				(SHValueType) stats[idx].packetlossLastSecond,
 				curTime, false);
+
+			//ignore도 추가할 필요 있음
 		}
 
 	}

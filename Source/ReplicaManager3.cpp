@@ -839,6 +839,8 @@ void Connection_RM3::AutoConstructByQuery(ReplicaManager3 *replicaManager3, Worl
 	}
 	else if (constructionMode==QUERY_CONNECTION_FOR_REPLICA_LIST)
 	{
+		//각 연결(Connection_RM3) 객체에 대해 QueryReplicaList()를 호출해서
+		//이 연결에 어떤 객체가 존재해야 할지 한 번에 가져옴
 		QueryReplicaList(constructedReplicasCulled,destroyedReplicasCulled);
 
 		unsigned int idx1, idx2;
@@ -1941,6 +1943,8 @@ void Connection_RM3::OnConstructToThisConnection(unsigned int queryToConstructId
 	queryToSerializeReplicaList.Push(lsr,_FILE_AND_LINE_);
 	ValidateLists(replicaManager);
 }
+
+
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

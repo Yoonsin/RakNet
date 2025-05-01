@@ -1120,7 +1120,7 @@ void android_main(android_app* state) {
     bool music = true;
     bool shadows = false;
     bool additive = false;
-    bool vsync = false;
+    bool vsync = true;
     bool aa = false;
     core::stringw playerName;
     bool isServer = false;

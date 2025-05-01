@@ -28,8 +28,6 @@
 #include "IAnimatedMeshSceneNode.h"
 #include "MessageIdentifiers.h"
 
-
-
 class ReplicaManager3Irrlicht;
 class CDemo;
 class PlayerReplica;
@@ -39,7 +37,6 @@ enum Topology
 	CLIENT,
 	SERVER
 };
-
 
 // All externs defined in the corresponding CPP file
 // Most of these classes has a manual entry, all of them have a demo
@@ -51,7 +48,6 @@ extern RakNet::CloudClient *cloudClient; // Used to upload game instance to the 
 extern RakNet::FullyConnectedMesh2 *fullyConnectedMesh2; // Used to find out who is the session host
 extern PlayerReplica *playerReplica; // Network object that represents the player
 
-
 // A NAT punchthrough and proxy server Jenkins Software is hosting for free, should usually be online
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_PORT 61111
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP "natpunch.slikesoft.com" //"natpunch.jenkinssoftware.com" ¥Î√º
@@ -60,6 +56,8 @@ extern PlayerReplica *playerReplica; // Network object that represents the playe
 void InstantiateRakNetClasses(bool isServer);
 void DeinitializeRakNetClasses(void);
 void SaveStatisticsToCSV();
+void PrintStatistics(bool isExportFile);
+
 
 // Base RakNet custom classes for Replica Manager 3, setup peer to peer networking
 class BaseIrrlichtReplica : public RakNet::Replica3

@@ -104,7 +104,6 @@ int main(void)
 			tav->ResizeSampleSet(numGraphColumns, histogram, StatisticsHistory::DC_CONTINUOUS);
 			PrintGraph(histogram, 1, -1);
 
-
 			// Show cos wave
 			statisticsHistory.GetHistoryForKey(HO_COS_WAVE, "Waveform", &tav, curTime);
 			tav->ResizeSampleSet(numGraphColumns, histogram, StatisticsHistory::DC_CONTINUOUS);

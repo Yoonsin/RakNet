@@ -46,7 +46,9 @@ public:
 		color.Hue = ( (timeMs + Phase) % Frequency  ) * ( 2.f * irr::core::PI / Frequency );
 		color.Saturation = 1.f;
 		color.Luminance = 0.5f;
-		color.toRGB(rgb.toSColor());
+
+		irr::video::SColorf color_tmp = rgb.toSColor();
+		color.toRGB(color_tmp);
 
 		video::SLight light = l->getLightData();
 		light.DiffuseColor = rgb;
@@ -315,7 +317,7 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	switch(selected)
 	{
 	case 0:	outDriver = video::EDT_OPENGL; break;
-	case 1:	outDriver = video::EDT_DIRECT3D8; break;
+	case 1:	outDriver = video::EDT_DIRECT3D9; break;//EDT_DIRECT3D8; break;
 	case 2:	outDriver = video::EDT_DIRECT3D9; break;
 	case 3:	outDriver = video::EDT_BURNINGSVIDEO; break;
 	case 4:	outDriver = video::EDT_SOFTWARE; break;

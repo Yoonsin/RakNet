@@ -17,6 +17,7 @@
 #include "SocketLayer.h"
 #include "RakNetStatistics.h"
 #include "StatisticsHistory.h"
+#include "PacketLogger.h"
 #include <stdio.h>
 #include <time.h>
 
@@ -37,9 +38,9 @@ CloudClient *cloudClient;
 RakNet::FullyConnectedMesh2 *fullyConnectedMesh2;
 PlayerReplica *playerReplica;
 
-StatisticsHistoryPlugin* statisticsPlugin;
 Topology topology;
-
+PacketLogger* loggerPlugin;
+StatisticsHistoryPlugin* statisticsPlugin; // Used to track network statistics
 
 
 /*
@@ -90,6 +91,7 @@ void DebugBoxSceneNode::render()
 }
 */
 
+DataStructures::List<RakNet::RakString> statBuf;
 DataStructures::List<PlayerReplica*> PlayerReplica::playerList;
 
 // Take this many milliseconds to move the visible position to the real position
@@ -146,50 +148,34 @@ void InstantiateRakNetClasses(bool isServer)
 	
 	// Automatically destroy connections, but don't create them so we have more control over when a system is considered ready to play
 	replicaManager3->SetAutoManageConnections(false,true);
-	//replicaManager3->SetAutoSerializeInterval(250);
+	replicaManager3->SetAutoSerializeInterval(30);
 	
 	// Create and register the network object that represents the player
 	playerReplica = new PlayerReplica;
 	//replicaManager3->Reference(playerReplica);
 	
-	// Lets you connect through routers
-	/*
-	natPunchthroughClient=new NatPunchthroughClient;
-	rakPeer->AttachPlugin(natPunchthroughClient);
-	
-	// Uploads game instance, basically client half of a directory server
-	// Server code is in NATCompleteServer sample
-	cloudClient=new CloudClient;
-	rakPeer->AttachPlugin(cloudClient);
-	fullyConnectedMesh2=new FullyConnectedMesh2;
-	fullyConnectedMesh2->SetAutoparticipateConnections(false);
-	fullyConnectedMesh2->SetConnectOnNewRemoteConnection(false, "");
-	rakPeer->AttachPlugin(fullyConnectedMesh2);
-	*/
-
-	// Connect to the NAT punchthrough server
-	//ConnectionAttemptResult car = rakPeer->Connect(DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP, DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_PORT,0,0);
-	//RakAssert(car==CONNECTION_ATTEMPT_STARTED);
-
 	if (topology == CLIENT) {
 #if __ANDROID__
 		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
 		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
 #else
-		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
-		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜 
+		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜 
 #endif // __ANDROID__
 		RakAssert(car == CONNECTION_ATTEMPT_STARTED);
+
+		//loggerPlugin = PacketLogger::GetInstance();
+		//rakPeer->AttachPlugin(loggerPlugin);
 	}
 	else if (topology == SERVER) {
 		statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
 		statisticsPlugin->SetTrackConnections(true, 0, true);
 		rakPeer->AttachPlugin(statisticsPlugin);
+
+		//loggerPlugin = PacketLogger::GetInstance();
+		//rakPeer->AttachPlugin(loggerPlugin);
 	}
 	
-	// Advertise ourselves on the lAN if the NAT punchthrough server is not available
- 	//for (int i=0; i < 8; i++)
- 	//rakPeer->AdvertiseSystem("255.255.255.255", 1234+i, 0,0,0);
 }
 void DeinitializeRakNetClasses(void)
 {
@@ -197,8 +183,8 @@ void DeinitializeRakNetClasses(void)
 	replicaManager3->GetReplicasCreatedByMe(replicaListOut);
 	replicaManager3->BroadcastDestructionList(replicaListOut, RakNet::UNASSIGNED_SYSTEM_ADDRESS);
 	
+	if (topology == SERVER) SaveStatisticsToCSV();
 	// Shutdown so the server knows we stopped
-	//if (topology == SERVER) SaveStatisticsToCSV();
 	rakPeer->Shutdown(100,0);
 
 	RakNet::RakPeerInterface::DestroyInstance(rakPeer);
@@ -210,10 +196,89 @@ void DeinitializeRakNetClasses(void)
 	// ReplicaManager3 deletes all referenced objects, including this one
 	playerReplica->PreDestruction(0);
 	delete playerReplica;
+	
+	if (topology == SERVER) {
+		delete statisticsPlugin;
+		//delete loggerPlugin;
+	}
+	else if (topology == CLIENT) {
+		//delete loggerPlugin;
+	}
+}
+
+void PrintStatistics(bool isExportFile)
+{
+	unsigned short connectionCount = rakPeer->NumberOfConnections();
+	RakNet::SystemAddress systems[256];
+	rakPeer->GetConnectionList(systems, &connectionCount);
+
+	for (unsigned short i = 0; i < connectionCount; ++i)
+	{
+		RakNet::SystemAddress addr = systems[i];
+		char ipStr[64];
+		addr.ToString(false, ipStr);
+
+		RakNetGUID guid = rakPeer->GetGuidFromSystemAddress(addr);
+		uint64_t objectId = guid.g;
+
+		// 현재 등록된 통계 키 가져오기
+		DataStructures::List<RakString> keys;
+		statisticsPlugin->statistics.GetUniqueKeyList(keys);
+
+		Time curTime = RakNet::GetTime();
+		for (unsigned int k = 0; k < keys.Size(); ++k)
+		{
+			//가져올 값
+			StatisticsHistory::TimeAndValueQueue* history; 
+			if (statisticsPlugin->statistics.GetHistoryForKey(objectId, keys[k], &history, curTime) != StatisticsHistory::SH_OK)
+				continue;
+
+			//현재 해당하는 키에 대한 초당 변화량
+			if (history->values.Size() > 0)
+			{
+				StatisticsHistory::TimeAndValue latest = history->values.PeekTail();
+				
+				//log format
+				// ip / timeStemp / key / log property / value
+				
+				unsigned int ms = latest.time % 1000;
+				unsigned int totalSeconds = latest.time / 1000;
+				unsigned int seconds = totalSeconds % 60;
+				unsigned int minutes = (totalSeconds / 60) % 60;
+				unsigned int hours = (totalSeconds / 3600) % 24;  // 하루 기준
+
+				char buffer[64];
+				snprintf(buffer, sizeof(buffer), "%02u:%02u:%02u:%03u", hours, minutes, seconds, ms);
+
+				if(isExportFile){
+					// 마지막 누적값 및 평균 저장
+					char buffer2[4][160];
+					snprintf(buffer2[0], sizeof(buffer2[0]), "%s,%s,%s,CumulativeSum,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermSum());
+					snprintf(buffer2[1], sizeof(buffer2[1]), "%s,%s,%s,CumulativeAvg,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermAverage());
+					snprintf(buffer2[2], sizeof(buffer2[2]), "%s,%s,%s,Highest,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermHighest());
+					snprintf(buffer2[3], sizeof(buffer2[3]), "%s,%s,%s,Lowest,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermLowest());
+
+					for (int i = 0; i < 4; i++) statBuf.Push(RakNet::RakString(buffer2[i]), _FILE_AND_LINE_); //Log
+				}
+				else {
+					// 초당 변화량 저장
+					char buffer2[160];
+					snprintf(buffer2, sizeof(buffer2), "%s,%s,%s,perSecond,%.2f\n", ipStr, buffer, keys[k].C_String(), latest.val); // 또는 "\r\n" 사용 가능
+
+					statBuf.Push(RakNet::RakString(buffer2), _FILE_AND_LINE_); //Log
+				}
+
+			    // OutputDebugStringA(buffer2); //Debugger
+			}
+		}
+		
+	}
 }
 
 void SaveStatisticsToCSV()
 {
+
+
 #ifdef _WIN32
 	//디렉토리 경로 파악
 	char buffer[MAX_PATH];
@@ -229,20 +294,6 @@ void SaveStatisticsToCSV()
 	unsigned short connectionCount = rakPeer->NumberOfConnections();
 	RakNet::SystemAddress systems[256];
 	rakPeer->GetConnectionList(systems, &connectionCount);
-
-	const char* metricNames[] = {
-		"USER_MESSAGE_BYTES_PUSHED",
-		"USER_MESSAGE_BYTES_SENT",
-		"USER_MESSAGE_BYTES_RESENT",
-		"USER_MESSAGE_BYTES_RECEIVED_PROCESSED",
-		"USER_MESSAGE_BYTES_RECEIVED_IGNORED",
-		"ACTUAL_BYTES_SENT",
-		"ACTUAL_BYTES_RECEIVED"
-	};
-
-	const char* priorityNames[] = { "IMMEDIATE", "HIGH", "MEDIUM", "LOW" };
-
-	
 
 #ifdef __linux__
 	// 현재 시간
@@ -271,54 +322,26 @@ void SaveStatisticsToCSV()
 	// 파일명 + 경로
 	char filename[256];
 	time_t now = time(nullptr);
-	strftime(filename, sizeof(filename), "%s/full_stats_%Y%m%d_%H%M%S.csv", localtime(&now));
+	strftime(filename, sizeof(filename), "full_stats_%Y%m%d_%H%M%S.csv", localtime(&now));
 
 	FILE* f = fopen(filename, "w");
 	if (!f) return;
 #endif // __linux__
 
-	// 헤더
-	fprintf(f, "PeerIP,Section,Key,Value\n");
-	Time curTime = RakNet::GetTime();
-	//time_t curTimeSec = static_cast<time_t>(curTime / 1000); 
-	char* timeBuf = filename;
-	//strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", localtime(&curTimeSec)); 
+	//log format
+	// ip / timeStemp / key / log property / value
+	fprintf(f, "Ip, TimeStemp, Key, Log Property, Value\n");
 
-	for (unsigned short i = 0; i < connectionCount; ++i)
+	//마지막 누적값 및 평균 저장
+	PrintStatistics(true);
+
+	for (unsigned int i = 0; i < statBuf.Size(); i++)
 	{
-		RakNet::SystemAddress addr = systems[i];
-		char ipStr[64];
-		addr.ToString(false, ipStr);
-
-		RakNetGUID guid = rakPeer->GetGuidFromSystemAddress(addr);
-		uint64_t objectId = guid.g;
-
-		// 현재 등록된 통계 키 가져오기
-		DataStructures::List<RakString> keys;
-		statisticsPlugin->statistics.GetUniqueKeyList(keys);
-
-		for (unsigned int k = 0; k < keys.Size(); ++k)
-		{
-			StatisticsHistory::TimeAndValueQueue* history;
-			if (statisticsPlugin->statistics.GetHistoryForKey(objectId, keys[k], &history, curTime) != StatisticsHistory::SH_OK)
-				continue;
-
-			// 초당 값 (최근)
-			if (history->values.Size() > 0)
-			{
-				StatisticsHistory::TimeAndValue latest = history->values.PeekTail();
-				fprintf(f, "%s,%s,PerSecond,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), latest.val);
-			}
-
-			// 전체 누적 (long term)
-			fprintf(f, "%s,%s,CumulativeSum,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), history->GetLongTermSum());
-			fprintf(f, "%s,%s,CumulativeAvg,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), history->GetLongTermAverage());
-			fprintf(f, "%s,%s,Max,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), history->GetLongTermHighest());
-			fprintf(f, "%s,%s,Min,%s,%.2f\n", timeBuf, ipStr, keys[k].C_String(), history->GetLongTermLowest());
-		}
+		fprintf(f, "%s", statBuf[i].C_String());
 	}
 
 	fclose(f);
+	statBuf.Clear(false, _FILE_AND_LINE_);
 }
 
 BaseIrrlichtReplica::BaseIrrlichtReplica()
@@ -432,7 +455,8 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *ser
 	serializeParameters->outputBitstream[0].Write(rotationAroundYAxis);
 	serializeParameters->outputBitstream[0].Write(isMoving);
 	serializeParameters->outputBitstream[0].Write( topology==CLIENT ? IsDead() : isDead);
-	return RM3SR_BROADCAST_IDENTICALLY;
+	//return RM3SR_BROADCAST_IDENTICALLY; 
+	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //값이 안바뀌어도 계속 동기화됨
 }
 //destination에 존재하지 않는 객체를 전송해야 하는지?
 

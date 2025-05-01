@@ -125,7 +125,7 @@ void CDemo::run()
 			// update 3D position for sound engine
 			scene::ICameraSceneNode* cam = smgr->getActiveCamera();
 			if (cam && irrKlang)
-				irrKlang->setListenerPosition(cam->getAbsolutePosition(), cam->getTarget());
+				//irrKlang->setListenerPosition(cam->getAbsolutePosition(), cam->getTarget());
 #endif
 
 			// load next scene if necessary
@@ -142,11 +142,12 @@ void CDemo::run()
 
 			driver->endScene();
 
-			/*
+			
 			// write statistics
 			static s32 lastfps = 0;
 			s32 nowfps = driver->getFPS();
 
+			wchar_t tmp[255];
 			swprintf(tmp, 255, L"%ls fps:%3d triangles:%0.3f mio",
 				driver->getName(),
 				driver->getFPS(),
@@ -157,20 +158,20 @@ void CDemo::run()
 				device->setWindowCaption ( tmp );
 				lastfps = nowfps;
 			}
-*/
-			RakNet::RakString curMsg = GetCurrentMessage();
-			if (curMsg.IsEmpty()==false)
-			{
-				wchar_t dest[1024];
-				memset(dest,0,sizeof(dest));
-				mbstowcs(dest, curMsg.C_String(), curMsg.GetLength());
-				statusText->setText(dest);
-			}
-			else
-			{
-		//		statusText->setText(tmp);
-				statusText->setText(0);
-			}
+
+		//	RakNet::RakString curMsg = GetCurrentMessage();
+		//	if (curMsg.IsEmpty()==false)
+		//	{
+		//		wchar_t dest[1024];
+		//		memset(dest,0,sizeof(dest));
+		//		mbstowcs(dest, curMsg.C_String(), curMsg.GetLength());
+		//		statusText->setText(dest);
+		//	}
+		//	else
+		//	{
+		////		statusText->setText(tmp);
+		//		statusText->setText(0);
+		//	}
 		}
 
 		// RakNet per tick update
@@ -442,7 +443,9 @@ void CDemo::loadSceneData()
 	// Quake3 Shader controls Z-Writing
 	sm->getParameters()->setAttribute(scene::ALLOW_ZWRITE_ON_TRANSPARENT, true);
 
-	quakeLevelMesh = (scene::IQ3LevelMesh*) sm->getMesh("maps/20kdm2.bsp");
+	//quakeLevelMesh = (scene::IQ3LevelMesh*) sm->getMesh("maps/20kdm2.bsp");
+	quakeLevelMesh = (scene::IQ3LevelMesh*)sm->getMesh("20kdm2.bsp");
+	
 
 	if (quakeLevelMesh)
 	{
@@ -730,18 +733,18 @@ const core::aabbox3df& CDemo::GetSyndeyBoundingBox(void) const
 }
 void CDemo::PlayDeathSound(core::vector3df position)
 {
-	if (irrKlang)
-	{
-		irrklang::ISound* sound = 
-			irrKlang->play3D(impactSound, position, false, false, true);
+	//if (irrKlang)
+	//{
+	//	irrklang::ISound* sound = 
+	//		irrKlang->play3D(impactSound, position, false, false, true);
 
-		if (sound)
-		{
-			// adjust max value a bit to make to sound of an impact louder
-			sound->setMinDistance(400);
-			sound->drop();
-		}
-	}	
+	//	if (sound)
+	//	{
+	//		// adjust max value a bit to make to sound of an impact louder
+	//		sound->setMinDistance(400);
+	//		sound->drop();
+	//	}
+	//}	
 }
 void CDemo::EnableInput(bool enabled)
 {
@@ -775,26 +778,47 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 
 	// get intersection point with map
 	const scene::ISceneNode* hitNode;
-	if (sm->getSceneCollisionManager()->getCollisionPoint(
-		line, mapSelector, end, triangle, hitNode))
-	{
+
+	scene::SCollisionHit hitResult;
+	if (sm->getSceneCollisionManager()->getCollisionPoint(hitResult, line, mapSelector)) {
 		// collides with wall
-		core::vector3df out = triangle.getNormal();
+		core::vector3df out = hitResult.Triangle.getNormal();
 		out.setLength(0.03f);
 
 		imp.when = 1;
 		imp.outVector = out;
-		imp.pos = end;
+		imp.pos = hitResult.Intersection;
 	}
-	else
-	{
+	else {
 		// doesnt collide with wall
 		core::vector3df start = camPosition;
 		core::vector3df end = (camAt);
 		//end.normalize();
-		start += end*8.0f;
+		start += end * 8.0f;
 		end = start + (end * camera->getFarValue());
 	}
+
+
+	//if (sm->getSceneCollisionManager()->getCollisionPoint(
+	//	line, mapSelector, end, triangle, hitNode))
+	//{
+	//	// collides with wall
+	//	core::vector3df out = triangle.getNormal();
+	//	out.setLength(0.03f);
+
+	//	imp.when = 1;
+	//	imp.outVector = out;
+	//	imp.pos = end;
+	//}
+	//else
+	//{
+	//	// doesnt collide with wall
+	//	core::vector3df start = camPosition;
+	//	core::vector3df end = (camAt);
+	//	//end.normalize();
+	//	start += end*8.0f;
+	//	end = start + (end * camera->getFarValue());
+	//}
 
 	// create fire ball
 	scene::ISceneNode* node = 0;
@@ -835,15 +859,15 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 		//	irrKlang->play2D(ballSound);
 
 		// RakNet: Make the sound 3d so others can hear it from the proper origin
-		irrklang::ISound* sound = 
-			irrKlang->play3D(ballSound, node->getPosition(), false, false, true);
+		//irrklang::ISound* sound = 
+		//irrKlang->play3D(ballSound, node->getPosition(), false, false, true);
 
-		if (sound)
-		{
-			// adjust max value a bit to make to sound of an impact louder
-			sound->setMinDistance(400);
-			sound->drop();
-		}
+		//if (sound)
+		//{
+		//	// adjust max value a bit to make to sound of an impact louder
+		//	sound->setMinDistance(400);
+		//	sound->drop();
+		//}
 
 	}
 #endif
@@ -911,18 +935,18 @@ void CDemo::createParticleImpacts()
 
 			// play impact sound
 			#ifdef USE_IRRKLANG
-			if (irrKlang)
-			{
-				irrklang::ISound* sound = 
-					irrKlang->play3D(impactSound, Impacts[i].pos, false, false, true);
+			//if (irrKlang)
+			//{
+			//	irrklang::ISound* sound = 
+			//		irrKlang->play3D(impactSound, Impacts[i].pos, false, false, true);
 
-				if (sound)
-				{
-					// adjust max value a bit to make to sound of an impact louder
-					sound->setMinDistance(400);
-					sound->drop();
-				}
-			}
+			//	if (sound)
+			//	{
+			//		// adjust max value a bit to make to sound of an impact louder
+			//		sound->setMinDistance(400);
+			//		sound->drop();
+			//	}
+			//}
 			#endif
 
 			#ifdef USE_SDL_MIXER

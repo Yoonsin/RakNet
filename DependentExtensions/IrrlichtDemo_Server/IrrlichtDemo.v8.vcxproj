@@ -55,7 +55,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>./;./../../Source;C:\irrlicht-1.7.2\include;./../../DependentExtensions/miniupnpc-1.5;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;./../../Source;C:\irrlicht-trunk\include;./../../DependentExtensions/miniupnpc-1.5;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -65,14 +65,14 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ws2_32.lib;IPHlpApi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;IPHlpApi.lib;Irrlicht.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)IrrlichtDemo_Server.exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalLibraryDirectories>C:\GitHub\RakNet\Source</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\irrlicht-trunk\lib\Win32-visualstudio;C:\GitHub\RakNet\Source</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy C:\irrlicht-1.7.2\bin\Win32-VisualStudio\Irrlicht.dll .\</Command>
