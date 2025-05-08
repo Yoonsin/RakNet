@@ -20,12 +20,14 @@
 #include "PacketLogger.h"
 #include <stdio.h>
 #include <time.h>
+#include <chrono>
 
 #ifdef __linux__
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
+
 
 using namespace RakNet;
 using namespace std;
@@ -143,6 +145,8 @@ void InstantiateRakNetClasses(bool isServer)
 	
 	// Automatically sends around new / deleted / changed game objects
 	replicaManager3=new ReplicaManager3Irrlicht;
+	replicaManager3->SetIsServer(topology == SERVER);
+
 	replicaManager3->SetNetworkIDManager(networkIDManager);
 	rakPeer->AttachPlugin(replicaManager3);
 	
@@ -168,13 +172,14 @@ void InstantiateRakNetClasses(bool isServer)
 		//rakPeer->AttachPlugin(loggerPlugin);
 	}
 	else if (topology == SERVER) {
-		statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
-		statisticsPlugin->SetTrackConnections(true, 0, true);
-		rakPeer->AttachPlugin(statisticsPlugin);
+		//statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
+		//statisticsPlugin->SetTrackConnections(true, 0, true);
+		//rakPeer->AttachPlugin(statisticsPlugin);
 
 		//loggerPlugin = PacketLogger::GetInstance();
 		//rakPeer->AttachPlugin(loggerPlugin);
 	}
+
 	
 }
 void DeinitializeRakNetClasses(void)
@@ -198,7 +203,7 @@ void DeinitializeRakNetClasses(void)
 	delete playerReplica;
 	
 	if (topology == SERVER) {
-		delete statisticsPlugin;
+		//delete statisticsPlugin;
 		//delete loggerPlugin;
 	}
 	else if (topology == CLIENT) {
@@ -277,8 +282,6 @@ void PrintStatistics(bool isExportFile)
 
 void SaveStatisticsToCSV()
 {
-
-
 #ifdef _WIN32
 	//디렉토리 경로 파악
 	char buffer[MAX_PATH];
@@ -330,10 +333,10 @@ void SaveStatisticsToCSV()
 
 	//log format
 	// ip / timeStemp / key / log property / value
-	fprintf(f, "Ip, TimeStemp, Key, Log Property, Value\n");
+	//fprintf(f, "Ip, TimeStemp, Key, Log Property, Value\n");
 
 	//마지막 누적값 및 평균 저장
-	PrintStatistics(true);
+	//PrintStatistics(true);
 
 	for (unsigned int i = 0; i < statBuf.Size(); i++)
 	{
@@ -342,6 +345,14 @@ void SaveStatisticsToCSV()
 
 	fclose(f);
 	statBuf.Clear(false, _FILE_AND_LINE_);
+}
+
+long long GetCurrentTimeMS()
+{
+	using namespace std::chrono;
+	auto now = system_clock::now();
+	auto duration = duration_cast<milliseconds>(now.time_since_epoch());
+	return duration.count();
 }
 
 BaseIrrlichtReplica::BaseIrrlichtReplica()
@@ -455,6 +466,9 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *ser
 	serializeParameters->outputBitstream[0].Write(rotationAroundYAxis);
 	serializeParameters->outputBitstream[0].Write(isMoving);
 	serializeParameters->outputBitstream[0].Write( topology==CLIENT ? IsDead() : isDead);
+
+	//timeStamp
+	serializeParameters->messageTimestamp = RakNet::GetTimeMS();
 	//return RM3SR_BROADCAST_IDENTICALLY; 
 	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //값이 안바뀌어도 계속 동기화됨
 }
@@ -622,12 +636,27 @@ void BallReplica::SerializeConstruction(RakNet::BitStream *constructionBitstream
 {
 	BaseIrrlichtReplica::SerializeConstruction(constructionBitstream, destinationConnection);
 	constructionBitstream->Write(shotDirection);
+	
+	////TimeStamp
+	//constructionBitstream->Write(GetCurrentTimeMS());
 }
 bool BallReplica::DeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *sourceConnection)
 {
 	if (!BaseIrrlichtReplica::DeserializeConstruction(constructionBitstream, sourceConnection))
 		return false;
 	constructionBitstream->Read(shotDirection);
+
+	//TimeStamp
+	long long timeStampMS;
+	constructionBitstream->Read(timeStampMS);
+
+//	//visual studio debugger
+//	char buffer[1024];
+//	snprintf(buffer, sizeof(buffer), "%lld\n", timeStampMS);
+//#ifdef _WIN32
+//	OutputDebugStringA(buffer);
+//#endif
+
 	return true;
 }
 void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *destinationConnection)
@@ -709,4 +738,8 @@ RakNet::Replica3 *Connection_RM3Irrlicht::AllocReplica(RakNet::BitStream *alloca
 	if (typeName=="PlayerReplica") {BaseIrrlichtReplica *r = new PlayerReplica; r->demo=demo; return r;}
 	if (typeName=="BallReplica") {BaseIrrlichtReplica *r = new BallReplica; r->demo=demo; return r;}
 	return 0;
+}
+
+void ReplicaManager3Irrlicht::PrintTimeGap(char* str) {
+	statBuf.Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
 }

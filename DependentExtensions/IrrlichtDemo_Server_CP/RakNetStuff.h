@@ -57,7 +57,8 @@ void InstantiateRakNetClasses(bool isServer);
 void DeinitializeRakNetClasses(void);
 void SaveStatisticsToCSV();
 void PrintStatistics(bool isExportFile);
-
+long long GetCurrentTimeMS();
+//RakString FormatTime(long long milliseconds);
 
 // Base RakNet custom classes for Replica Manager 3, setup peer to peer networking
 class BaseIrrlichtReplica : public RakNet::Replica3
@@ -86,6 +87,8 @@ public:
 
 	// Set when the object is constructed
 	CDemo *demo;
+
+
 
 	// real is written on the owner peer, read on the remote peer
 	irr::core::vector3df position;
@@ -193,6 +196,10 @@ public:
 	virtual void DeallocConnection(RakNet::Connection_RM3 *connection) const {
 		delete connection;
 	}
+
+	virtual void PrintTimeGap(char* str) override;
+	virtual void SetIsServer(bool isServer) override { this->isServer = isServer; }
+
 	CDemo *demo;
 };
 

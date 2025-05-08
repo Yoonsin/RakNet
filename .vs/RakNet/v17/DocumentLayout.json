@@ -55,7 +55,7 @@
               "RelativeDocumentMoniker": "CMakeSettings.json",
               "ToolTip": "C:\\GitHub\\RakNet\\CMakeSettings.json",
               "RelativeToolTip": "CMakeSettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAAgAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAA4AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2025-04-03T07:08:49.9Z",
               "EditorCaption": ""
@@ -95,6 +95,10 @@
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
               "WhenOpened": "2025-04-03T06:55:36.417Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{68487888-204a-11d3-87eb-00c04f7971a5}"
             }
           ]
         }

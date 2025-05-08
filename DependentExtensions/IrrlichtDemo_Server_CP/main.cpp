@@ -41,6 +41,7 @@ int main(int argc, char* argv[])
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
 #endif
 
+	CDemo::GamePlatform platform = CDemo::GamePlatform::PC;
 
 #ifdef _WIN32
 	CMainMenu menu;
@@ -49,13 +50,13 @@ int main(int argc, char* argv[])
 	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer))
 		//#endif
 	{
-		CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer);
+		CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform);
 		demo.run();
 	}
 #else
 	isServer = true;
 	vsync = true;
-	CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer);
+	CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform);
 	demo.run();
 #endif // _WIN32
 

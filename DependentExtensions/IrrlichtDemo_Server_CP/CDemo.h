@@ -67,11 +67,19 @@ const float BALL_DIAMETER=25.0f;
 #include "RakString.h"
 #include "RakNetTime.h"
 
+
+
+
 class CDemo : public IEventReceiver
 {
 public:
 
-	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer);
+	enum class GamePlatform {
+		PC,
+		Android
+	};
+
+	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform);
 
 	~CDemo();
 
@@ -113,11 +121,13 @@ private:
 	bool additive;
 	bool vsync;
 	bool aa;
+	
 	video::E_DRIVER_TYPE driverType;
 	core::stringw playerName;
 	IrrlichtDevice *device;
 
 	bool isServer;
+	GamePlatform platform = GamePlatform::PC;
 	irr::core::stringc mediaPath;
 
 #ifdef USE_IRRKLANG
@@ -194,8 +204,19 @@ private:
 		s32 viewRotate = -1;
 };
 	CurTouchID curTouchID;
-
 	scene::ISceneNodeAnimator* fpsCamAnim;
+
+	gui::IGUIElement* joy_stick;
+	gui::IGUIElement* jump_button;
+	gui::IGUIElement* fire_button;
+	gui::IGUIElement* exit_button;
+
+	/*
+	joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
+	jump_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_JUMP);
+	fire_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_FIRE);
+	exit_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_EXIT);
+	*/
 #endif
 };
 

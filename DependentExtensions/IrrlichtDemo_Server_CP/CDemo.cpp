@@ -78,9 +78,9 @@ public:
 //#include "upnpcommands.h"
 //#include "upnperrors.h"
 
-CDemo::CDemo(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw &_playerName, bool isS)
+CDemo::CDemo(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw &_playerName, bool isS, GamePlatform plat)
 : fullscreen(f), music(m), shadows(s), additive(a), vsync(v), aa(fsaa),
- driverType(d), device(0), playerName(_playerName),isServer(isS),
+driverType(d), device(0), playerName(_playerName), isServer(isS), platform(plat),
 #ifdef USE_IRRKLANG
 	irrKlang(0), ballSound(0), impactSound(0),
 #endif
@@ -195,11 +195,7 @@ void CDemo::run()
 	ILogger* logger = device->getLogger();
 
 	//Android에서 MIP_MAPS를 끄지 않으면 퀘이크 맵 전체가 검게보임
-#ifdef __ANDROID__
 	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
-#else
-	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
-#endif //__ANDROID__
 
 	device->setWindowCaption(L"Irrlicht Engine Demo");
 
@@ -382,8 +378,10 @@ void CDemo::run()
 		// RakNet per 
 		// update
 		UpdateRakNet();
+
+		//Statistics
 		if (isServer) {
-			PrintStatistics(false);
+			//PrintStatistics(false);
 			if (isLogStart == false && replicaManager3->GetConnectionCount() == logMaxPlayer) {
 				isLogStart = true;
 				startTime = device->getTimer()->getTime();
@@ -394,7 +392,6 @@ void CDemo::run()
 				//OutputDebugStringA(display);
 
 				if (now - startTime >= logTime) {
-					/*OutputDebugStringA("log complete. close now!");*/
 					device->closeDevice();
 				}	
 			}
@@ -414,101 +411,59 @@ bool CDemo::OnEvent(const SEvent& event)
 	if (!device)
 		return false;
 
+	SEvent fakeKeyEvent;
+	fakeKeyEvent.EventType = EET_KEY_INPUT_EVENT;
+	fakeKeyEvent.KeyInput.Key = KEY_KEY_CODES_COUNT;
+
 	if (event.EventType == EET_TOUCH_INPUT_EVENT)
 	{
-		/*
-			For now we fake mouse-events. Touch-events will be handled inside Irrlicht in the future, but until
-			that is implemented you can use this workaround to get a GUI which works at least for simple elements like
-			buttons. That workaround does ignore multi-touch events - if you need several buttons pressed at the same
-			time you have to handle that yourself.
-		*/
-		SEvent fakeMouseEvent;
-		fakeMouseEvent.EventType = EET_MOUSE_INPUT_EVENT;
-		fakeMouseEvent.MouseInput.X = event.TouchInput.X;
-		fakeMouseEvent.MouseInput.Y = event.TouchInput.Y;
-		fakeMouseEvent.MouseInput.Shift = false;
-		fakeMouseEvent.MouseInput.Control = false;
-		fakeMouseEvent.MouseInput.ButtonStates = 0;
-		fakeMouseEvent.MouseInput.Event = EMIE_COUNT;
-
-		SEvent fakeKeyEvent;
-		fakeKeyEvent.EventType = EET_KEY_INPUT_EVENT;
-		fakeKeyEvent.KeyInput.Key = KEY_KEY_CODES_COUNT;
-
-		//LOGI("touch id : %d / x : %d / y : %d ", event.TouchInput.ID, event.TouchInput.X, event.TouchInput.Y);
 		s32 id = event.TouchInput.ID;
-
 		switch (event.TouchInput.Event)
 		{
 		case ETIE_PRESSED_DOWN:
 		{
-			// We only work with the first for now.force opengl error
-			//if (TouchID == -1)
-			//{
 				if (device)
 				{
 					core::position2d<s32> touchPoint(event.TouchInput.X, event.TouchInput.Y);
-					gui::IGUIElement* joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
-					gui::IGUIElement* jump_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_JUMP);
-					gui::IGUIElement* fire_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_FIRE);
-					gui::IGUIElement* exit_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_EXIT);
-
 					if (joy_stick && joy_stick->isPointInside(touchPoint)) {
-						//device->getLogger()->log("joyStick Press!!");
-						fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_PRESSED_DOWN;
-						fakeMouseEvent.UserEvent.UserData2 = AppSkin::REGULAR_AGGREGATION;
 						curTouchID.move = id;
 					}
 					else
 					if (jump_button && jump_button->isPointInside(touchPoint)) {
-							//device->getLogger()->log("jumpButton Press!!");
-							fakeKeyEvent.KeyInput.Key = KEY_SPACE;
-							fakeKeyEvent.KeyInput.PressedDown = true;
-							//TouchID = event.TouchInput.ID;
-							curTouchID.jump = id;
+						KeyIsDown[KEY_SPACE] = true;
+						fakeKeyEvent.KeyInput.Key = KEY_SPACE;
+						fakeKeyEvent.KeyInput.PressedDown = true;
+						curTouchID.jump = id;
 					}
 					else
 					if (fire_button && fire_button->isPointInside(touchPoint)) {
-								//device->getLogger()->log("fireButton Press!!");
-								fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_PRESSED_DOWN;
-								//TouchID = event.TouchInput.ID;
-								curTouchID.fire = id;
+						curTouchID.fire = id;
 					}else
 					if (exit_button && exit_button->isPointInside(touchPoint)) {
-						fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_PRESSED_DOWN;
 						curTouchID.exit = id;
 					}
 					else
 					{
-								//device->getLogger()->log("ViewPort Rotate start!!");
-								isRotate = true;
-								if (fpsCamAnim) {
-									fpsCamAnim->isRotate = isRotate;
-									fpsCamAnim->TouchStartPos = touchPoint;
-									fpsCamAnim->TouchCurrentPos = touchPoint;
-									fpsCamAnim->startRotation = fpsCamAnim->relativeRotation;
-								}
-								curTouchID.viewRotate = id;
+						isRotate = true;
+						if (fpsCamAnim) {
+							fpsCamAnim->isRotate = isRotate;
+							fpsCamAnim->TouchStartPos = touchPoint;
+							fpsCamAnim->TouchCurrentPos = touchPoint;
+							fpsCamAnim->startRotation = fpsCamAnim->relativeRotation;
+						}
+						curTouchID.viewRotate = id;
 					}
 				}
-			//}
 			break;
 		}
 		case ETIE_MOVED:
 		{
 			core::position2d<s32> touchPoint(event.TouchInput.X, event.TouchInput.Y);
-			gui::IGUIElement* joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
-			gui::IGUIElement* jump_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_JUMP);
-			gui::IGUIElement* fire_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_FIRE);
-			gui::IGUIElement* exit_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_EXIT);
-
 			bool is_joy_stick = (joy_stick && joy_stick->isPointInside(touchPoint));
 			bool is_gui_viewport = is_joy_stick || (jump_button && jump_button->isPointInside(touchPoint)) || (fire_button && fire_button->isPointInside(touchPoint)) || (exit_button && exit_button->isPointInside(touchPoint));
 			
 			if (isRotate && id == curTouchID.viewRotate) {
 				if (is_gui_viewport ) {
-					//GUI에 있을 때 
-					//device->getLogger()->log("ViewPort Rotate End!!");
 					isRotate = false;
 					if (fpsCamAnim) {
 						fpsCamAnim->isRotate = isRotate;
@@ -516,154 +471,66 @@ bool CDemo::OnEvent(const SEvent& event)
 					curTouchID.viewRotate = -1;
 				}
 				else {
-					//화면에 있을 때
-					//device->getLogger()->log("ViewPort Rotating!!");
 					if (fpsCamAnim) {
 							fpsCamAnim->TouchCurrentPos = touchPoint;
 					}
-					fakeMouseEvent.MouseInput.Event = EMIE_MOUSE_MOVED;
-					fakeMouseEvent.MouseInput.ButtonStates = EMBSM_LEFT;
 				}
 			}
-
-			if (is_joy_stick && id == curTouchID.move) {
-				//device->getLogger()->log("joystick Rotating!!");
-				fakeMouseEvent.MouseInput.Event = EMIE_MOUSE_MOVED;
-				fakeMouseEvent.MouseInput.ButtonStates = EMBSM_LEFT;
-				fakeMouseEvent.UserEvent.UserData2 = AppSkin::REGULAR_AGGREGATION;
-			}
-
-			if (TouchID == event.TouchInput.ID)
-			{
-			}
-
 			break;
 		}
 		case ETIE_LEFT_UP:
 		{
-			//if (TouchID == event.TouchInput.ID)
-			//{
 				core::position2d<s32> touchPoint(event.TouchInput.X, event.TouchInput.Y);
-				gui::IGUIElement* joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
-				gui::IGUIElement* jump_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_JUMP);
-				gui::IGUIElement* fire_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_FIRE);
-				gui::IGUIElement* exit_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_EXIT);
-
 				if (id == curTouchID.move) {
-					//device->getLogger()->log("joyStick Left!!");
-					fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_LEFT_UP;
-					fakeMouseEvent.UserEvent.UserData2 = AppSkin::REGULAR_AGGREGATION;
 					curTouchID.move = -1;
 				}
 				else
 				if (jump_button && jump_button->isPointInside(touchPoint) && id == curTouchID.jump) {
-						//device->getLogger()->log("jumpButton Left!");
-						fakeKeyEvent.KeyInput.Key = KEY_SPACE;
-						fakeKeyEvent.KeyInput.PressedDown = false;
-						curTouchID.jump = -1;
+					KeyIsDown[KEY_SPACE] = false;
+					fakeKeyEvent.KeyInput.Key = KEY_SPACE;
+					fakeKeyEvent.KeyInput.PressedDown = false;
+					curTouchID.jump = -1;
 				}
 				else
-				if (fire_button && fire_button->isPointInside(touchPoint) && id == curTouchID.fire) {
-						//device->getLogger()->log("fireButton Left!!");
-						fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_LEFT_UP;
-							//실제 이벤트가 아님. Fire를 위한 식별자로만 사용
-						fakeMouseEvent.UserEvent.UserData1 = AppSkin::GUI_FIRE;
-						curTouchID.fire = -1;
+				if (fire_button && fire_button->isPointInside(touchPoint) && id == curTouchID.fire && currentScene == 1) {
+					curTouchID.fire = -1;
+					
+					if (GetSceneManager()->getActiveCamera()->isVisible() == false)
+					{
+						if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
+						GetSceneManager()->getActiveCamera()->setVisible(true);
+					}else shoot();
+
 				}else
-				if (exit_button && exit_button->isPointInside(touchPoint) && id == curTouchID.exit) {
-					fakeMouseEvent.MouseInput.Event = EMIE_LMOUSE_LEFT_UP;
-					fakeMouseEvent.UserEvent.UserData1 = AppSkin::GUI_EXIT;
+				if (exit_button && exit_button->isPointInside(touchPoint) && id == curTouchID.exit && currentScene == 1) {
 					curTouchID.exit = -1;
+
+					if (GetSceneManager()->getActiveCamera()->isVisible() == false)
+					{
+						if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
+						GetSceneManager()->getActiveCamera()->setVisible(true);
+					}
+					else device->closeDevice();
 				}
 
 				if (isRotate && id == curTouchID.viewRotate ) {
-					   //device->getLogger()->log("ViewPort Rotate End!!");
-					   isRotate = false;
-					   if (fpsCamAnim) fpsCamAnim->isRotate = isRotate;
-					   curTouchID.viewRotate = -1;
+					 isRotate = false;
+					 if (fpsCamAnim) fpsCamAnim->isRotate = isRotate;
+					 curTouchID.viewRotate = -1;
 				}
-
-				
 				TouchID = -1;
-			//}
 			break;
 		}
 		default:
 			break;
 		}
-
-		if (fakeMouseEvent.MouseInput.Event != EMIE_COUNT && device){
-		    device->postEventFromUser(fakeMouseEvent);
-		}
-
-		if (fakeKeyEvent.KeyInput.Key != KEY_KEY_CODES_COUNT && device) {
-			device->postEventFromUser(fakeKeyEvent);
-		}
-
-	}else
-	if (event.EventType == irr::EET_KEY_INPUT_EVENT) {
-		KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
 	}
 
-	if (event.EventType == EET_KEY_INPUT_EVENT && event.KeyInput.Key == KEY_ESCAPE && event.KeyInput.PressedDown == false)
+	if (device->getSceneManager()->getActiveCamera())
 	{
-		// RakNet: Escape to get the mouse back
-		if (GetSceneManager()->getActiveCamera()->isVisible())
-		{
-			if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(true);
-			GetSceneManager()->getActiveCamera()->setVisible(false);
-		}
-		else
-		{
-			
-			device->closeDevice();
-			
-		}
+		device->getCursorControl();
+		device->getSceneManager()->getActiveCamera()->OnEvent(fakeKeyEvent);
 	}
-	else if 
-		((event.EventType == EET_MOUSE_INPUT_EVENT && event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP) && currentScene == 1)
-		{
-		    //단순히 버튼을 눌렀을 때만 작동해야됨
-			// RakNet: Click without focus to get focus back
-			if (GetSceneManager()->getActiveCamera()->isVisible() == false)
-			{
-				if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
-				GetSceneManager()->getActiveCamera()->setVisible(true);
-			}
-			else
-			{
-				if(event.UserEvent.UserData1 == AppSkin::GUI_FIRE)
-				  shoot();
-
-				if (event.UserEvent.UserData1 == AppSkin::GUI_EXIT) {
-					// RakNet shutdown
-					
-					device->closeDevice();
-
-				}
-			}
-		}
-		else if (event.EventType == EET_KEY_INPUT_EVENT && event.KeyInput.Key == KEY_F9 && event.KeyInput.PressedDown == false)
-		{
-			video::IImage* image = device->getVideoDriver()->createScreenShot();
-			if (image)
-			{
-				device->getVideoDriver()->writeImageToFile(image, "screenshot.bmp");
-				device->getVideoDriver()->writeImageToFile(image, "screenshot.png");
-				device->getVideoDriver()->writeImageToFile(image, "screenshot.tga");
-				device->getVideoDriver()->writeImageToFile(image, "screenshot.ppm");
-				device->getVideoDriver()->writeImageToFile(image, "screenshot.jpg");
-				device->getVideoDriver()->writeImageToFile(image, "screenshot.pcx");
-				image->drop();
-			}
-		}
-		else if (device->getSceneManager()->getActiveCamera())
-		{
-		    device->getCursorControl();
-			device->getSceneManager()->getActiveCamera()->OnEvent(event);
-			return false;
-		}
-
 
 #else
 if (!device)
@@ -778,85 +645,6 @@ void CDemo::switchToNextScene()
 		timeForThisScene = 0;
 		loadSceneData();
 		break;
-/*
-	case 1: // panorama camera
-		{
-			currentScene += 1;
-			//camera = sm->addCameraSceneNode(0, core::vector3df(0,0,0), core::vector3df(-586,708,52));
-			//camera->setTarget(core::vector3df(0,400,0));
-
-			core::array<core::vector3df> points;
-
-			points.push_back(core::vector3df(-931.473755f, 138.300003f, 987.279114f)); // -49873
-			points.push_back(core::vector3df(-847.902222f, 136.757553f, 915.792725f)); // -50559
-			points.push_back(core::vector3df(-748.680420f, 152.254501f, 826.418945f)); // -51964
-			points.push_back(core::vector3df(-708.428406f, 213.569580f, 784.466675f)); // -53251
-			points.push_back(core::vector3df(-686.217651f, 288.141174f, 762.965576f)); // -54015
-			points.push_back(core::vector3df(-679.685059f, 365.095612f, 756.551453f)); // -54733
-			points.push_back(core::vector3df(-671.317871f, 447.360107f, 749.394592f)); // -55588
-			points.push_back(core::vector3df(-669.468445f, 583.335632f, 747.711853f)); // -56178
-			points.push_back(core::vector3df(-667.611267f, 727.313232f, 746.018250f)); // -56757
-			points.push_back(core::vector3df(-665.853210f, 862.791931f, 744.436096f)); // -57859
-			points.push_back(core::vector3df(-642.649597f, 1026.047607f, 724.259827f)); // -59705
-			points.push_back(core::vector3df(-517.793884f, 838.396790f, 490.326050f)); // -60983
-			points.push_back(core::vector3df(-474.387299f, 715.691467f, 344.639984f)); // -61629
-			points.push_back(core::vector3df(-444.600250f, 601.155701f, 180.938095f)); // -62319
-			points.push_back(core::vector3df(-414.808899f, 479.691406f, 4.866660f)); // -63048
-			points.push_back(core::vector3df(-410.418945f, 429.642242f, -134.332687f)); // -63757
-			points.push_back(core::vector3df(-399.837585f, 411.498383f, -349.350983f)); // -64418
-			points.push_back(core::vector3df(-390.756653f, 403.970093f, -524.454407f)); // -65005
-			points.push_back(core::vector3df(-334.864227f, 350.065491f, -732.397400f)); // -65701
-			points.push_back(core::vector3df(-195.253387f, 349.577209f, -812.475891f)); // -66335
-			points.push_back(core::vector3df(16.255573f, 363.743134f, -833.800415f)); // -67170
-			points.push_back(core::vector3df(234.940964f, 352.957825f, -820.150696f)); // -67939
-			points.push_back(core::vector3df(436.797668f, 349.236450f, -816.914185f)); // -68596
-			points.push_back(core::vector3df(575.236206f, 356.244812f, -719.788513f)); // -69166
-			points.push_back(core::vector3df(594.131042f, 387.173828f, -609.675598f)); // -69744
-			points.push_back(core::vector3df(617.615234f, 412.002899f, -326.174072f)); // -70640
-			points.push_back(core::vector3df(606.456848f, 403.221954f, -104.179291f)); // -71390
-			points.push_back(core::vector3df(610.958252f, 407.037750f, 117.209778f)); // -72085
-			points.push_back(core::vector3df(597.956909f, 395.167877f, 345.942200f)); // -72817
-			points.push_back(core::vector3df(587.383118f, 391.444519f, 566.098633f)); // -73477
-			points.push_back(core::vector3df(559.572449f, 371.991333f, 777.689453f)); // -74124
-			points.push_back(core::vector3df(423.753204f, 329.990051f, 925.859741f)); // -74941
-			points.push_back(core::vector3df(247.520050f, 252.818954f, 935.311829f)); // -75651
-			points.push_back(core::vector3df(114.756012f, 199.799759f, 805.014160f));
-			points.push_back(core::vector3df(96.783348f, 181.639481f, 648.188110f));
-			points.push_back(core::vector3df(97.865623f, 138.905975f, 484.812561f));
-			points.push_back(core::vector3df(99.612457f, 102.463669f, 347.603210f));
-			points.push_back(core::vector3df(99.612457f, 102.463669f, 347.603210f));
-			points.push_back(core::vector3df(99.612457f, 102.463669f, 347.603210f));
-
-			timeForThisScene = (points.size()-3)* 1000;
-
-			camera = sm->addCameraSceneNode(0, points[0], core::vector3df(0 ,400,0));
-			//camera->setTarget(core::vector3df(0,400,0));
-
-			sa = sm->createFollowSplineAnimator(device->getTimer()->getTime(),
-				points);
-			camera->addAnimator(sa);
-			sa->drop();
-
-			model1->setVisible(false);
-			model2->setVisible(false);
-			campFire->setVisible(false);
-			inOutFader->fadeIn(7000);
-		}
-		break;
-
-	case 2:	// down fly anim camera
-		camera = sm->addCameraSceneNode(0, core::vector3df(100,40,-80), core::vector3df(844,670,-885));
-		sa = sm->createFlyStraightAnimator(core::vector3df(94, 1002, 127),
-			core::vector3df(108, 15, -60), 10000, true);
-		camera->addAnimator(sa);
-		timeForThisScene = 9900;
-		model1->setVisible(true);
-		model2->setVisible(false);
-		campFire->setVisible(false);
-		sa->drop();
-		break;
-*/
-//	case 3: // interactive, go around
 	case 1: // interactive, go around
 		{
 			if (model1)
@@ -911,7 +699,7 @@ void CDemo::switchToNextScene()
 				fpsCamAnim = *ait;
 				break;
 			}
-			camera->setPosition(core::vector3df(108, 140, -140));
+			camera->setPosition(core::vector3df(200, 140, 100)); //모바일 클라이언트
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
 				sm->createCollisionResponseAnimator(
 					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, -300.0f /*quakeLevelMesh ? -10.f : 0.0f*/, 0), core::vector3df(0, 45, 0), 0.005f);
@@ -922,11 +710,19 @@ void CDemo::switchToNextScene()
 			// Last parameter is jump speed
 			// Tweaked so you can get up ladders
 			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/);
-			camera->setPosition(core::vector3df(108, 140, -140));
+			
+			//파일
+			//vector3df 중간이 캐릭터 높이
+			if (platform == GamePlatform::PC) {
+				if(isServer)camera->setPosition(core::vector3df(108, 140, -140)); //기본 스폰 위치
+				else camera->setPosition(core::vector3df(0, 140, 100));   //PC 클라이언트
+			}
+
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
 				sm->createCollisionResponseAnimator(
 					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, quakeLevelMesh ? -10.f : 0.0f, 0), core::vector3df(0, 45, 0), 0.005f);
 
+			//	waypoint[0].set(-150,40,100); waypoint[1].set(350, 40, 100);
 			camera->addAnimator(collider);
 			collider->drop();
 
@@ -1020,58 +816,18 @@ void CDemo::loadSceneData()
 
 
 	}
-
-	// load sydney model and create 2 instances
-	/*
-	scene::IAnimatedMesh* mesh = 0;
-	mesh = sm->getMesh(IRRLICHT_MEDIA_PATH "sydney.md2");
-	if (mesh)
-	{
-		model1 = sm->addAnimatedMeshSceneNode(mesh);
-		if (model1)
-		{
-			model1->setMaterialTexture(0, driver->getTexture(IRRLICHT_MEDIA_PATH "spheremap.jpg"));
-			model1->setPosition(core::vector3df(100,40,-80));
-			model1->setScale(core::vector3df(2,2,2));
-			model1->setMD2Animation(scene::EMAT_STAND);
-			model1->setMaterialFlag(video::EMF_LIGHTING, false);
-			model1->setMaterialType(video::EMT_SPHERE_MAP);
-			model1->addShadowVolumeSceneNode();
-			model1->setAutomaticCulling ( scene::EAC_BOX );
-		}
-
-		model2 = sm->addAnimatedMeshSceneNode(mesh);
-		if (model2)
-		{
-			model2->setPosition(core::vector3df(180,15,-60));
-			model2->setScale(core::vector3df(2,2,2));
-			model2->setMD2Animation(scene::EMAT_RUN);
-			model2->setMaterialTexture(0, device->getVideoDriver()->getTexture(IRRLICHT_MEDIA_PATH "sydney.bmp"));
-			model2->setMaterialFlag(video::EMF_LIGHTING, true);
-			model2->addShadowVolumeSceneNode();
-			model2->setAutomaticCulling ( scene::EAC_BOX );
-		}
-	}
-	*/
-
 	scene::ISceneNodeAnimator* anim = 0;
 
 	// create sky box
 	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
 	skyboxNode = sm->addSkyBoxSceneNode(
-		driver->getTexture(mediaPath+ "irrlicht2_up.jpg"),
-		driver->getTexture(mediaPath+ "irrlicht2_dn.jpg"),
-		driver->getTexture(mediaPath+ "irrlicht2_lf.jpg"),
-		driver->getTexture(mediaPath+ "irrlicht2_rt.jpg"),
-		driver->getTexture(mediaPath+ "irrlicht2_ft.jpg"),
-		driver->getTexture(mediaPath+ "irrlicht2_bk.jpg"));
+	driver->getTexture(mediaPath+ "irrlicht2_up.jpg"),
+	driver->getTexture(mediaPath+ "irrlicht2_dn.jpg"),
+	driver->getTexture(mediaPath+ "irrlicht2_lf.jpg"),
+	driver->getTexture(mediaPath+ "irrlicht2_rt.jpg"),
+	driver->getTexture(mediaPath+ "irrlicht2_ft.jpg"),
+	driver->getTexture(mediaPath+ "irrlicht2_bk.jpg"));
 	
-#ifdef __ANDROID__
-#else
-	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
-#endif // __ANDROID__
-
-	// create walk-between-portals animation
 
 	core::vector3df waypoint[2];
 	waypoint[0].set(-150,40,100);
@@ -1180,6 +936,7 @@ void CDemo::loadSceneData()
 
 #ifdef __ANDROID__
 	// set game UI
+	
 	core::dimension2d<u32> size = device->getVideoDriver()->getScreenSize();
 	int offset = 50;
 	int offset2 = 150;
@@ -1192,9 +949,13 @@ void CDemo::loadSceneData()
 	core::rect<int> exitPos(size.Width - 150 - offset - offset2, offset , size.Width - offset2, offset + 250);
 	device->getGUIEnvironment()->addButton(exitPos, 0, AppSkin::GUI_EXIT, L"EXIT");
 
+	joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
+	jump_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_JUMP);
+	fire_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_FIRE);
+	exit_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_EXIT);
+
 #endif // __ANDROID__
 }
-
 
 void CDemo::createLoadingScreen()
 {

@@ -1125,14 +1125,14 @@ void android_main(android_app* state) {
     core::stringw playerName;
     bool isServer = false;
     video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
-
+	CDemo::GamePlatform platform = CDemo::GamePlatform::Android;
     
     //CMainMenu menu;
     //menu.state = state;
     //android_CMainMenu(&engine, state);
     
    
-    CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer);
+    CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform);
     demo.state = state;
     demo.run();
     

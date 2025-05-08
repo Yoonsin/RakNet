@@ -667,6 +667,16 @@ PluginReceiveResult ReplicaManager3::OnReceive(Packet *packet)
 			RakAssert(sizeof(WorldId)==1);
 			incomingWorldId=packet->data[sizeof( unsigned char )*2 + sizeof( RakNet::Time )];
 			packetDataOffset=sizeof( unsigned char )*3 + sizeof( RakNet::Time );
+
+			if (isServer) {
+				char buffer[100];
+				char* str = "";
+				if (packetIdentifier == ID_REPLICA_MANAGER_CONSTRUCTION) str = "construction";
+				else if (packetIdentifier == ID_REPLICA_MANAGER_SERIALIZE) str = "serialization";
+
+				snprintf(buffer, sizeof(buffer), "ip : %s / %s time difference : %llu\n", packet->systemAddress.ToString(false), str, RakNet::GetTimeMS() - timestamp);
+				PrintTimeGap(buffer);
+			}			
 		}
 		else
 			return RR_STOP_PROCESSING_AND_DEALLOCATE;
@@ -760,7 +770,8 @@ void Connection_RM3::AutoConstructByQuery(ReplicaManager3 *replicaManager3, Worl
 					BitSize_t bitsWritten = bsOut.GetNumberOfBitsUsed();
 					lsr->replica->SerializeConstructionExisting(&bsOut, this);
 					if (bsOut.GetNumberOfBitsUsed()!=bitsWritten)
-						replicaManager3->SendUnified(&bsOut,HIGH_PRIORITY,RELIABLE_ORDERED,0,GetSystemAddress(), false);
+						replicaManager3->SendUnified(&bsOut,HIGH_PRIORITY,RELIABLE_ORDERED,0,GetSystemAddress(), fal
+se);
 				}
 
 				// Serialize first serialization to this connection.
@@ -2211,6 +2222,15 @@ void Connection_RM3::SendConstruction(DataStructures::List<Replica3*> &newObject
 
 	//	LastSerializationResult* lsr;
 	bsOut.Reset();
+
+	// Construction TimeStamp
+	RakNet::Time t = RakNet::GetTimeMS();
+	if (t != 0)
+	{
+		bsOut.Write((MessageID)ID_TIMESTAMP);
+		bsOut.Write(t);
+	}
+
 	bsOut.Write((MessageID)ID_REPLICA_MANAGER_CONSTRUCTION);
 	bsOut.Write(worldId);
 	uint16_t objectSize = (uint16_t) newObjects.Size();
@@ -2327,11 +2347,11 @@ void Connection_RM3::SendConstruction(DataStructures::List<Replica3*> &newObject
 	}
 
 	sp.bitsWrittenSoFar=0;
-//	RakNet::Time t = RakNet::GetTimeMS();
+	//RakNet::Time t = RakNet::GetTimeMS();
 	for (newListIndex=0; newListIndex < newObjects.Size(); newListIndex++)
 	{
 		sp.destinationConnection=this;
-		sp.messageTimestamp=0;
+		sp.messageTimestamp = 0;
 		RakNet::Replica3 *replica = newObjects[newListIndex];
 		// 8/22/09 Forgot ResetWritePointer
 		for (int z=0; z < RM3_NUM_OUTPUT_BITSTREAM_CHANNELS; z++)

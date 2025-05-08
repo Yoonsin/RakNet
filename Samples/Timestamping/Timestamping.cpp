@@ -44,7 +44,7 @@ int main(void)
 
 	while (1)
 	{
-		gets(buff);
+		gets_s(buff);
 		ch = buff[0];
 
 		if (ch=='c')
