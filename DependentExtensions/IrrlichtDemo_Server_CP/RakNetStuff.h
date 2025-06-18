@@ -145,6 +145,10 @@ public:
 
 	// List of all players, including our own
 	static DataStructures::List<PlayerReplica*> playerList;
+
+	irr::core::vector3df replicatedCameraPos;
+	irr::core::vector3df replicatedCameraRot;
+
 };
 class BallReplica : public BaseIrrlichtReplica
 {

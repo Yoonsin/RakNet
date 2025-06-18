@@ -3,35 +3,76 @@
   "WorkspaceRootPath": "C:\\GitHub\\RakNet\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\include\\ISceneNode.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CCameraSceneNode.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\IRRLICHT-1.7.2\\INCLUDE\\VECTOR3D.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\IRRLICHT-1.7.2\\SOURCE\\IRRLICHT\\CSCENENODEANIMATORCAMERAFPS.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|C:\\GitHub\\RakNet\\Source\\ReplicaManager3.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|solutionrelative:Source\\ReplicaManager3.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{29FD554B-379B-4A4C-8EB5-A78364809844}|Samples\\StatisticsHistoryTest\\StatisticsHistoryTest_vc9.vcxproj|C:\\GitHub\\RakNet\\Samples\\StatisticsHistoryTest\\StatisticsHistoryTest.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{29FD554B-379B-4A4C-8EB5-A78364809844}|Samples\\StatisticsHistoryTest\\StatisticsHistoryTest_vc9.vcxproj|solutionrelative:Samples\\StatisticsHistoryTest\\StatisticsHistoryTest.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|C:\\GitHub\\RakNet\\SOURCE\\STATISTICSHISTORY.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|solutionrelative:SOURCE\\STATISTICSHISTORY.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\IRRLICHT-1.7.2\\INCLUDE\\ISCENENODE.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\include\\ISceneNodeAnimatorCameraFPS.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\source\\Irrlicht\\CNullDriver.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CCameraSceneNode.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\IrrlichtExtensions\\Drawer2D.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\Irrlicht\\include\\IGUIElement.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\source\\Irrlicht\\COpenGLDriver.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|C:\\GitHub\\RakNet\\Source\\ReliabilityLayer.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
@@ -40,13 +81,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|C:\\GitHub\\RakNet\\Source\\PacketLogger.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|solutionrelative:Source\\PacketLogger.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{29FD554B-379B-4A4C-8EB5-A78364809844}|Samples\\StatisticsHistoryTest\\StatisticsHistoryTest_vc9.vcxproj|C:\\GitHub\\RakNet\\Samples\\StatisticsHistoryTest\\StatisticsHistoryTest.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{29FD554B-379B-4A4C-8EB5-A78364809844}|Samples\\StatisticsHistoryTest\\StatisticsHistoryTest_vc9.vcxproj|solutionrelative:Samples\\StatisticsHistoryTest\\StatisticsHistoryTest.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\Irrlicht\\include\\IGUIElement.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|C:\\GitHub\\RakNet\\Source\\RakPeer.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
@@ -61,9 +95,6 @@
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\IrrlichtExtensions\\JoyStickElement.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\IrrlichtExtensions\\Drawer2D.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceLinux.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
@@ -84,15 +115,8 @@
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Program Files (x86)\\Windows Kits\\10\\Source\\10.0.22621.0\\ucrt\\time\\strftime.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|C:\\GitHub\\RakNet\\SOURCE\\STATISTICSHISTORY.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|solutionrelative:SOURCE\\STATISTICSHISTORY.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{A0A60230-5642-4315-9011-8BAC2E03C66E}|Samples\\Lobby3\\Lobby3.vcxproj|C:\\GitHub\\RakNet\\Source\\StatisticsHistory.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{A0A60230-5642-4315-9011-8BAC2E03C66E}|Samples\\Lobby3\\Lobby3.vcxproj|solutionrelative:Source\\StatisticsHistory.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\source\\Irrlicht\\COpenGLDriver.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\Android\\CIrrDeviceAndroid.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
@@ -108,9 +132,6 @@
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\Android\\CIrrDeviceAndroid.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\irrlicht-1.7.2\\source\\Irrlicht\\CNullDriver.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\CommonLibraries\\Irrlicht\\include\\ISceneNodeAnimator.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
@@ -132,15 +153,8 @@
       "RelativeMoniker": "D:0:0:{BC75CD23-CB75-4233-A305-B7328825A9A5}|Lib\\DLL\\DLL_vc9.vcxproj|solutionrelative:SOURCE\\REPLICAMANAGER3.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{E08E042A-6C45-411B-92BE-3CC31331019F}|..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\Irrlicht9.0.vcxproj|C:\\IRRLICHT-1.7.2\\INCLUDE\\VECTOR3D.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\AndroidDemo.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\AndroidDemo.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\build.gradle||{8B382828-6202-11D1-8870-0000F87579D2}",
@@ -149,10 +163,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\build.gradle||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\build.gradle||{8B382828-6202-11D1-8870-0000F87579D2}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\android_tools.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
@@ -181,10 +191,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{CBE1C49E-0490-46A9-AC1E-4127475C7D6D}|DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj|solutionrelative:DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
   "DocumentGroupContainers": [
@@ -194,11 +200,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 23,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 40,
+              "DocumentIndex": 45,
               "Title": "AndroidDemo.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\AndroidDemo.cpp",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\AndroidDemo.cpp",
@@ -211,20 +217,21 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 41,
+              "DocumentIndex": 1,
               "Title": "CDemo.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
               "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
-              "ViewState": "AgIAAE4AAAAAAAAAAAAAAFYAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAFgAAAAAAAAAAADwv2YAAAAnAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
               "WhenOpened": "2025-03-12T07:49:14.481Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 36,
+              "DocumentIndex": 42,
               "Title": "Drawer2D.h",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\IrrlichtExtensions\\Drawer2D.h",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\IrrlichtExtensions\\Drawer2D.h",
@@ -237,13 +244,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 0,
               "Title": "RakNetStuff.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
               "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
-              "ViewState": "AgIAAEMCAAAAAAAAAAAIwOEBAAAvAAAAAAAAAA==",
+              "ViewState": "AgIAAP8BAAAAAAAAAAAAwAwCAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-03-13T08:36:23.502Z",
               "IsPinned": true,
@@ -251,7 +258,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 15,
               "Title": "CCameraSceneNode.cpp",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CCameraSceneNode.cpp",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CCameraSceneNode.cpp",
@@ -265,13 +272,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 16,
               "Title": "CSceneNodeAnimatorCameraFPS.cpp",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp",
               "ToolTip": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp",
               "RelativeToolTip": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp",
-              "ViewState": "AgIAAEMAAAAAAAAAAAAawFMAAAA2AAAAAAAAAA==",
+              "ViewState": "AgIAABABAAAAAAAAAAAiwCoBAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-03-14T06:28:13.335Z",
               "IsPinned": true,
@@ -279,7 +286,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 29,
+              "DocumentIndex": 36,
               "Title": "CSceneManager.cpp",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneManager.cpp",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneManager.cpp",
@@ -292,7 +299,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 33,
+              "DocumentIndex": 39,
               "Title": "ISceneNodeAnimator.h",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\include\\ISceneNodeAnimator.h",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\include\\ISceneNodeAnimator.h",
@@ -305,7 +312,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 35,
+              "DocumentIndex": 41,
               "Title": "ISceneNode.h",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\include\\ISceneNode.h",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\include\\ISceneNode.h",
@@ -318,7 +325,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 34,
+              "DocumentIndex": 40,
               "Title": "vector3d.h",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\include\\vector3d.h",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\include\\vector3d.h",
@@ -331,7 +338,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 27,
+              "DocumentIndex": 34,
               "Title": "CIrrDeviceAndroid.cpp",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\Android\\CIrrDeviceAndroid.cpp",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\Android\\CIrrDeviceAndroid.cpp",
@@ -344,7 +351,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 31,
+              "DocumentIndex": 38,
               "Title": "CIrrDeviceAndroid.h",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\Android\\CIrrDeviceAndroid.h",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\Android\\CIrrDeviceAndroid.h",
@@ -357,7 +364,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 28,
               "Title": "CIrrDeviceStub.cpp",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CIrrDeviceStub.cpp",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CIrrDeviceStub.cpp",
@@ -370,13 +377,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 2,
               "Title": "CDemo.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
               "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
-              "ViewState": "AgIAAFECAAAAAAAAAAAAAF8CAAA6AAAAAAAAAA==",
+              "ViewState": "AgIAALICAAAAAAAAAADwv9ECAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-03-21T06:12:23.775Z",
               "IsPinned": true,
@@ -384,7 +391,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 28,
+              "DocumentIndex": 35,
               "Title": "CFPSCounter.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CFPSCounter.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CFPSCounter.cpp",
@@ -397,7 +404,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 32,
+              "DocumentIndex": 13,
               "Title": "CNullDriver.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CNullDriver.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CNullDriver.cpp",
@@ -406,11 +413,12 @@
               "ViewState": "AgIAAAYBAAAAAAAAAAAtwBIBAAAZAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-04-11T08:37:12.565Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 30,
+              "DocumentIndex": 37,
               "Title": "CD3D9Driver.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CD3D9Driver.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CD3D9Driver.cpp",
@@ -423,7 +431,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 23,
               "Title": "RakPeer.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\RakPeer.cpp",
               "RelativeDocumentMoniker": "Source\\RakPeer.cpp",
@@ -436,13 +444,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "ReplicaManager3.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\ReplicaManager3.cpp",
               "RelativeDocumentMoniker": "Source\\ReplicaManager3.cpp",
               "ToolTip": "C:\\GitHub\\RakNet\\Source\\ReplicaManager3.cpp",
               "RelativeToolTip": "Source\\ReplicaManager3.cpp",
-              "ViewState": "AgIAANIJAAAAAAAAAAApwOsJAAAfAAAAAAAAAA==",
+              "ViewState": "AgIAACcJAAAAAAAAAAAkwDoJAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-04-11T09:40:35.868Z",
               "IsPinned": true,
@@ -450,7 +458,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 38,
+              "DocumentIndex": 44,
               "Title": "ReplicaManager3.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\ReplicaManager3.h",
               "RelativeDocumentMoniker": "Source\\ReplicaManager3.h",
@@ -463,7 +471,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 29,
               "Title": "CIrrDeviceWin32.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceWin32.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceWin32.cpp",
@@ -476,7 +484,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 30,
               "Title": "CIrrDeviceStub.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceStub.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceStub.cpp",
@@ -489,7 +497,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 21,
               "Title": "ReliabilityLayer.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\ReliabilityLayer.cpp",
               "RelativeDocumentMoniker": "Source\\ReliabilityLayer.cpp",
@@ -502,13 +510,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 3,
               "Title": "CSceneNodeAnimatorCameraFPS.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp",
               "ToolTip": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp",
               "RelativeToolTip": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.cpp",
-              "ViewState": "AgIAAOEAAAAAAAAAAAASwPkAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAACgAAAAAAAAAAADwvzYAAAA5AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-04-17T04:22:32.527Z",
               "IsPinned": true,
@@ -516,7 +524,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 9,
               "Title": "StatisticsHistoryTest.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Samples\\StatisticsHistoryTest\\StatisticsHistoryTest.cpp",
               "RelativeDocumentMoniker": "Samples\\StatisticsHistoryTest\\StatisticsHistoryTest.cpp",
@@ -525,24 +533,26 @@
               "ViewState": "AgIAADwAAAAAAAAAAAAcwFMAAAAhAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-04-11T02:25:29.034Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 10,
               "Title": "StatisticsHistory.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\StatisticsHistory.h",
               "RelativeDocumentMoniker": "Source\\StatisticsHistory.h",
               "ToolTip": "C:\\GitHub\\RakNet\\Source\\StatisticsHistory.h",
               "RelativeToolTip": "Source\\StatisticsHistory.h",
-              "ViewState": "AgIAACwAAAAAAAAAAAAmwH0AAAAHAAAAAAAAAA==",
+              "ViewState": "AgIAAGEAAAAAAAAAAAAAwH0AAAAHAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
               "WhenOpened": "2025-04-11T02:24:26.826Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 25,
+              "DocumentIndex": 33,
               "Title": "StatisticsHistory.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\StatisticsHistory.cpp",
               "RelativeDocumentMoniker": "Source\\StatisticsHistory.cpp",
@@ -555,7 +565,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 32,
               "Title": "strftime.cpp",
               "DocumentMoniker": "C:\\Program Files (x86)\\Windows Kits\\10\\Source\\10.0.22621.0\\ucrt\\time\\strftime.cpp",
               "RelativeDocumentMoniker": "..\\..\\Program Files (x86)\\Windows Kits\\10\\Source\\10.0.22621.0\\ucrt\\time\\strftime.cpp",
@@ -568,7 +578,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 25,
               "Title": "Timestamping.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Samples\\Timestamping\\Timestamping.cpp",
               "RelativeDocumentMoniker": "Samples\\Timestamping\\Timestamping.cpp",
@@ -581,7 +591,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 27,
               "Title": "CIrrDeviceLinux.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceLinux.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceLinux.cpp",
@@ -600,14 +610,15 @@
               "RelativeDocumentMoniker": "..\\CommonLibraries\\IrrlichtExtensions\\Drawer2D.cpp",
               "ToolTip": "C:\\GitHub\\CommonLibraries\\IrrlichtExtensions\\Drawer2D.cpp",
               "RelativeToolTip": "..\\CommonLibraries\\IrrlichtExtensions\\Drawer2D.cpp",
-              "ViewState": "AgIAAA0BAAAAAAAAAAAiwDEBAAAXAAAAAAAAAA==",
+              "ViewState": "AgIAABcBAAAAAAAAAAAiwDEBAAAXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-05-14T05:53:54.106Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 37,
+              "DocumentIndex": 43,
               "Title": "JoyStickElement.h",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\IrrlichtExtensions\\JoyStickElement.h",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\IrrlichtExtensions\\JoyStickElement.h",
@@ -620,7 +631,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 26,
               "Title": "JoyStickElement.cpp",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\IrrlichtExtensions\\JoyStickElement.cpp",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\IrrlichtExtensions\\JoyStickElement.cpp",
@@ -633,7 +644,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 22,
               "Title": "PacketLogger.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\PacketLogger.cpp",
               "RelativeDocumentMoniker": "Source\\PacketLogger.cpp",
@@ -643,19 +654,6 @@
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-05-22T05:18:57.152Z",
               "IsPinned": true
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "CIrrDeviceConsole.h",
-              "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h",
-              "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h",
-              "ToolTip": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h",
-              "RelativeToolTip": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h",
-              "ViewState": "AgIAAIoAAAAAAAAAAAAawJsAAAAzAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-06-18T06:45:25.926Z",
-              "EditorCaption": ""
             },
             {
               "$type": "Bookmark",
@@ -683,19 +681,46 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 39,
+              "DocumentIndex": 12,
+              "Title": "ISceneNodeAnimatorCameraFPS.h",
+              "DocumentMoniker": "C:\\irrlicht-1.7.2\\include\\ISceneNodeAnimatorCameraFPS.h",
+              "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\include\\ISceneNodeAnimatorCameraFPS.h",
+              "ToolTip": "C:\\irrlicht-1.7.2\\include\\ISceneNodeAnimatorCameraFPS.h",
+              "RelativeToolTip": "..\\..\\irrlicht-1.7.2\\include\\ISceneNodeAnimatorCameraFPS.h",
+              "ViewState": "AgIAAAwAAAAAAAAAAADwvxUAAAA+AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-06-18T07:49:02.411Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "CSceneNodeAnimatorCameraFPS.h",
+              "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.h",
+              "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.h",
+              "ToolTip": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.h",
+              "RelativeToolTip": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneNodeAnimatorCameraFPS.h",
+              "ViewState": "AgIAAFcAAAAAAAAAAADwv2QAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-06-18T07:28:04.588Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
               "Title": "vector3d.h",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\include\\vector3d.h",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\include\\vector3d.h",
               "ToolTip": "C:\\irrlicht-1.7.2\\include\\vector3d.h",
               "RelativeToolTip": "..\\..\\irrlicht-1.7.2\\include\\vector3d.h",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAABIAAAAAAAAAAAAAACUAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-05-23T04:14:33.978Z"
+              "WhenOpened": "2025-05-23T04:14:33.978Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 31,
               "Title": "CSceneManager.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneManager.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CSceneManager.cpp",
@@ -707,20 +732,46 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 11,
               "Title": "ISceneNode.h",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\include\\ISceneNode.h",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\include\\ISceneNode.h",
               "ToolTip": "C:\\irrlicht-1.7.2\\include\\ISceneNode.h",
               "RelativeToolTip": "..\\..\\irrlicht-1.7.2\\include\\ISceneNode.h",
-              "ViewState": "AgIAAO4BAAAAAAAAAAAawP8BAAAtAAAAAAAAAA==",
+              "ViewState": "AgIAAMsBAAAAAAAAAADwv9kBAAAsAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
               "WhenOpened": "2025-05-22T04:03:25.549Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 4,
+              "Title": "CMainMenu.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
+              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
+              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-05-15T02:55:03.278Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "RakNetStuff.h",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
+              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
+              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
+              "ViewState": "AgIAAHsAAAAAAAAAAAASwJYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-05-15T02:58:33.256Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
               "Title": "CIrrDeviceConsole.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.cpp",
@@ -732,7 +783,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 42,
+              "DocumentIndex": 20,
+              "Title": "CIrrDeviceConsole.h",
+              "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h",
+              "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h",
+              "ToolTip": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h",
+              "RelativeToolTip": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\CIrrDeviceConsole.h",
+              "ViewState": "AgIAAIoAAAAAAAAAAAAawJsAAAAzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-06-18T06:45:25.926Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 46,
               "Title": "build.gradle",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\build.gradle",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\build.gradle",
@@ -744,7 +808,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 43,
+              "DocumentIndex": 47,
               "Title": "build.gradle",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\build.gradle",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\build.gradle",
@@ -756,7 +820,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 44,
+              "DocumentIndex": 14,
               "Title": "main.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
@@ -764,11 +828,12 @@
               "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
               "ViewState": "AgIAADkAAAAAAAAAAAASwEQAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-05-15T02:55:17.776Z"
+              "WhenOpened": "2025-05-15T02:55:17.776Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 45,
+              "DocumentIndex": 48,
               "Title": "android_tools.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\android_tools.cpp",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\android_tools.cpp",
@@ -780,20 +845,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "RakNetStuff.h",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
-              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
-              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAIwBoAAAASAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-05-15T02:58:33.256Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 46,
+              "DocumentIndex": 49,
               "Title": "CMainMenu.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.h",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.h",
@@ -805,7 +857,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 47,
+              "DocumentIndex": 50,
               "Title": "JniBindings.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\JniBindings.cpp",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\JniBindings.cpp",
@@ -817,7 +869,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 48,
+              "DocumentIndex": 51,
               "Title": "android_tools.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\android_tools.h",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\android_tools.h",
@@ -829,7 +881,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 49,
+              "DocumentIndex": 52,
               "Title": "android_native_app_glue.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\android_native_app_glue.h",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\android_native_app_glue.h",
@@ -841,7 +893,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 50,
+              "DocumentIndex": 53,
               "Title": "android_native_app_glue.c",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\android_native_app_glue.c",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\android_native_app_glue.c",
@@ -853,7 +905,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 51,
+              "DocumentIndex": 54,
               "Title": "CMakeLists.txt",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\CMakeLists.txt",
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\CMakeLists.txt",
@@ -865,19 +917,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 52,
-              "Title": "CMainMenu.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
-              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
-              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
-              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-05-15T02:55:03.278Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 18,
               "Title": "IGUIElement.h",
               "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\include\\IGUIElement.h",
               "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\include\\IGUIElement.h",
@@ -885,11 +925,12 @@
               "RelativeToolTip": "..\\CommonLibraries\\Irrlicht\\include\\IGUIElement.h",
               "ViewState": "AgIAAHsDAAAAAAAAAAAiwP8DAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-05-14T09:00:12.242Z"
+              "WhenOpened": "2025-05-14T09:00:12.242Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 26,
+              "DocumentIndex": 19,
               "Title": "COpenGLDriver.cpp",
               "DocumentMoniker": "C:\\irrlicht-1.7.2\\source\\Irrlicht\\COpenGLDriver.cpp",
               "RelativeDocumentMoniker": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\COpenGLDriver.cpp",
@@ -897,7 +938,8 @@
               "RelativeToolTip": "..\\..\\irrlicht-1.7.2\\source\\Irrlicht\\COpenGLDriver.cpp",
               "ViewState": "AgIAACMMAAAAAAAAAAAiwDcMAAAfAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-05-14T07:58:24.012Z"
+              "WhenOpened": "2025-05-14T07:58:24.012Z",
+              "EditorCaption": ""
             }
           ]
         }

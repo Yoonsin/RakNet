@@ -2536,7 +2536,7 @@ RM3QuerySerializationResult Replica3::QuerySerialization_ClientSerializable(RakN
 	if (creatingSystemGUID==replicaManager->GetRakPeerInterface()->GetGuidFromSystemAddress(UNASSIGNED_SYSTEM_ADDRESS))
 		return RM3QSR_CALL_SERIALIZE;
 	// Server sends to all but owner client
-	if (isThisTheServer && destinationConnection->GetRakNetGUID()!=creatingSystemGUID)
+	if (isThisTheServer /* && destinationConnection->GetRakNetGUID() != creatingSystemGUID*/)
 		return RM3QSR_CALL_SERIALIZE;
 	// Remote clients do not send
 	return RM3QSR_NEVER_CALL_SERIALIZE;

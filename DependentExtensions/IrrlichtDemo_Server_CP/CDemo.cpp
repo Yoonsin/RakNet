@@ -11,7 +11,7 @@
 #include "Itoa.h"
 #include "RakNetSmartPtr.h"
 
-
+#include <CSceneNodeAnimatorCameraFPS.h>
 #ifdef __ANDROID__
 #include "android_tools.h"
 #include <sys/auxv.h>
@@ -711,6 +711,15 @@ void CDemo::switchToNextScene()
 			// Tweaked so you can get up ladders
 			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/);
 			
+			scene::ISceneNodeAnimatorList list = camera->getAnimators();
+			scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
+			while (ait != list.end())
+			{
+				fpsCamAnim = *ait;
+				break;
+			}
+
+
 			//파일
 			//vector3df 중간이 캐릭터 높이
 			if (platform == GamePlatform::PC) {

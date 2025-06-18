@@ -100,6 +100,8 @@ public:
 	void EnableInput(bool enabled);
 	void PushMessage(RakNet::RakString rs);
 
+	scene::ISceneNodeAnimator* fpsCamAnim;
+
 #ifdef __ANDROID__
 	android_app* state;
 #endif
@@ -197,6 +199,7 @@ private:
 
 	bool isConnectedToNATPunchthroughServer;
 
+	
 #ifdef __ANDROID__
 	s32 TouchID;
 	bool isRotate;
@@ -208,7 +211,7 @@ private:
 		s32 viewRotate = -1;
 };
 	CurTouchID curTouchID;
-	scene::ISceneNodeAnimator* fpsCamAnim;
+	
 
 	gui::IGUIElement* joy_stick;
 	gui::IGUIElement* jump_button;

@@ -22,6 +22,8 @@
 #include <time.h>
 #include <chrono>
 
+#include <irrlicht.h>
+#include <CSceneNodeAnimatorCameraFPS.h>
 #ifdef __linux__
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -163,8 +165,8 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged)
 		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
 		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
 #else
-		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
 		
 #endif // __ANDROID__
 		RakAssert(car == CONNECTION_ATTEMPT_STARTED);
@@ -484,6 +486,17 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *ser
 	serializeParameters->outputBitstream[0].Write(isMoving);
 	serializeParameters->outputBitstream[0].Write( topology==CLIENT ? IsDead() : isDead);
 
+	irr::scene::CSceneNodeAnimatorCameraFPS* cam = (irr::scene::CSceneNodeAnimatorCameraFPS*)demo->fpsCamAnim;
+
+	if (cam) {
+		replicatedCameraPos = cam->replicationPos;
+		replicatedCameraRot = cam->replicationRot;
+	}
+	
+
+	serializeParameters->outputBitstream[0].Write(replicatedCameraPos);
+	serializeParameters->outputBitstream[0].Write(replicatedCameraRot);
+
 	//timeStamp
 	serializeParameters->messageTimestamp = RakNet::GetTimeMS();
 	return RM3SR_BROADCAST_IDENTICALLY; 
@@ -500,6 +513,9 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters *deserializeParame
 	bool wasDead=isDead;
 	deserializeParameters->serializationBitstream[0].Read(isDead);
 
+	deserializeParameters->serializationBitstream[0].Read(replicatedCameraPos);
+	deserializeParameters->serializationBitstream[0].Read(replicatedCameraRot);
+
 	//if (topology == CLIENT &&creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	//{
 	//	if (isDead == true) {
@@ -513,13 +529,30 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters *deserializeParame
 		demo->PlayDeathSound(position);
 	}
 
-	core::vector3df positionOffset;
-	positionOffset=position-model->getPosition();
-	positionDeltaPerMS = positionOffset / INTERP_TIME_MS;
-	float rotationOffset;
-	rotationOffset=GetRotationDifference(rotationAroundYAxis,model->getRotation().Y);
-	rotationDeltaPerMS = rotationOffset / INTERP_TIME_MS;
-	interpEndTime = RakNet::GetTimeMS() + (RakNet::TimeMS) INTERP_TIME_MS;
+	// Is a locally created object?
+	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
+	{
+		irr::scene::CSceneNodeAnimatorCameraFPS* cam = (irr::scene::CSceneNodeAnimatorCameraFPS*)demo->fpsCamAnim;
+		if (cam&&cam->camera) {
+			demo->GetSceneManager()->getActiveCamera()->setPosition(replicatedCameraPos);
+			demo->GetSceneManager()->getActiveCamera()->setTarget(replicatedCameraRot);;
+		}
+		
+	}
+	else {
+		playerReplica->position = replicatedCameraPos - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
+		playerReplica->rotationAroundYAxis = replicatedCameraRot.Y - 90.0f;
+
+		core::vector3df positionOffset;
+		positionOffset = position - model->getPosition();
+		positionDeltaPerMS = positionOffset / INTERP_TIME_MS;
+
+		float rotationOffset;
+		rotationOffset = GetRotationDifference(rotationAroundYAxis, model->getRotation().Y);
+		rotationDeltaPerMS = rotationOffset / INTERP_TIME_MS;
+		interpEndTime = RakNet::GetTimeMS() + (RakNet::TimeMS)INTERP_TIME_MS;
+	}
+
 }
 void PlayerReplica::Update(RakNet::TimeMS curTime)
 {
@@ -528,8 +561,6 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	{
 		// Local player has no mesh to interpolate
 		// Input our camera position as our player position
-		playerReplica->position=demo->GetSceneManager()->getActiveCamera()->getPosition()-irr::core::vector3df(0,CAMERA_HEIGHT,0);
-		playerReplica->rotationAroundYAxis=demo->GetSceneManager()->getActiveCamera()->getRotation().Y-90.0f;
 		isMoving=demo->IsMovementKeyDown();
 
 		// Ack, makes the screen messed up and the mouse move off the window
