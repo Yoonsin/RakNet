@@ -78,9 +78,9 @@ public:
 //#include "upnpcommands.h"
 //#include "upnperrors.h"
 
-CDemo::CDemo(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw &_playerName, bool isS, GamePlatform plat)
+CDemo::CDemo(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw &_playerName, bool isS, GamePlatform plat, bool isLog, int logCnt, const char* base)
 : fullscreen(f), music(m), shadows(s), additive(a), vsync(v), aa(fsaa),
-driverType(d), device(0), playerName(_playerName), isServer(isS), platform(plat),
+driverType(d), device(0), playerName(_playerName), isServer(isS), platform(plat), isLogged(isLog), logCount(logCnt), baseDir(base),
 #ifdef USE_IRRKLANG
 	irrKlang(0), ballSound(0), impactSound(0),
 #endif
@@ -269,7 +269,7 @@ void CDemo::run()
 	//char dest[1024];
 	//memset(dest,0,sizeof(dest));
 	//wcstombs(dest, playerName.c_str(), playerName.size());
-	InstantiateRakNetClasses(isServer);
+	InstantiateRakNetClasses(isServer,isLogged);
 
 	// Hook RakNet stuff into this class
 	//playerReplica->playerName = RakNet::RakString(dest);
@@ -298,9 +298,7 @@ void CDemo::run()
 	//현재 시간
 	s32 startTime = device->getTimer()->getTime();
 	//최대 인원
-	s32 logMaxPlayer = 2;
 	bool isLogStart = false;
-
 
 	while(device->run() && driver)
 	{
@@ -380,9 +378,10 @@ void CDemo::run()
 		UpdateRakNet();
 
 		//Statistics
-		if (isServer) {
+		if (isLogged) {
+			int logCnt = (isServer) ? logCount : 1;
 			//PrintStatistics(false);
-			if (isLogStart == false && replicaManager3->GetConnectionCount() == logMaxPlayer) {
+			if (isLogStart == false && replicaManager3->GetConnectionCount() == logCnt) {
 				isLogStart = true;
 				startTime = device->getTimer()->getTime();
 			}
@@ -393,14 +392,15 @@ void CDemo::run()
 
 				if (now - startTime >= logTime) {
 					device->closeDevice();
-				}	
+				}
 			}
 		}
+		
 		
 	}
 
 	// RakNet shutdown
-	DeinitializeRakNetClasses();
+	DeinitializeRakNetClasses(isLogged, baseDir);
 	device->drop();
 }
 

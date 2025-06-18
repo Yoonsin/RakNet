@@ -145,6 +145,7 @@
     <AndroidGradleBuildType>$(Configuration)</AndroidGradleBuildType>
     <AndroidGradlePackageOutputName>$(AndroidApkName)</AndroidGradlePackageOutputName>
     <AndroidGradleBuildOutputDir />
+    <OutDir>C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/jniLibs/$(PlatformTarget)</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

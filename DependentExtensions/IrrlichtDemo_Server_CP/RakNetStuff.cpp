@@ -99,7 +99,7 @@ DataStructures::List<PlayerReplica*> PlayerReplica::playerList;
 // Take this many milliseconds to move the visible position to the real position
 static const float INTERP_TIME_MS=100.0f;
 
-void InstantiateRakNetClasses(bool isServer)
+void InstantiateRakNetClasses(bool isServer, bool isLogged)
 {
 	if (isServer) topology = SERVER;
 	else topology = CLIENT;
@@ -145,7 +145,7 @@ void InstantiateRakNetClasses(bool isServer)
 	
 	// Automatically sends around new / deleted / changed game objects
 	replicaManager3=new ReplicaManager3Irrlicht;
-	replicaManager3->SetIsServer(topology == SERVER);
+	replicaManager3->SetIsLog(isLogged);
 
 	replicaManager3->SetNetworkIDManager(networkIDManager);
 	rakPeer->AttachPlugin(replicaManager3);
@@ -164,12 +164,13 @@ void InstantiateRakNetClasses(bool isServer)
 		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
 #else
 		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜 
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
+		
 #endif // __ANDROID__
 		RakAssert(car == CONNECTION_ATTEMPT_STARTED);
 
-		//loggerPlugin = PacketLogger::GetInstance();
-		//rakPeer->AttachPlugin(loggerPlugin);
+		loggerPlugin = PacketLogger::GetInstance();
+		rakPeer->AttachPlugin(loggerPlugin);
 	}
 	else if (topology == SERVER) {
 		//statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
@@ -182,13 +183,16 @@ void InstantiateRakNetClasses(bool isServer)
 
 	
 }
-void DeinitializeRakNetClasses(void)
+void DeinitializeRakNetClasses(bool isLogged, const char* baseDir)
 {
 	DataStructures::List<Replica3*> replicaListOut;
 	replicaManager3->GetReplicasCreatedByMe(replicaListOut);
 	replicaManager3->BroadcastDestructionList(replicaListOut, RakNet::UNASSIGNED_SYSTEM_ADDRESS);
 	
-	if (topology == SERVER) SaveStatisticsToCSV();
+	if (isLogged) {
+		SaveStatisticsToCSV(baseDir);
+	}
+	
 	// Shutdown so the server knows we stopped
 	rakPeer->Shutdown(100,0);
 
@@ -207,7 +211,7 @@ void DeinitializeRakNetClasses(void)
 		//delete loggerPlugin;
 	}
 	else if (topology == CLIENT) {
-		//delete loggerPlugin;
+		delete loggerPlugin;
 	}
 }
 
@@ -280,7 +284,7 @@ void PrintStatistics(bool isExportFile)
 	}
 }
 
-void SaveStatisticsToCSV()
+void SaveStatisticsToCSV(const char* baseDir)
 {
 #ifdef _WIN32
 	//디렉토리 경로 파악
@@ -307,10 +311,20 @@ void SaveStatisticsToCSV()
 	char timeStr[64];
 	strftime(timeStr, sizeof(timeStr), "%Y%m%d_%H%M%S", t);
 
+#ifdef __ANDROID__
+	// 하위 폴더명 (원하는 폴더명)
+	const char* subDir = "/stats";
+
+	// 디렉토리 경로 생성
+	char outputDir[512];
+	snprintf(outputDir, sizeof(outputDir), "%s%s", baseDir, subDir);
+#else
 	// 절대 디렉토리
 	const char* outputDir = "/home/parts/stats";
-	mkdir(outputDir, 0777);  // 이미 있으면 실패하지만 무시됨
+#endif // __ANDROID__
 
+	mkdir(outputDir, 0777);  // 이미 있으면 실패하지만 무시됨
+	//fuck you
 	// 경로 + 파일명 조합
 	char fullpath[512];
 	snprintf(fullpath, sizeof(fullpath), "%s/full_stats_%s.csv", outputDir, timeStr);
@@ -337,12 +351,15 @@ void SaveStatisticsToCSV()
 
 	//마지막 누적값 및 평균 저장
 	//PrintStatistics(true);
-
-	for (unsigned int i = 0; i < statBuf.Size(); i++)
-	{
-		fprintf(f, "%s", statBuf[i].C_String());
+	if (statBuf.Size() == 0) {
+		fprintf(f, "%s", "no data");
 	}
-
+	else {
+		for (unsigned int i = 0; i < statBuf.Size(); i++)
+		{
+			fprintf(f, "%s", statBuf[i].C_String());
+		}
+	}
 	fclose(f);
 	statBuf.Clear(false, _FILE_AND_LINE_);
 }
@@ -469,8 +486,8 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *ser
 
 	//timeStamp
 	serializeParameters->messageTimestamp = RakNet::GetTimeMS();
-	//return RM3SR_BROADCAST_IDENTICALLY; 
-	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //값이 안바뀌어도 계속 동기화됨
+	return RM3SR_BROADCAST_IDENTICALLY; 
+	//return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //값이 안바뀌어도 계속 동기화됨
 }
 //destination에 존재하지 않는 객체를 전송해야 하는지?
 
@@ -741,5 +758,6 @@ RakNet::Replica3 *Connection_RM3Irrlicht::AllocReplica(RakNet::BitStream *alloca
 }
 
 void ReplicaManager3Irrlicht::PrintTimeGap(char* str) {
+	
 	statBuf.Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
 }

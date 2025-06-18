@@ -32,8 +32,10 @@ int main(int argc, char* argv[])
 	core::stringw playerName;
 
 	bool isServer = false;
+	bool isLogged = false;
+	int logCount = 2;
 
-	//video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
+
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
@@ -46,17 +48,41 @@ int main(int argc, char* argv[])
 #ifdef _WIN32
 	CMainMenu menu;
 
+	char* token = strtok(strCmdLine, " ");  // 공백을 기준으로 명령어를 분리
+	while (token != nullptr) {
+		if (strcmp(token, "-log") == 0) {
+			isLogged = true;  // -log 인수가 있으면 isLogged를 true로 설정
+			token = strtok(nullptr, " ");  // 다음 인수로 넘어가기
+			if (token != nullptr) {
+				logCount = atoi(token);  // 다음 인수를 정수로 변환하여 logCount에 저장
+			}
+		}
+		token = strtok(nullptr, " ");  // 더 이상 없으면 종료
+	}
+
 	//#ifndef _DEBUG
 	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer))
 		//#endif
 	{
-		CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform);
+		CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "");
 		demo.run();
 	}
 #else
 	isServer = true;
 	vsync = true;
-	CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform);
+
+	// 명령행 인수를 처리하여 isLogged 값 설정
+	for (int i = 1; i < argc; ++i) {
+		if (strcmp(argv[i], "-log") == 0) {
+			isLogged = true;  // -log 인수가 있으면 isLogged를 true로 설정
+			if (i + 1 < argc) {
+				logCount = atoi(argv[i + 1]);  // 다음 인수를 정수로 변환하여 logCount에 저장
+				i++;
+			}
+		}
+	}
+
+	CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "");
 	demo.run();
 #endif // _WIN32
 

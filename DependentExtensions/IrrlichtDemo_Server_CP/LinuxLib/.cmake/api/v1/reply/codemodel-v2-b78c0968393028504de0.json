@@ -1,0 +1,106 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.6"
+					},
+					"projectIndex" : 0,
+					"source" : "."
+				},
+				{
+					"build" : "Lib",
+					"childIndexes" : 
+					[
+						2
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-Lib-Debug-98eec33155a750787291.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.6"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "Lib"
+				},
+				{
+					"build" : "Lib/LibStatic",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-Lib.LibStatic-Debug-ff15291a33f20f4245cb.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.6"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "Lib/LibStatic",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "RakNet"
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "RakNetLibStatic",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "RakNetLibStatic::@4eb03d8b6a62f615344c",
+					"jsonFile" : "target-RakNetLibStatic-Debug-9e3d825573b12abee6eb.json",
+					"name" : "RakNetLibStatic",
+					"projectIndex" : 1
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/parts/.vs/RakNet/c679a9db-dc03-45cb-a63f-a9173cbaeaf9/out/build/Linux-GCC-Debug",
+		"source" : "/home/parts/.vs/RakNet/c679a9db-dc03-45cb-a63f-a9173cbaeaf9/src"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

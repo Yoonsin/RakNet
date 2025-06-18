@@ -5449,6 +5449,7 @@ void ProcessNetworkPacket( SystemAddress systemAddress, const char *data, const 
 //	RakNet::Packet *packet;
 	RakPeer::RemoteSystemStruct *remoteSystem;
 
+	
 	// See if this datagram came from a connected system
 	remoteSystem = rakPeer->GetRemoteSystemFromSystemAddress( systemAddress, true, true );
 	if ( remoteSystem )
@@ -5457,6 +5458,7 @@ void ProcessNetworkPacket( SystemAddress systemAddress, const char *data, const 
 		// HandleSocketReceiveFromConnectedPlayer is only safe to be called from the same thread as Update, which is this thread
 		if ( isOfflineMessage==false)
 		{
+			
 			remoteSystem->reliabilityLayer.HandleSocketReceiveFromConnectedPlayer(
 				data, length, systemAddress, rakPeer->pluginListNTS, remoteSystem->MTUSize,
 				rakNetSocket, &rnr, timeRead, updateBitStream);

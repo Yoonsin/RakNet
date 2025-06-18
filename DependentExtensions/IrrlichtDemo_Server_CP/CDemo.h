@@ -79,7 +79,7 @@ public:
 		Android
 	};
 
-	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform);
+	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base);
 
 	~CDemo();
 
@@ -121,12 +121,16 @@ private:
 	bool additive;
 	bool vsync;
 	bool aa;
-	
+	const char* baseDir;
+
 	video::E_DRIVER_TYPE driverType;
 	core::stringw playerName;
 	IrrlichtDevice *device;
 
+	//로그 시작
+	bool isLogged;
 	bool isServer;
+	int logCount;
 	GamePlatform platform = GamePlatform::PC;
 	irr::core::stringc mediaPath;
 

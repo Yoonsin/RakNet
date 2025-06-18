@@ -304,8 +304,8 @@ public:
 	virtual void Update(void);
 
 	virtual void PrintTimeGap(char *str) = 0;
-	virtual void SetIsServer(bool isServer) = 0;
-	bool isServer = false;
+	virtual void SetIsLog(bool isLog) = 0;
+	bool isLog = false;
 
 	/// \internal
 	struct RM3World

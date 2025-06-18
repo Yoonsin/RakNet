@@ -668,7 +668,8 @@ PluginReceiveResult ReplicaManager3::OnReceive(Packet *packet)
 			incomingWorldId=packet->data[sizeof( unsigned char )*2 + sizeof( RakNet::Time )];
 			packetDataOffset=sizeof( unsigned char )*3 + sizeof( RakNet::Time );
 
-			if (isServer) {
+			
+			if (isLog) {
 				char buffer[100];
 				char* str = "";
 				if (packetIdentifier == ID_REPLICA_MANAGER_CONSTRUCTION) str = "construction";
@@ -676,7 +677,7 @@ PluginReceiveResult ReplicaManager3::OnReceive(Packet *packet)
 
 				snprintf(buffer, sizeof(buffer), "ip : %s / %s time difference : %llu\n", packet->systemAddress.ToString(false), str, RakNet::GetTimeMS() - timestamp);
 				PrintTimeGap(buffer);
-			}			
+			}
 		}
 		else
 			return RR_STOP_PROCESSING_AND_DEALLOCATE;

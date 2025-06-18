@@ -35,6 +35,7 @@ using namespace RakNet;
 
 STATIC_FACTORY_DEFINITIONS(PacketLogger,PacketLogger);
 
+
 PacketLogger::PacketLogger()
 {
 	printId=true;
@@ -230,7 +231,16 @@ void PacketLogger::AddToLog(const char *str)
 }
 void PacketLogger::WriteLog(const char *str)
 {
-	RAKNET_DEBUG_PRINTF("%s\n", str);
+	//console
+	//RAKNET_DEBUG_PRINTF("%s\n", str);
+
+	//visual studio debugger
+	char buffer[1024];
+	snprintf(buffer, sizeof(buffer), "%s\n", str); // 또는 "\r\n" 사용 가능
+#ifdef _WIN32
+	OutputDebugStringA(buffer);
+#endif
+
 }
 void PacketLogger::WriteMiscellaneous(const char *type, const char *msg)
 {

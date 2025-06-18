@@ -53,9 +53,9 @@ extern PlayerReplica *playerReplica; // Network object that represents the playe
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP "natpunch.slikesoft.com" //"natpunch.jenkinssoftware.com" ´ëÃ¼
 #define SERVER_PORT 20123
 
-void InstantiateRakNetClasses(bool isServer);
-void DeinitializeRakNetClasses(void);
-void SaveStatisticsToCSV();
+void InstantiateRakNetClasses(bool isServer, bool isLogged);
+void DeinitializeRakNetClasses(bool isLogged, const char* baseDir);
+void SaveStatisticsToCSV(const char* baseDir);
 void PrintStatistics(bool isExportFile);
 long long GetCurrentTimeMS();
 //RakString FormatTime(long long milliseconds);
@@ -198,7 +198,7 @@ public:
 	}
 
 	virtual void PrintTimeGap(char* str) override;
-	virtual void SetIsServer(bool isServer) override { this->isServer = isServer; }
+	virtual void SetIsLog(bool isLog) override { this->isLog = isLog; }
 
 	CDemo *demo;
 };
