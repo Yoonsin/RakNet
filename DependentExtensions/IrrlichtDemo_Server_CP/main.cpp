@@ -3,8 +3,9 @@
 
 #include <irrlicht.h>
 #ifdef _WIN32__
-#include "WindowsIncludes.h" // Prevent 'fd_set' : 'struct' type redefinition
-#include <windows.h>
+//#include "WindowsIncludes.h" // Prevent 'fd_set' : 'struct' type redefinition
+//#include <windows.h>
+//#include <crtdbg.h>
 #endif
 
 #include <stdio.h>
@@ -14,8 +15,10 @@
 
 using namespace irr;
 
+
 #ifdef  __ANDROID__
 #else
+CDemo* demo = nullptr;
 #ifdef _WIN32
 //#pragma comment(lib, "Irrlicht.lib")
 INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR strCmdLine, INT)
@@ -23,6 +26,7 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR strCmdLine, INT)
 int main(int argc, char* argv[])
 #endif
 {
+
 	bool fullscreen = false;
 	bool music = true;
 	bool shadows = false;
@@ -60,12 +64,16 @@ int main(int argc, char* argv[])
 		token = strtok(nullptr, " ");  // 더 이상 없으면 종료
 	}
 
+	const char* baseDir = "";
+
 	//#ifndef _DEBUG
 	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer))
 		//#endif
 	{
-		CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "");
-		demo.run();
+		demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir);
+		demo->run();
+		delete demo;
+		demo = nullptr;
 	}
 #else
 	isServer = true;
@@ -82,8 +90,10 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "");
-	demo.run();
+	demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "");
+	demo->run();
+	delete demo;
+	demo = nullptr;
 #endif // _WIN32
 
 	

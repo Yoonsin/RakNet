@@ -83,6 +83,8 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
+CDemo* demo = nullptr;
+
 /**
  * Our saved state data.
  */
@@ -451,49 +453,51 @@ void android_main(android_app* state) {
     state->userData = &engine;
     engine.app = state;
 
-    //
-    struct ifaddrs* ifaddr;
-    if (getifaddrs(&ifaddr) == -1) {
-        perror("getifaddrs");
-    }
+    ////
+    //struct ifaddrs* ifaddr;
+    //if (getifaddrs(&ifaddr) == -1) {
+    //    perror("getifaddrs");
+    //}
 
-    printf("네트워크 인터페이스별 하드웨어 타임스탬프 지원 여부:\n");
+    //printf("네트워크 인터페이스별 하드웨어 타임스탬프 지원 여부:\n");
 
-    for (struct ifaddrs* ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa->ifa_name == NULL)
-            continue;
+    //for (struct ifaddrs* ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+    //    if (ifa->ifa_name == NULL)
+    //        continue;
 
-        // 중복 이름 출력 방지용: 인터페이스 이름이 바뀔 때만 출력
-        static char prev_ifname[IFNAMSIZ] = { 0 };
-        if (strcmp(prev_ifname, ifa->ifa_name) == 0)
-            continue;
-        strncpy(prev_ifname, ifa->ifa_name, IFNAMSIZ);
+    //    // 중복 이름 출력 방지용: 인터페이스 이름이 바뀔 때만 출력
+    //    static char prev_ifname[IFNAMSIZ] = { 0 };
+    //    if (strcmp(prev_ifname, ifa->ifa_name) == 0)
+    //        continue;
+    //    strncpy(prev_ifname, ifa->ifa_name, IFNAMSIZ);
 
-        int supported = IsHardwareTimestampSupported(ifa->ifa_name);
-        printf("  %s: %s\n", ifa->ifa_name, supported ? "지원함" : "미지원");
-    }
+    //    int supported = IsHardwareTimestampSupported(ifa->ifa_name);
+    //    printf("  %s: %s\n", ifa->ifa_name, supported ? "지원함" : "미지원");
+    //}
 
-    freeifaddrs(ifaddr);
-    //
+    //freeifaddrs(ifaddr);
+    ////
 
- //   bool fullscreen = false;
- //   bool music = true;
- //   bool shadows = false;
- //   bool additive = false;
- //   bool vsync = true;
- //   bool aa = false;
- //   core::stringw playerName;
- //   bool isServer = false;
- //   video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
-	//CDemo::GamePlatform platform = CDemo::GamePlatform::Android;
- //   bool isLogged = true;
- //   int logCount = 1;
- //   
- //   const char* baseDir = "/storage/emulated/0/Download";
- //  
- //   CDemo demo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir);
- //   demo.state = state;
- //   demo.run();
+    bool fullscreen = false;
+    bool music = true;
+    bool shadows = false;
+    bool additive = false;
+    bool vsync = true;
+    bool aa = false;
+    core::stringw playerName;
+    bool isServer = false;
+    video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
+	CDemo::GamePlatform platform = CDemo::GamePlatform::Android;
+    bool isLogged = true;
+    int logCount = 1;
+    
+    const char* baseDir = "/storage/emulated/0/Download";
+   
+    demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir);
+    demo->state = state;
+    demo->run();
+    delete demo;
+    demo = nullptr;
 
 }
 

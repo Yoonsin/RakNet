@@ -18,7 +18,7 @@
       "cmakeExecutable": "cmake",
       "remoteCopySourcesExclusionList": [ ".vs", ".git", "out" ],
       "cmakeCommandArgs": "",
-      "buildCommandArgs": "C:\\GitHub\\RakNet\\copy_files.bat", //로컬 RakNet의 include file을 LinuxLib의 include file에 삽입 
+      "buildCommandArgs": "",//"C:\\GitHub\\RakNet\\copy_files.bat", //로컬 RakNet의 include file을 LinuxLib의 include file에 삽입 
       "ctestCommandArgs": "",
       "buildRoot": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib", //프로젝트 파일에 옮겨 넣을 수 있도록
       "installRoot": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\install\\${name}",

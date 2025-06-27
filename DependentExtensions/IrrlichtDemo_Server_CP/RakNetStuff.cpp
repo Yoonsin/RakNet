@@ -23,7 +23,8 @@
 #include <chrono>
 
 #include <irrlicht.h>
-#include <CSceneNodeAnimatorCameraFPS.h>
+//#include <CSceneNodeAnimatorCameraFPS.h>
+//#include <CCameraSceneNode.h>
 #ifdef __linux__
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -148,7 +149,7 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged)
 	// Automatically sends around new / deleted / changed game objects
 	replicaManager3=new ReplicaManager3Irrlicht;
 	replicaManager3->SetIsLog(isLogged);
-
+	
 	replicaManager3->SetNetworkIDManager(networkIDManager);
 	rakPeer->AttachPlugin(replicaManager3);
 	
@@ -163,16 +164,16 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged)
 	if (topology == CLIENT) {
 #if __ANDROID__
 		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
 #else
-		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
-		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
+		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
 		
 #endif // __ANDROID__
 		RakAssert(car == CONNECTION_ATTEMPT_STARTED);
 
-		loggerPlugin = PacketLogger::GetInstance();
-		rakPeer->AttachPlugin(loggerPlugin);
+		//loggerPlugin = PacketLogger::GetInstance();
+		//rakPeer->AttachPlugin(loggerPlugin);
 	}
 	else if (topology == SERVER) {
 		//statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
@@ -213,7 +214,7 @@ void DeinitializeRakNetClasses(bool isLogged, const char* baseDir)
 		//delete loggerPlugin;
 	}
 	else if (topology == CLIENT) {
-		delete loggerPlugin;
+		//delete loggerPlugin;
 	}
 }
 
@@ -233,57 +234,85 @@ void PrintStatistics(bool isExportFile)
 		uint64_t objectId = guid.g;
 
 		// 현재 등록된 통계 키 가져오기
-		DataStructures::List<RakString> keys;
-		statisticsPlugin->statistics.GetUniqueKeyList(keys);
+	/*	DataStructures::List<RakString> keys;
+		statisticsPlugin->statistics.GetUniqueKeyList(keys);*/
 
 		Time curTime = RakNet::GetTime();
-		for (unsigned int k = 0; k < keys.Size(); ++k)
-		{
-			//가져올 값
-			StatisticsHistory::TimeAndValueQueue* history; 
-			if (statisticsPlugin->statistics.GetHistoryForKey(objectId, keys[k], &history, curTime) != StatisticsHistory::SH_OK)
-				continue;
 
-			//현재 해당하는 키에 대한 초당 변화량
-			if (history->values.Size() > 0)
-			{
-				StatisticsHistory::TimeAndValue latest = history->values.PeekTail();
-				
-				//log format
-				// ip / timeStemp / key / log property / value
-				
-				unsigned int ms = latest.time % 1000;
-				unsigned int totalSeconds = latest.time / 1000;
-				unsigned int seconds = totalSeconds % 60;
-				unsigned int minutes = (totalSeconds / 60) % 60;
-				unsigned int hours = (totalSeconds / 3600) % 24;  // 하루 기준
+		unsigned int ms = curTime % 1000;
+		unsigned int totalSeconds = curTime / 1000;
+		unsigned int seconds = totalSeconds % 60;
+		unsigned int minutes = (totalSeconds / 60) % 60;
+		unsigned int hours = (totalSeconds / 3600) % 24;  // 하루 기준
 
-				char buffer[64];
-				snprintf(buffer, sizeof(buffer), "%02u:%02u:%02u:%03u", hours, minutes, seconds, ms);
+		char buffer[160];
+		snprintf(buffer, sizeof(buffer), "%02u:%02u:%02u:%03u,%s", hours, minutes, seconds, ms, ipStr);
 
-				if(isExportFile){
-					// 마지막 누적값 및 평균 저장
-					char buffer2[4][160];
-					snprintf(buffer2[0], sizeof(buffer2[0]), "%s,%s,%s,CumulativeSum,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermSum());
-					snprintf(buffer2[1], sizeof(buffer2[1]), "%s,%s,%s,CumulativeAvg,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermAverage());
-					snprintf(buffer2[2], sizeof(buffer2[2]), "%s,%s,%s,Highest,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermHighest());
-					snprintf(buffer2[3], sizeof(buffer2[3]), "%s,%s,%s,Lowest,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermLowest());
+		statBuf.Push(RakNet::RakString(buffer), _FILE_AND_LINE_); //Log
 
-					for (int i = 0; i < 4; i++) statBuf.Push(RakNet::RakString(buffer2[i]), _FILE_AND_LINE_); //Log
-				}
-				else {
-					// 초당 변화량 저장
-					char buffer2[160];
-					snprintf(buffer2, sizeof(buffer2), "%s,%s,%s,perSecond,%.2f\n", ipStr, buffer, keys[k].C_String(), latest.val); // 또는 "\r\n" 사용 가능
+		//for (unsigned int k = 0; k < keys.Size(); ++k)
+		//{
+		//	//가져올 값
+		//	StatisticsHistory::TimeAndValueQueue* history; 
+		//	if (statisticsPlugin->statistics.GetHistoryForKey(objectId, keys[k], &history, curTime) != StatisticsHistory::SH_OK)
+		//		continue;
 
-					statBuf.Push(RakNet::RakString(buffer2), _FILE_AND_LINE_); //Log
-				}
+		//	//현재 해당하는 키에 대한 초당 변화량
+		//	if (history->values.Size() > 0)
+		//	{
+		//		StatisticsHistory::TimeAndValue latest = history->values.PeekTail();
+		//		
+		//		//log format
+		//		// ip / timeStemp / key / log property / value
+		//		
+		//		unsigned int ms = latest.time % 1000;
+		//		unsigned int totalSeconds = latest.time / 1000;
+		//		unsigned int seconds = totalSeconds % 60;
+		//		unsigned int minutes = (totalSeconds / 60) % 60;
+		//		unsigned int hours = (totalSeconds / 3600) % 24;  // 하루 기준
 
-			    // OutputDebugStringA(buffer2); //Debugger
-			}
-		}
+		//		char buffer[64];
+		//		snprintf(buffer, sizeof(buffer), "%02u:%02u:%02u:%03u", hours, minutes, seconds, ms);
+
+		//		if(isExportFile){
+		//			// 마지막 누적값 및 평균 저장
+		//			char buffer2[4][160];
+		//			snprintf(buffer2[0], sizeof(buffer2[0]), "%s,%s,%s,CumulativeSum,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermSum());
+		//			snprintf(buffer2[1], sizeof(buffer2[1]), "%s,%s,%s,CumulativeAvg,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermAverage());
+		//			snprintf(buffer2[2], sizeof(buffer2[2]), "%s,%s,%s,Highest,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermHighest());
+		//			snprintf(buffer2[3], sizeof(buffer2[3]), "%s,%s,%s,Lowest,%.2f\n", ipStr, buffer, keys[k].C_String(), history->GetLongTermLowest());
+
+		//			for (int i = 0; i < 4; i++) statBuf.Push(RakNet::RakString(buffer2[i]), _FILE_AND_LINE_); //Log
+		//		}
+		//		else {
+		//			// 초당 변화량 저장
+		//			char buffer2[160];
+		//			snprintf(buffer2, sizeof(buffer2), "%s,%s,%s,perSecond,%.2f\n", ipStr, buffer, keys[k].C_String(), latest.val); // 또는 "\r\n" 사용 가능
+
+		//			statBuf.Push(RakNet::RakString(buffer2), _FILE_AND_LINE_); //Log
+		//		}
+
+		//	    // OutputDebugStringA(buffer2); //Debugger
+		//	}
+		//}
 		
 	}
+}
+
+void PrintStatistics(char* ipStr, bool isStart, int num)
+{
+	Time curTime = RakNet::GetTime();
+
+	unsigned int ms = curTime % 1000;
+	unsigned int totalSeconds = curTime / 1000;
+	unsigned int seconds = totalSeconds % 60;
+	unsigned int minutes = (totalSeconds / 60) % 60;
+	unsigned int hours = (totalSeconds / 3600) % 24;  // 하루 기준
+
+	char buffer[160];
+	snprintf(buffer, sizeof(buffer), "%s:%d/%02u:%02u:%02u:%03u\n",(isStart? "Start" : "End"), num,hours, minutes, seconds, ms);
+
+	statBuf.Push(RakNet::RakString(buffer), _FILE_AND_LINE_); //Log
 }
 
 void SaveStatisticsToCSV(const char* baseDir)
@@ -415,8 +444,13 @@ PlayerReplica::~PlayerReplica()
 	if (index != (unsigned int) -1)
 		playerList.RemoveAtIndexFast(index);
 }
-RakNet::RM3ConstructionState PlayerReplica::QueryConstruction(RakNet::Connection_RM3* destinationConnection, RakNet::ReplicaManager3* replicaManager3) { return QueryConstruction_ClientConstruction(destinationConnection, topology != CLIENT); }
-bool PlayerReplica::QueryRemoteConstruction(RakNet::Connection_RM3* sourceConnection) { return QueryRemoteConstruction_ClientConstruction(sourceConnection, topology != CLIENT); }
+RakNet::RM3ConstructionState PlayerReplica::QueryConstruction(RakNet::Connection_RM3* destinationConnection, RakNet::ReplicaManager3* replicaManager3) { 
+	return QueryConstruction_ClientConstruction(destinationConnection, topology != CLIENT);
+
+}
+bool PlayerReplica::QueryRemoteConstruction(RakNet::Connection_RM3* sourceConnection) { 
+	return QueryRemoteConstruction_ClientConstruction(sourceConnection, topology != CLIENT); 
+}
 RakNet::RM3QuerySerializationResult PlayerReplica::QuerySerialization(RakNet::Connection_RM3* destinationConnection) { return QuerySerialization_ClientSerializable(destinationConnection, topology != CLIENT); }
 RakNet::RM3ActionOnPopConnection PlayerReplica::QueryActionOnPopConnection(RakNet::Connection_RM3* droppedConnection) const { return QueryActionOnPopConnection_Client(droppedConnection); }
 
@@ -486,21 +520,27 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *ser
 	serializeParameters->outputBitstream[0].Write(isMoving);
 	serializeParameters->outputBitstream[0].Write( topology==CLIENT ? IsDead() : isDead);
 
-	irr::scene::CSceneNodeAnimatorCameraFPS* cam = (irr::scene::CSceneNodeAnimatorCameraFPS*)demo->fpsCamAnim;
+	//irr::scene::CSceneNodeAnimatorCameraFPS* cam = (irr::scene::CSceneNodeAnimatorCameraFPS*)demo->fpsCamAnim;
+	//irr::scene::CCameraSceneNode* camNode = (irr::scene::CCameraSceneNode*)demo->GetSceneManager()->getActiveCamera();
 
-	if (cam) {
-		replicatedCameraPos = cam->replicationPos;
-		replicatedCameraRot = cam->replicationRot;
-	}
+	//replicatedCameraPos = camNode? demo->GetSceneManager()->getActiveCamera()->getAbsolutePosition() : irr::core::vector3df(); //cam ? cam->replicationPos : irr::core::vector3df();
+	//replicatedCameraRot = cam ? cam->replicationRot : irr::core::vector3df();
+	//
+	//serializeParameters->outputBitstream[0].Write(replicatedCameraPos);
+	//serializeParameters->outputBitstream[0].Write(replicatedCameraRot);
 	
-
-	serializeParameters->outputBitstream[0].Write(replicatedCameraPos);
-	serializeParameters->outputBitstream[0].Write(replicatedCameraRot);
+	//if (cam) {
+	//	//visual studio debugger
+	//	char buffer[120];
+	//	snprintf(buffer, sizeof(buffer), "x: %f / y: %f / z: %f\n", cam->replicationPos.X, cam->replicationPos.Y, cam->replicationPos.Z); // 또는 "\r\n" 사용 가능
+	//	OutputDebugStringA(buffer);
+	//}
+	
 
 	//timeStamp
 	serializeParameters->messageTimestamp = RakNet::GetTimeMS();
-	return RM3SR_BROADCAST_IDENTICALLY; 
-	//return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //값이 안바뀌어도 계속 동기화됨
+	//return RM3SR_BROADCAST_IDENTICALLY; 
+	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //값이 안바뀌어도 계속 동기화됨
 }
 //destination에 존재하지 않는 객체를 전송해야 하는지?
 
@@ -513,16 +553,11 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters *deserializeParame
 	bool wasDead=isDead;
 	deserializeParameters->serializationBitstream[0].Read(isDead);
 
-	deserializeParameters->serializationBitstream[0].Read(replicatedCameraPos);
-	deserializeParameters->serializationBitstream[0].Read(replicatedCameraRot);
+	//core::vector3df tmpPos;
+	//core::vector3df tmpRot;
 
-	//if (topology == CLIENT &&creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
-	//{
-	//	if (isDead == true) {
-
-	//	}
-
-	//}
+	//deserializeParameters->serializationBitstream[0].Read(tmpPos);
+	//deserializeParameters->serializationBitstream[0].Read(tmpRot);
 
 	if (isDead==true && wasDead==false)
 	{
@@ -532,17 +567,14 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters *deserializeParame
 	// Is a locally created object?
 	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
-		irr::scene::CSceneNodeAnimatorCameraFPS* cam = (irr::scene::CSceneNodeAnimatorCameraFPS*)demo->fpsCamAnim;
-		if (cam&&cam->camera) {
-			demo->GetSceneManager()->getActiveCamera()->setPosition(replicatedCameraPos);
-			demo->GetSceneManager()->getActiveCamera()->setTarget(replicatedCameraRot);;
-		}
-		
+		/*irr::scene::CCameraSceneNode* cam = (irr::scene::CCameraSceneNode*)demo->GetSceneManager()->getActiveCamera();
+		if (!cam) return;
+
+		cam->replicationPos = tmpPos;
+		cam->replicationRot = tmpRot;*/
+
 	}
 	else {
-		playerReplica->position = replicatedCameraPos - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
-		playerReplica->rotationAroundYAxis = replicatedCameraRot.Y - 90.0f;
-
 		core::vector3df positionOffset;
 		positionOffset = position - model->getPosition();
 		positionDeltaPerMS = positionOffset / INTERP_TIME_MS;
@@ -559,6 +591,9 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	// Is a locally created object?
 	if (creatingSystemGUID==rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
+		playerReplica->position = demo->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
+		playerReplica->rotationAroundYAxis = demo->GetSceneManager()->getActiveCamera()->getRotation().Y - 90.0f;
+	
 		// Local player has no mesh to interpolate
 		// Input our camera position as our player position
 		isMoving=demo->IsMovementKeyDown();
@@ -642,12 +677,12 @@ void PlayerReplica::OnAnimationEnd(scene::IAnimatedMeshSceneNode* node)
 		if (isMoving)
 		{
 			UpdateAnimation(scene::EMAT_RUN);
-			model->setLoopMode(true);
+			if(model)model->setLoopMode(true);
 		}
 		else
 		{
 			UpdateAnimation(scene::EMAT_STAND);
-			model->setLoopMode(true);
+			if(model)model->setLoopMode(true);
 		}
 	}
 }
@@ -656,7 +691,7 @@ void PlayerReplica::PlayAttackAnimation(void)
 	if (isDead==false)
 	{
 		UpdateAnimation(scene::EMAT_ATTACK);
-		model->setLoopMode(false);		
+		if(model)model->setLoopMode(false);		
 	}
 }
 bool PlayerReplica::IsDead(void) const
@@ -675,7 +710,9 @@ void BallReplica::WriteAllocationID(RakNet::Connection_RM3 *destinationConnectio
 	allocationIdBitstream->Write(RakNet::RakString("BallReplica"));
 }
 
-RakNet::RM3ConstructionState BallReplica::QueryConstruction(RakNet::Connection_RM3* destinationConnection, RakNet::ReplicaManager3* replicaManager3) { return QueryConstruction_ClientConstruction(destinationConnection, topology != CLIENT); }
+RakNet::RM3ConstructionState BallReplica::QueryConstruction(RakNet::Connection_RM3* destinationConnection, RakNet::ReplicaManager3* replicaManager3) { 
+	return QueryConstruction_ClientConstruction(destinationConnection, topology != CLIENT); 
+}
 bool BallReplica::QueryRemoteConstruction(RakNet::Connection_RM3* sourceConnection) { return QueryRemoteConstruction_ClientConstruction(sourceConnection, topology != CLIENT); }
 RakNet::RM3QuerySerializationResult BallReplica::QuerySerialization(RakNet::Connection_RM3* destinationConnection) { return QuerySerialization_ClientSerializable(destinationConnection, topology != CLIENT); }
 RakNet::RM3ActionOnPopConnection BallReplica::QueryActionOnPopConnection(RakNet::Connection_RM3* droppedConnection) const { return QueryActionOnPopConnection_Client(droppedConnection); }
@@ -684,7 +721,8 @@ void BallReplica::SerializeConstruction(RakNet::BitStream *constructionBitstream
 {
 	BaseIrrlichtReplica::SerializeConstruction(constructionBitstream, destinationConnection);
 	constructionBitstream->Write(shotDirection);
-	
+	constructionBitstream->Write(ownerGUID);
+	constructionBitstream->Write(bulletCount);
 	////TimeStamp
 	//constructionBitstream->Write(GetCurrentTimeMS());
 }
@@ -693,22 +731,28 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream *constructionBitstre
 	if (!BaseIrrlichtReplica::DeserializeConstruction(constructionBitstream, sourceConnection))
 		return false;
 	constructionBitstream->Read(shotDirection);
-
+	constructionBitstream->Read(ownerGUID);
+	constructionBitstream->Read(bulletCount);
 	//TimeStamp
-	long long timeStampMS;
-	constructionBitstream->Read(timeStampMS);
+	//long long timeStampMS;
+	//constructionBitstream->Read(timeStampMS);
 
 //	//visual studio debugger
 //	char buffer[1024];
 //	snprintf(buffer, sizeof(buffer), "%lld\n", timeStampMS);
 //#ifdef _WIN32
-//	OutputDebugStringA(buffer);
+//OutputDebugStringA(buffer);
 //#endif
 
 	return true;
 }
 void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *destinationConnection)
 {
+	//time check
+	if (ownerGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)&& replicaManager3->isLog) {
+		PrintStatistics(nullptr, false, bulletCount);
+	}
+	
 	// Shot visible effect and BallReplica classes are not linked, but they update the same way, such that
 	// they are in the same spot all the time
 	demo->shootFromOrigin(position, shotDirection);
@@ -717,7 +761,7 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 	unsigned int idx;
 	for (idx=0; idx < PlayerReplica::playerList.Size(); idx++)
 	{
-		if (PlayerReplica::playerList[idx]->creatingSystemGUID==creatingSystemGUID)
+		if (PlayerReplica::playerList[idx]->creatingSystemGUID==ownerGUID)
 		{
 			PlayerReplica::playerList[idx]->PlayAttackAnimation();
 			break;
@@ -765,20 +809,20 @@ void BallReplica::Update(RakNet::TimeMS curTime)
 	irr::core::vector3df updatedPosition = position + shotDirection * (float) elapsedTime * SHOT_SPEED;
 
 	// See if the bullet hit us
-	if (creatingSystemGUID!=rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
-	{
-		if (playerReplica->IsDead()==false)
-		{
-			float playerHalfHeight=demo->GetSyndeyBoundingBox().getExtent().Y/2;
-			irr::core::vector3df positionRelativeToCharacter = updatedPosition-playerReplica->position;//+core::vector3df(0,playerHalfHeight,0);
-			if (demo->GetSyndeyBoundingBox().isPointInside(positionRelativeToCharacter))
-			//if ((playerReplica->position+core::vector3df(0,playerHalfHeight,0)-updatedPosition).getLengthSQ() < BALL_DIAMETER*BALL_DIAMETER/4.0f)
-			{
-				// We're dead for 3 seconds
-				playerReplica->deathTimeout=curTime+3000;
-			}
-		}
-	}
+	//if (ownerGUID/*creatingSystemGUID*/ != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
+	//{
+	//	if (playerReplica->IsDead()==false)
+	//	{
+	//		float playerHalfHeight=demo->GetSyndeyBoundingBox().getExtent().Y/2;
+	//		irr::core::vector3df positionRelativeToCharacter = updatedPosition-playerReplica->position;//+core::vector3df(0,playerHalfHeight,0);
+	//		if (demo->GetSyndeyBoundingBox().isPointInside(positionRelativeToCharacter))
+	//		//if ((playerReplica->position+core::vector3df(0,playerHalfHeight,0)-updatedPosition).getLengthSQ() < BALL_DIAMETER*BALL_DIAMETER/4.0f)
+	//		{
+	//			// We're dead for 3 seconds
+	//			playerReplica->deathTimeout=curTime+3000;
+	//		}
+	//	}
+	//}
 }
 RakNet::Replica3 *Connection_RM3Irrlicht::AllocReplica(RakNet::BitStream *allocationId, ReplicaManager3 *replicaManager3)
 {

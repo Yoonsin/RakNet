@@ -100,7 +100,7 @@ public:
 	void EnableInput(bool enabled);
 	void PushMessage(RakNet::RakString rs);
 
-	scene::ISceneNodeAnimator* fpsCamAnim;
+	scene::ISceneNodeAnimator* fpsCamAnim = nullptr;
 
 #ifdef __ANDROID__
 	android_app* state;
@@ -135,6 +135,7 @@ private:
 	int logCount;
 	GamePlatform platform = GamePlatform::PC;
 	irr::core::stringc mediaPath;
+	int bulletCount;
 
 #ifdef USE_IRRKLANG
 	void startIrrKlang();
@@ -191,14 +192,15 @@ private:
 	// We use this array to store the current state of each key
 	bool KeyIsDown[KEY_KEY_CODES_COUNT];
 	
-
-
 	// Bounding box of syndney.md2, extended by BALL_DIAMETER/2 for collision against shots
 	core::aabbox3df syndeyBoundingBox;
 	void CalculateSyndeyBoundingBox(void);
 
 	bool isConnectedToNATPunchthroughServer;
 
+	// CDemo.h 안에 다음 멤버 변수 추가
+	RakNet::TimeMS lastShootTime = 0;
+	const RakNet::TimeMS shootInterval = 500; // 0.5초 (500ms)
 	
 #ifdef __ANDROID__
 	s32 TouchID;

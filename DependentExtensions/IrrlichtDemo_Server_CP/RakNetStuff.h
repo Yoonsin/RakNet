@@ -56,7 +56,13 @@ extern PlayerReplica *playerReplica; // Network object that represents the playe
 void InstantiateRakNetClasses(bool isServer, bool isLogged);
 void DeinitializeRakNetClasses(bool isLogged, const char* baseDir);
 void SaveStatisticsToCSV(const char* baseDir);
+
+//시간 변화량
 void PrintStatistics(bool isExportFile);
+
+//서버에서 온 패킷 시간 간격
+void PrintStatistics(char* ipStr,bool isStart,int num);
+
 long long GetCurrentTimeMS();
 //RakString FormatTime(long long milliseconds);
 
@@ -145,7 +151,8 @@ public:
 
 	// List of all players, including our own
 	static DataStructures::List<PlayerReplica*> playerList;
-
+	
+	bool firstUpdate = true;
 	irr::core::vector3df replicatedCameraPos;
 	irr::core::vector3df replicatedCameraRot;
 
@@ -180,6 +187,10 @@ public:
 
 	// shotlifetime is calculated, not networked
 	RakNet::TimeMS shotLifetime;
+
+	RakNet::RakNetGUID ownerGUID; 
+	
+	int bulletCount;
 };
 class Connection_RM3Irrlicht : public RakNet::Connection_RM3 {
 public:

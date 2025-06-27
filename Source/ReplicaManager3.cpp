@@ -669,15 +669,15 @@ PluginReceiveResult ReplicaManager3::OnReceive(Packet *packet)
 			packetDataOffset=sizeof( unsigned char )*3 + sizeof( RakNet::Time );
 
 			
-			if (isLog) {
-				char buffer[100];
-				char* str = "";
-				if (packetIdentifier == ID_REPLICA_MANAGER_CONSTRUCTION) str = "construction";
-				else if (packetIdentifier == ID_REPLICA_MANAGER_SERIALIZE) str = "serialization";
+			//if (isLog) {
+			//	char buffer[100];
+			//	char* str = "";
+			//	if (packetIdentifier == ID_REPLICA_MANAGER_CONSTRUCTION) str = "construction";
+			//	else if (packetIdentifier == ID_REPLICA_MANAGER_SERIALIZE) str = "serialization";
 
-				snprintf(buffer, sizeof(buffer), "ip : %s / %s time difference : %llu\n", packet->systemAddress.ToString(false), str, RakNet::GetTimeMS() - timestamp);
-				PrintTimeGap(buffer);
-			}
+			//	snprintf(buffer, sizeof(buffer), "ip : %s / %s time difference : %llu\n", packet->systemAddress.ToString(false), str, RakNet::GetTimeMS() - timestamp);
+			//  PrintTimeGap(buffer);
+			//}
 		}
 		else
 			return RR_STOP_PROCESSING_AND_DEALLOCATE;

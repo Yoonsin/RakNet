@@ -2,6 +2,8 @@
 // This is a Demo of the Irrlicht Engine (c) 2005-2009 by N.Gebhardt.
 // This file is not documented.
 
+
+
 #include "CDemo.h"
 
 // RakNet includes
@@ -11,7 +13,12 @@
 #include "Itoa.h"
 #include "RakNetSmartPtr.h"
 
-#include <CSceneNodeAnimatorCameraFPS.h>
+//#include <CSceneNodeAnimatorCameraFPS.h>
+
+enum GameMessages {
+	ID_GAME_MESSAGE_BALL_REQUEST = ID_USER_PACKET_ENUM + 1
+};
+
 #ifdef __ANDROID__
 #include "android_tools.h"
 #include <sys/auxv.h>
@@ -106,6 +113,7 @@ driverType(d), device(0), playerName(_playerName), isServer(isS), platform(plat)
 	for (u32 i=0; i<KEY_KEY_CODES_COUNT; ++i)
 		KeyIsDown[i] = false;
 
+	bulletCount = 0;
 }
 
 
@@ -378,7 +386,7 @@ void CDemo::run()
 		UpdateRakNet();
 
 		//Statistics
-		if (isLogged) {
+		if (isLogged && isServer) {
 			int logCnt = (isServer) ? logCount : 1;
 			//PrintStatistics(false);
 			if (isLogStart == false && replicaManager3->GetConnectionCount() == logCnt) {
@@ -1139,8 +1147,6 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 	}
 #endif // __ANDROID__
 
-  
-	
 	// create fire ball
 	scene::ISceneNode* node = 0;
 	node = sm->addBillboardSceneNode(0,
@@ -1157,7 +1163,6 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 	scene::ISceneNodeAnimator* anim = 0;
 
 	// set flight line
-
 	anim = sm->createFlyStraightAnimator(start, end, time);
 	node->addAnimator(anim);
 	anim->drop();
@@ -1212,12 +1217,25 @@ void CDemo::shoot()
 	core::vector3df camAt = (camera->getTarget() - camPosition);
 	camAt.normalize();
 
-	BallReplica *br = new BallReplica;
-	br->demo=this;
-	br->position=camPosition;
-	br->shotDirection=camAt;
-	br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(camPosition, camAt);
-	replicaManager3->Reference(br);
+	if (!isServer&&isLogged) {
+		PrintStatistics(nullptr,true,bulletCount);
+		
+		RakNet::BitStream bs;
+		bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_BALL_REQUEST);
+		bs.Write(camPosition); // 예: 시작 위치
+		bs.Write(camAt); // 예: 방향
+		bs.Write(bulletCount); // 예: 방향
+		bulletCount++;
+
+		rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+	}
+
+	//BallReplica *br = new BallReplica;
+	//br->demo=this;
+	//br->position=camPosition;
+	//br->shotDirection=camAt;
+	//br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(camPosition, camAt);
+	//replicaManager3->Reference(br);
 }
 
 void CDemo::createParticleImpacts()
@@ -1291,7 +1309,6 @@ void CDemo::createParticleImpacts()
 /// RakNet stuff
 void CDemo::UpdateRakNet(void)
 {
-
 	RakNet::Packet *packet;
 	RakNet::TimeMS curTime = RakNet::GetTimeMS();
 	RakNet::RakString targetName;
@@ -1359,15 +1376,48 @@ void CDemo::UpdateRakNet(void)
 				PushMessage(RakNet::RakString("Connection attempt to ") + targetName + RakNet::RakString(" failed."));
 			}
 			break;
+		case ID_GAME_MESSAGE_BALL_REQUEST: {
+			if (isServer) {
+				RakNet::BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(1);
+
+				irr::core::vector3df pos, target;
+				int bulletCnt;
+				bsIn.Read(pos);
+				bsIn.Read(target);
+				bsIn.Read(bulletCnt);
+
+				// BallReplica 생성
+	            
+				BallReplica *br = new BallReplica;
+	            br->demo=this;
+				br->position = pos;
+	            br->shotDirection=target;
+	            br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(pos, target);
+				br->ownerGUID = packet->guid; // Set the owner GUID to the one who shot
+				br->bulletCount = bulletCnt;
+	            replicaManager3->Reference(br);
+				
+			}
+			break;
+		}
 		}
 	}
 
 	// Call the Update function for networked game objects added to BaseIrrlichtReplica once the game is ready
 	if (currentScene>=1)
 	{
+		//RakNet::TimeMS curTime = RakNet::GetTimeMS();  // 현재 시간
+		// 0.5초마다 shoot 호출
+		//if (!isServer && curTime - lastShootTime >= shootInterval)
+		//{
+		//	shoot();  // 기존 shoot 함수
+		//	lastShootTime = curTime;
+		//}
+
 		unsigned int idx;
 		for (idx=0; idx < replicaManager3->GetReplicaCount(); idx++)
-			((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);;
+			((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);
 	}	
 }
 
