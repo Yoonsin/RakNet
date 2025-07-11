@@ -80,7 +80,6 @@ public:
 	};
 
 	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base);
-
 	~CDemo();
 
 	void run();
@@ -88,7 +87,6 @@ public:
 	virtual bool OnEvent(const SEvent& event);
 	IrrlichtDevice * GetDevice(void) const {return device;}
 	scene::ISceneManager* GetSceneManager(void) const {return device->getSceneManager();}
-
 
 	// RakNet: Control what animation is playing by what key is pressed on the remote system
 	bool IsKeyDown(EKEY_CODE keyCode) const;
@@ -101,14 +99,12 @@ public:
 	void PushMessage(RakNet::RakString rs);
 
 	scene::ISceneNodeAnimator* fpsCamAnim = nullptr;
+	bool isBulletRendering;
 
 #ifdef __ANDROID__
 	android_app* state;
 #endif
-
-
 private:
-
 	void createLoadingScreen();
 	void loadSceneData();
 	void switchToNextScene();
@@ -136,7 +132,7 @@ private:
 	GamePlatform platform = GamePlatform::PC;
 	irr::core::stringc mediaPath;
 	int bulletCount;
-
+	
 #ifdef USE_IRRKLANG
 	void startIrrKlang();
 	irrklang::ISoundEngine* irrKlang;

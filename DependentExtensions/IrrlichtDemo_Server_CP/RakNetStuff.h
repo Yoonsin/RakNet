@@ -31,11 +31,21 @@
 class ReplicaManager3Irrlicht;
 class CDemo;
 class PlayerReplica;
+class PlayerBotReplica;
 
 enum Topology
 {
 	CLIENT,
 	SERVER
+};
+
+enum PrintStatics {
+	ID_CLIENT_POLLING_END = 0,
+	ID_CLIENT_NETWORK_SEND = 1,
+	ID_SERVER_NETWORK_RECEIVE = 2,
+	ID_SERVER_NETWORK_SEND = 3,
+	ID_CLIENT_NETWORK_RECEIVE = 4,
+	ID_CLIENT_RENDERING_START = 5,
 };
 
 // All externs defined in the corresponding CPP file
@@ -46,7 +56,8 @@ extern ReplicaManager3Irrlicht *replicaManager3; // Autoreplicate network object
 extern RakNet::NatPunchthroughClient *natPunchthroughClient; // Connect peer to peer through routers
 extern RakNet::CloudClient *cloudClient; // Used to upload game instance to the cloud
 extern RakNet::FullyConnectedMesh2 *fullyConnectedMesh2; // Used to find out who is the session host
-extern PlayerReplica *playerReplica; // Network object that represents the player
+extern PlayerReplica* playerReplica; // Network object that represents the player
+extern PlayerBotReplica* playerBotReplica; // Network object that represents the player
 
 // A NAT punchthrough and proxy server Jenkins Software is hosting for free, should usually be online
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_PORT 61111
@@ -61,7 +72,7 @@ void SaveStatisticsToCSV(const char* baseDir);
 void PrintStatistics(bool isExportFile);
 
 //서버에서 온 패킷 시간 간격
-void PrintStatistics(char* ipStr,bool isStart,int num);
+void PrintStatistics(char* ipStr, PrintStatics id,int num);
 
 long long GetCurrentTimeMS();
 //RakString FormatTime(long long milliseconds);
@@ -86,7 +97,6 @@ public:
 	virtual void SerializeDestruction(RakNet::BitStream *destructionBitstream, RakNet::Connection_RM3 *destinationConnection) {}
 	virtual bool DeserializeDestruction(RakNet::BitStream *destructionBitstream, RakNet::Connection_RM3 *sourceConnection) {return true;}
 	
-
 	/// This function is not derived from Replica3, it's specific to this appss
 	/// Called from CDemo::UpdateRakNet
 	virtual void Update(RakNet::TimeMS curTime);
@@ -94,14 +104,12 @@ public:
 	// Set when the object is constructed
 	CDemo *demo;
 
-
-
 	// real is written on the owner peer, read on the remote peer
 	irr::core::vector3df position;
 	RakNet::TimeMS creationTime;
 };
 // Game classes automatically updated by ReplicaManager3
-class PlayerReplica : public BaseIrrlichtReplica, irr::scene::IAnimationEndCallBack
+class PlayerReplica : public BaseIrrlichtReplica, public irr::scene::IAnimationEndCallBack
 {
 public:
 	PlayerReplica();
@@ -157,6 +165,19 @@ public:
 	irr::core::vector3df replicatedCameraRot;
 
 };
+class PlayerBotReplica : public PlayerReplica
+{
+public:
+	virtual void WriteAllocationID(RakNet::Connection_RM3* destinationConnection, RakNet::BitStream* allocationIdBitstream) const;
+
+	virtual RakNet::RM3ConstructionState QueryConstruction(RakNet::Connection_RM3* destinationConnection, RakNet::ReplicaManager3* replicaManager3);
+	virtual bool QueryRemoteConstruction(RakNet::Connection_RM3* sourceConnection);
+	virtual RakNet::RM3QuerySerializationResult QuerySerialization(RakNet::Connection_RM3* destinationConnection);
+	virtual RakNet::RM3ActionOnPopConnection QueryActionOnPopConnection(RakNet::Connection_RM3* droppedConnection) const;
+
+	virtual RakNet::RM3SerializationResult Serialize(RakNet::SerializeParameters* serializeParameters);
+	virtual void Deserialize(RakNet::DeserializeParameters* deserializeParameters);
+};
 class BallReplica : public BaseIrrlichtReplica
 {
 public:
@@ -175,6 +196,9 @@ public:
 	virtual bool DeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *sourceConnection);
 	virtual RakNet::RM3SerializationResult Serialize(RakNet::SerializeParameters *serializeParameters);
 	virtual void Deserialize(RakNet::DeserializeParameters *deserializeParameters);
+
+	virtual void PostSerializeConstruction(RakNet::BitStream* constructionBitstream, RakNet::Connection_RM3* destinationConnection);
+
 	virtual void PostDeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *destinationConnection);
 	virtual void PreDestruction(RakNet::Connection_RM3 *sourceConnection);
 
