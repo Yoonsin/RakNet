@@ -54,7 +54,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 11,
+          "SelectedChildIndex": 9,
           "Children": [
             {
               "$type": "Bookmark",
@@ -78,15 +78,63 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "CDemo.h",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
-              "RelativeDocumentMoniker": "CDemo.h",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
-              "RelativeToolTip": "CDemo.h",
-              "ViewState": "AgIAAGwAAAAAAAAAAAAlwIkAAAAFAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-06-23T06:35:56.781Z",
+              "DocumentIndex": 4,
+              "Title": "CMainMenu.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
+              "RelativeDocumentMoniker": "CMainMenu.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
+              "RelativeToolTip": "CMainMenu.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-06-23T06:24:18.491Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "ReplicaManager3.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
+              "RelativeDocumentMoniker": "LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
+              "RelativeToolTip": "LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
+              "ViewState": "AgIAAG4FAAAAAAAAAAAlwGUFAAAuAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-06-23T06:18:46.521Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "main.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
+              "RelativeDocumentMoniker": "main.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
+              "RelativeToolTip": "main.cpp",
+              "ViewState": "AgIAADYAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-06-23T06:16:24.467Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "RakNetStuff.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
+              "RelativeDocumentMoniker": "RakNetStuff.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
+              "RelativeToolTip": "RakNetStuff.cpp",
+              "ViewState": "AgIAANUCAAAAAAAAAAAlwEEBAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-06-23T06:14:46.813Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "CDemo.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
+              "RelativeDocumentMoniker": "CDemo.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
+              "RelativeToolTip": "CDemo.cpp",
+              "ViewState": "AgIAAIUEAAAAAAAAAAAlwIwEAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-06-23T06:11:16.76Z",
               "EditorCaption": ""
             },
             {
@@ -99,73 +147,19 @@
               "RelativeToolTip": "RakNetStuff.h",
               "ViewState": "AgIAAKkAAAAAAAAAAAAlwMAAAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-06-23T06:34:37.011Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-23T06:34:37.011Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "CMainMenu.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
-              "RelativeDocumentMoniker": "CMainMenu.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
-              "RelativeToolTip": "CMainMenu.cpp",
-              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:24:18.491Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "ReplicaManager3.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
-              "RelativeDocumentMoniker": "LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
-              "RelativeToolTip": "LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
-              "ViewState": "AgIAAG4FAAAAAAAAAAAlwGUFAAAuAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:18:46.521Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "main.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
-              "RelativeDocumentMoniker": "main.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
-              "RelativeToolTip": "main.cpp",
-              "ViewState": "AgIAADYAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:16:24.467Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "RakNetStuff.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
-              "RelativeDocumentMoniker": "RakNetStuff.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
-              "RelativeToolTip": "RakNetStuff.cpp",
-              "ViewState": "AgIAANUCAAAAAAAAAAAlwEEBAAAMAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:14:46.813Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "CDemo.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
-              "RelativeDocumentMoniker": "CDemo.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
-              "RelativeToolTip": "CDemo.cpp",
-              "ViewState": "AgIAALIEAAAAAAAAAAAlwMUEAAAvAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:11:16.76Z",
-              "EditorCaption": ""
+              "DocumentIndex": 6,
+              "Title": "CDemo.h",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
+              "RelativeDocumentMoniker": "CDemo.h",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
+              "RelativeToolTip": "CDemo.h",
+              "ViewState": "AgIAAGwAAAAAAAAAAAAlwIkAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-06-23T06:35:56.781Z"
             },
             {
               "$type": "Document",
@@ -177,8 +171,7 @@
               "RelativeToolTip": "CMakeLists.txt",
               "ViewState": "AgIAABUAAAAAAAAAAAAjwCoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
-              "WhenOpened": "2025-06-23T06:11:13.683Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-23T06:11:13.683Z"
             },
             {
               "$type": "Document",
@@ -190,8 +183,7 @@
               "RelativeToolTip": "IrrlichtDemo.v8.vcproj",
               "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:11:07.175Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-23T06:11:07.175Z"
             },
             {
               "$type": "Document",
@@ -203,8 +195,7 @@
               "RelativeToolTip": "IrrlichtDemo.v8.vcxproj",
               "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000698|",
-              "WhenOpened": "2025-06-23T06:11:05.096Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-23T06:11:05.096Z"
             },
             {
               "$type": "Document",
@@ -216,8 +207,11 @@
               "RelativeToolTip": "CMakeSettings.json",
               "ViewState": "AgIAAAMAAAAAAAAAAAAAAAwAAAAGAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-06-23T05:26:43.479Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-06-23T05:26:43.479Z"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{68487888-204a-11d3-87eb-00c04f7971a5}"
             }
           ]
         }

@@ -26,7 +26,6 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR strCmdLine, INT)
 int main(int argc, char* argv[])
 #endif
 {
-
 	bool fullscreen = false;
 	bool music = true;
 	bool shadows = false;
@@ -37,9 +36,7 @@ int main(int argc, char* argv[])
 
 	bool isServer = false;
 	bool isLogged = false;
-	int logCount = 2;
-
-
+	int logCount = 1;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;

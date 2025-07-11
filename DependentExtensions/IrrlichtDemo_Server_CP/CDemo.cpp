@@ -19,6 +19,8 @@ enum GameMessages {
 	ID_GAME_MESSAGE_BALL_REQUEST = ID_USER_PACKET_ENUM + 1
 };
 
+
+
 #ifdef __ANDROID__
 #include "android_tools.h"
 #include <sys/auxv.h>
@@ -114,6 +116,7 @@ driverType(d), device(0), playerName(_playerName), isServer(isS), platform(plat)
 		KeyIsDown[i] = false;
 
 	bulletCount = 0;
+	isBulletRendering = false;
 }
 
 
@@ -281,7 +284,8 @@ void CDemo::run()
 
 	// Hook RakNet stuff into this class
 	//playerReplica->playerName = RakNet::RakString(dest);
-	playerReplica->demo=this;
+	if (isServer) playerBotReplica->demo = this;
+	else playerReplica->demo=this;
 	replicaManager3->demo=this;
 
 	CalculateSyndeyBoundingBox();
@@ -329,6 +333,10 @@ void CDemo::run()
 
 			createParticleImpacts();
 
+			if (isLogged && !isServer && isBulletRendering) {
+				isBulletRendering = false;
+				PrintStatistics(nullptr, ID_CLIENT_RENDERING_START, bulletCount-1);
+			}
 			driver->beginScene(timeForThisScene != -1, true, backColor);
 
 			smgr->drawAll();
@@ -385,24 +393,24 @@ void CDemo::run()
 		// update
 		UpdateRakNet();
 
-		//Statistics
-		if (isLogged && isServer) {
-			int logCnt = (isServer) ? logCount : 1;
-			//PrintStatistics(false);
-			if (isLogStart == false && replicaManager3->GetConnectionCount() == logCnt) {
-				isLogStart = true;
-				startTime = device->getTimer()->getTime();
-			}
-			else if (isLogStart == true) {
-				//char display[100];
-				//sprintf(display, "second : %d \n", (now - startTime) / 1000 );
-				//OutputDebugStringA(display);
+		//Statistics Timer
+		//if (isLogged && isServer) {
+		//	int logCnt = (isServer) ? logCount : 1;
+		//	//PrintStatistics(false);
+		//	if (isLogStart == false && replicaManager3->GetConnectionCount() == logCnt) {
+		//		isLogStart = true;
+		//		startTime = device->getTimer()->getTime();
+		//	}
+		//	else if (isLogStart == true) {
+		//		//char display[100];
+		//		//sprintf(display, "second : %d \n", (now - startTime) / 1000 );
+		//		//OutputDebugStringA(display);
 
-				if (now - startTime >= logTime) {
-					device->closeDevice();
-				}
-			}
-		}
+		//		if (now - startTime >= logTime) {
+		//			device->closeDevice();
+		//		}
+		//	}
+		//}
 		
 		
 	}
@@ -507,7 +515,13 @@ bool CDemo::OnEvent(const SEvent& event)
 					{
 						if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
 						GetSceneManager()->getActiveCamera()->setVisible(true);
-					}else shoot();
+					}
+					else {
+						if (isLogged && !isServer) {
+							PrintStatistics(nullptr, ID_CLIENT_POLLING_END, bulletCount);
+						}
+						shoot();
+					}
 
 				}else
 				if (exit_button && exit_button->isPointInside(touchPoint) && id == curTouchID.exit && currentScene == 1) {
@@ -589,6 +603,9 @@ return false;
 			}
 			else
 			{
+				if (isLogged && !isServer) {
+					PrintStatistics(nullptr, ID_CLIENT_POLLING_END, bulletCount);
+				}
 				// shoot
 				shoot();
 			}
@@ -697,17 +714,19 @@ void CDemo::switchToNextScene()
 			keyMap[9].KeyCode = KEY_KEY_0;
 			keyMap[10].Action = EKA_ROTATE_RIGHT;
 			keyMap[10].KeyCode = KEY_KEY_1;
-			camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f);
+			//camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //기본 플레이
+			camera = sm->addCameraSceneNode(0, core::vector3df(200, 140, 100), core::vector3df(100, 140, 0)); //시점 고정
+			//todo: 기본 플레이 시에는 setPostion 사용해야함
 
 			scene::ISceneNodeAnimatorList list = camera->getAnimators();
 			scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
 			while (ait != list.end())
 			{
-				//scene::Fps tmp = *ait;;
+				//scene::Fps tmp = *ait;
 				fpsCamAnim = *ait;
 				break;
 			}
-			camera->setPosition(core::vector3df(200, 140, 100)); //모바일 클라이언트
+
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
 				sm->createCollisionResponseAnimator(
 					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, -300.0f /*quakeLevelMesh ? -10.f : 0.0f*/, 0), core::vector3df(0, 45, 0), 0.005f);
@@ -717,24 +736,28 @@ void CDemo::switchToNextScene()
 #else
 			// Last parameter is jump speed
 			// Tweaked so you can get up ladders
-			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/);
+			//camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/); //기본 플레이
 			
-			scene::ISceneNodeAnimatorList list = camera->getAnimators();
-			scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
-			while (ait != list.end())
-			{
-				fpsCamAnim = *ait;
-				break;
-			}
 
-
+			//scene::ISceneNodeAnimatorList list = camera->getAnimators();
+			//scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
+			//while (ait != list.end())
+			//{
+			//	fpsCamAnim = *ait;
+			//	break;
+			//}
 			//파일
 			//vector3df 중간이 캐릭터 높이
 			if (platform == GamePlatform::PC) {
-				if(isServer)camera->setPosition(core::vector3df(108, 140, -140)); //기본 스폰 위치
-				else camera->setPosition(core::vector3df(0, 140, 100));   //PC 클라이언트
+				if (isServer) {
+					camera = sm->addCameraSceneNode(0, core::vector3df(100, 140, 0), core::vector3df(100, 140, 300));  //시점 고정
+				    //PC Server Bot
+				}
+				else {
+					camera = sm->addCameraSceneNode(0, core::vector3df(0, 140, 100), core::vector3df(100, 140, 0));  //시점 고정
+					//PC Client
+				}
 			}
-
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
 				sm->createCollisionResponseAnimator(
 					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, quakeLevelMesh ? -10.f : 0.0f, 0), core::vector3df(0, 45, 0), 0.005f);
@@ -750,7 +773,6 @@ void CDemo::switchToNextScene()
 	}
 
 	sceneStartTime = device->getTimer()->getTime();
-
 }
 
 
@@ -1208,7 +1230,7 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 
 void CDemo::shoot()
 {
-	if (playerReplica->IsDead())
+	if (playerReplica==nullptr || playerReplica->IsDead())
 		return;
 
 	scene::ISceneManager* sm = device->getSceneManager();
@@ -1217,8 +1239,8 @@ void CDemo::shoot()
 	core::vector3df camAt = (camera->getTarget() - camPosition);
 	camAt.normalize();
 
-	if (!isServer&&isLogged) {
-		PrintStatistics(nullptr,true,bulletCount);
+	if (!isServer) {
+		if(isLogged) PrintStatistics(nullptr, ID_CLIENT_NETWORK_SEND,bulletCount);
 		
 		RakNet::BitStream bs;
 		bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_BALL_REQUEST);
@@ -1357,6 +1379,12 @@ void CDemo::UpdateRakNet(void)
 				RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(packet->systemAddress, rakPeer->GetGuidFromSystemAddress(packet->systemAddress));
 				//replicaManager3에 추적될 수 있도록 할당
 				replicaManager3->PushConnection(connection);
+
+				if (logCount == replicaManager3->GetConnectionCount())
+				{
+					//모든 플레이어가 접속하면 봇 생성
+					replicaManager3->Reference(playerBotReplica);
+				}
 			}
 			break;
 		case ID_CONNECTION_REQUEST_ACCEPTED:
@@ -1387,7 +1415,11 @@ void CDemo::UpdateRakNet(void)
 				bsIn.Read(target);
 				bsIn.Read(bulletCnt);
 
-				// BallReplica 생성
+				char ipStr[64];
+				if (isLogged) {
+					packet->systemAddress.ToString(false, ipStr);
+					PrintStatistics(ipStr, ID_SERVER_NETWORK_RECEIVE, bulletCnt);
+				}
 	            
 				BallReplica *br = new BallReplica;
 	            br->demo=this;
@@ -1397,7 +1429,6 @@ void CDemo::UpdateRakNet(void)
 				br->ownerGUID = packet->guid; // Set the owner GUID to the one who shot
 				br->bulletCount = bulletCnt;
 	            replicaManager3->Reference(br);
-				
 			}
 			break;
 		}
