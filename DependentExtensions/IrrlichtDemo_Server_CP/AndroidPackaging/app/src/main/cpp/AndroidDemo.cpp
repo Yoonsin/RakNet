@@ -488,7 +488,7 @@ void android_main(android_app* state) {
     bool isServer = false;
     video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
 	CDemo::GamePlatform platform = CDemo::GamePlatform::Android;
-    bool isLogged = true;
+    bool isLogged = false;
     int logCount = 1;
     
     const char* baseDir = "/storage/emulated/0/Download";

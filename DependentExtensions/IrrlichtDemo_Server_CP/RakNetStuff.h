@@ -177,6 +177,8 @@ public:
 
 	virtual RakNet::RM3SerializationResult Serialize(RakNet::SerializeParameters* serializeParameters);
 	virtual void Deserialize(RakNet::DeserializeParameters* deserializeParameters);
+
+	RakNet::RakString killPlayerName; // The player that this bot is trying to kill, set by the server
 };
 class BallReplica : public BaseIrrlichtReplica
 {

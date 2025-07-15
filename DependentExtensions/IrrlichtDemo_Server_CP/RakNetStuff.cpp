@@ -48,54 +48,51 @@ Topology topology;
 PacketLogger* loggerPlugin;
 StatisticsHistoryPlugin* statisticsPlugin; // Used to track network statistics
 
-
-/*
-class DebugBoxSceneNode : public scene::ISceneNode 
-{
-public:
-	DebugBoxSceneNode(scene::ISceneNode* parent,
-		scene::ISceneManager* mgr,
-		s32 id = -1);
-	virtual const core::aabbox3d<f32>& getBoundingBox() const;
-	virtual void OnRegisterSceneNode();
-	virtual void render();
-
-	CDemo *demo;
-};
-DebugBoxSceneNode::DebugBoxSceneNode(
-									 scene::ISceneNode* parent,
-									 scene::ISceneManager* mgr,
-									 s32 id)
-									 : scene::ISceneNode(parent, mgr, id)
-{
-#ifdef _DEBUG
-	setDebugName("DebugBoxSceneNode");
-#endif
-	setAutomaticCulling(scene::EAC_OFF);
-} 
-const core::aabbox3d<f32>& DebugBoxSceneNode::getBoundingBox() const
-{
-	return demo->GetSyndeyBoundingBox();
-}
-void DebugBoxSceneNode::OnRegisterSceneNode()
-{
-	if (IsVisible)
-		demo->GetSceneManager()->registerNodeForRendering(this, scene::ESNRP_SOLID);
-}
-void DebugBoxSceneNode::render()
-{
-	if (DebugDataVisible)
-	{ 
-		video::IVideoDriver* driver = SceneManager->getVideoDriver();
-		driver->setTransform(video::ETS_WORLD, AbsoluteTransformation); 
-
-		video::SMaterial m;
-		m.Lighting = false;
-		demo->GetDevice()->getVideoDriver()->setMaterial(m);
-		demo->GetDevice()->getVideoDriver()->draw3DBox(demo->GetSyndeyBoundingBox());
-	}
-}
-*/
+//class DebugBoxSceneNode : public scene::ISceneNode 
+//{
+//public:
+//	DebugBoxSceneNode(scene::ISceneNode* parent,
+//		scene::ISceneManager* mgr,
+//		s32 id = -1);
+//	virtual const core::aabbox3d<f32>& getBoundingBox() const;
+//	virtual void OnRegisterSceneNode();
+//	virtual void render();
+//
+//	CDemo *demo;
+//};
+//DebugBoxSceneNode::DebugBoxSceneNode(
+//									 scene::ISceneNode* parent,
+//									 scene::ISceneManager* mgr,
+//									 s32 id)
+//									 : scene::ISceneNode(parent, mgr, id)
+//{
+//#ifdef _DEBUG
+//	setDebugName("DebugBoxSceneNode");
+//#endif
+//	setAutomaticCulling(scene::EAC_OFF);
+//} 
+//const core::aabbox3d<f32>& DebugBoxSceneNode::getBoundingBox() const
+//{
+//	return demo->GetSyndeyBoundingBox();
+//}
+//void DebugBoxSceneNode::OnRegisterSceneNode()
+//{
+//	if (IsVisible)
+//		demo->GetSceneManager()->registerNodeForRendering(this, scene::ESNRP_SOLID);
+//}
+//void DebugBoxSceneNode::render()
+//{
+//	if (DebugDataVisible)
+//	{ 
+//		video::IVideoDriver* driver = SceneManager->getVideoDriver();
+//		driver->setTransform(video::ETS_WORLD, AbsoluteTransformation); 
+//
+//		video::SMaterial m;
+//		m.Lighting = false;
+//		demo->GetDevice()->getVideoDriver()->setMaterial(m);
+//		demo->GetDevice()->getVideoDriver()->draw3DBox(demo->GetSyndeyBoundingBox());
+//	}
+//}
 
 DataStructures::List<RakNet::RakString> statBuf;
 DataStructures::List<PlayerReplica*> PlayerReplica::playerList;
@@ -140,7 +137,8 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged)
 		//rakPeer->SetTimeoutTime(5000, UNASSIGNED_SYSTEM_ADDRESS);
 	}
 	else sr = rakPeer->Startup(1, &sd, 1);
-	
+	rakPeer->SetOccasionalPing(true);
+
 	RakAssert(sr==RakNet::RAKNET_STARTED);
 		
 	// ReplicaManager3 replies on NetworkIDManager. It assigns numbers to objects so they can be looked up over the network
@@ -164,13 +162,13 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged)
 
 	if (topology == CLIENT) {
 #if __ANDROID__
-		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
+		ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
+		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 #else
-		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
+		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 		
 #endif // __ANDROID__
 		RakAssert(car == CONNECTION_ATTEMPT_STARTED);
@@ -198,7 +196,8 @@ void DeinitializeRakNetClasses(bool isLogged, const char* baseDir)
 	if (isLogged) {
 		SaveStatisticsToCSV(baseDir);
 	}
-	
+	rakPeer->SetOccasionalPing(false);
+
 	// Shutdown so the server knows we stopped
 	rakPeer->Shutdown(100,0);
 
@@ -511,7 +510,7 @@ bool PlayerReplica::DeserializeConstruction(RakNet::BitStream *constructionBitst
 	constructionBitstream->Read(rotationAroundYAxis);
 	constructionBitstream->Read(playerName);
 	constructionBitstream->Read(isDead);
-	demo->PushMessage(RakNet::RakString("Deserialize Construction"));
+	//demo->PushMessage(RakNet::RakString("Deserialize Construction"));
 	return true;
 }
 void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *destinationConnection)
@@ -522,9 +521,9 @@ void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream *constructionB
 	mesh = sm->getMesh(IRRLICHT_MEDIA_PATH "sydney.md2");
 	model = sm->addAnimatedMeshSceneNode(mesh, 0);
 
-//	DebugBoxSceneNode * debugBox = new DebugBoxSceneNode(model,sm);
-//	debugBox->demo=demo;
-//	debugBox->setDebugDataVisible(true); 
+	//DebugBoxSceneNode * debugBox = new DebugBoxSceneNode(model,sm);
+	//debugBox->demo=demo;
+	//debugBox->setDebugDataVisible(true); 
 
 	model->setPosition(position);
 	model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
@@ -739,6 +738,7 @@ RM3SerializationResult PlayerBotReplica::Serialize(RakNet::SerializeParameters* 
 	serializeParameters->outputBitstream[0].Write(rotationAroundYAxis);
 	serializeParameters->outputBitstream[0].Write(isMoving);
 	serializeParameters->outputBitstream[0].Write(IsDead());
+	serializeParameters->outputBitstream[0].Write(killPlayerName);
 
 	//timeStamp
 	serializeParameters->messageTimestamp = RakNet::GetTimeMS();
@@ -755,6 +755,8 @@ void PlayerBotReplica::Deserialize(RakNet::DeserializeParameters* deserializePar
 	deserializeParameters->serializationBitstream[0].Read(isMoving);
 	bool wasDead = isDead;
 	deserializeParameters->serializationBitstream[0].Read(isDead);
+	RakString prevKillPlayerName = killPlayerName;
+	deserializeParameters->serializationBitstream[0].Read(killPlayerName);
 
 	if (isDead == true && wasDead == false)
 	{
@@ -764,7 +766,6 @@ void PlayerBotReplica::Deserialize(RakNet::DeserializeParameters* deserializePar
 	// Is a locally created object?
 	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
-
 	}
 	else {
 		core::vector3df positionOffset;
@@ -791,15 +792,6 @@ void BallReplica::WriteAllocationID(RakNet::Connection_RM3 *destinationConnectio
 }
 
 RakNet::RM3ConstructionState BallReplica::QueryConstruction(RakNet::Connection_RM3* destinationConnection, RakNet::ReplicaManager3* replicaManager3) { 
-	//char buff[200];
-	//snprintf(buff, sizeof(buff), "BallReplica::QueryConstruction: bulletCount=%d\n", bulletCount);
-	//OutputDebugStringA(buff);
-	//if (bulletCount%2 == 0) {
-	//	return RM3ConstructionState::RM3CS_NO_ACTION;
-	//}
-	//else {
-	//	return RM3ConstructionState::RM3CS_SEND_CONSTRUCTION;
-	//}
 	return QueryConstruction_ClientConstruction(destinationConnection, topology != CLIENT); 
 }
 bool BallReplica::QueryRemoteConstruction(RakNet::Connection_RM3* sourceConnection) { return QueryRemoteConstruction_ClientConstruction(sourceConnection, topology != CLIENT); }
@@ -833,6 +825,12 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream *constructionBitstre
 //OutputDebugStringA(buffer);
 //#endif
 
+	if (creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
+	{
+		RakNet::TimeMS estimatedElapsed = rakPeer->GetLastPing(sourceConnection->GetSystemAddress()) / 2;
+		position = position + shotDirection * (float)estimatedElapsed * SHOT_SPEED;
+	}
+
 	return true;
 }
 
@@ -855,7 +853,7 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 		demo->isBulletRendering = true;
 		}
 	}
-	
+
 	// Shot visible effect and BallReplica classes are not linked, but they update the same way, such that
 	// they are in the same spot all the time
 	demo->shootFromOrigin(position, shotDirection);
@@ -911,21 +909,26 @@ void BallReplica::Update(RakNet::TimeMS curTime)
 		elapsedTime=0;
 	irr::core::vector3df updatedPosition = position + shotDirection * (float) elapsedTime * SHOT_SPEED;
 
-	// See if the bullet hit us
-	//if (ownerGUID/*creatingSystemGUID*/ != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
-	//{
-	//	if (playerReplica->IsDead()==false)
-	//	{
-	//		float playerHalfHeight=demo->GetSyndeyBoundingBox().getExtent().Y/2;
-	//		irr::core::vector3df positionRelativeToCharacter = updatedPosition-playerReplica->position;//+core::vector3df(0,playerHalfHeight,0);
-	//		if (demo->GetSyndeyBoundingBox().isPointInside(positionRelativeToCharacter))
-	//		//if ((playerReplica->position+core::vector3df(0,playerHalfHeight,0)-updatedPosition).getLengthSQ() < BALL_DIAMETER*BALL_DIAMETER/4.0f)
-	//		{
-	//			// We're dead for 3 seconds
-	//			playerReplica->deathTimeout=curTime+3000;
-	//		}
-	//	}
-	//}
+	//See if the bullet hit us
+	//외부 총알을 맞았을 때
+	if (creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
+	{
+		bool check = (topology == SERVER && playerBotReplica->IsDead() == false) || (topology == CLIENT && playerReplica->IsDead() == false);
+		if (check) {
+			float playerHalfHeight = demo->GetSyndeyBoundingBox().getExtent().Y / 2;
+			irr::core::vector3df positionRelativeToCharacter = updatedPosition - ((topology == SERVER) ?playerBotReplica->position : playerReplica->position);//+core::vector3df(0,playerHalfHeight,0);
+			if (demo->GetSyndeyBoundingBox().isPointInside(positionRelativeToCharacter))
+				//if ((playerReplica->position+core::vector3df(0,playerHalfHeight,0)-updatedPosition).getLengthSQ() < BALL_DIAMETER*BALL_DIAMETER/4.0f)
+			{
+				// We're dead for 3 seconds
+				if (topology == SERVER) {
+					playerBotReplica->deathTimeout = curTime + 3000;
+					demo->PushMessage(RakNet::RakString("Bot Dead from : ") + rakPeer->GetSystemAddressFromGuid(creatingSystemGUID).ToString(true));
+
+				}else playerReplica->deathTimeout = curTime + 3000;
+			}
+		}
+	}
 }
 RakNet::Replica3 *Connection_RM3Irrlicht::AllocReplica(RakNet::BitStream *allocationId, ReplicaManager3 *replicaManager3)
 {

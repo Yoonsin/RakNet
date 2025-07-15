@@ -373,20 +373,19 @@ void CDemo::run()
 #endif //__ANDROID__
 
 			RakNet::RakString curMsg = GetCurrentMessage();
-			if (curMsg.IsEmpty()==false)
+			if (curMsg.IsEmpty() == false)
 			{
-				wchar_t dest[1024];
-				memset(dest,0,sizeof(dest));
+				wchar_t dest[500];
+				memset(dest, 0, sizeof(dest));
 				mbstowcs(dest, curMsg.C_String(), curMsg.GetLength());
-				if (statusText != nullptr)
-				  statusText->setText(dest);
+				statusText->setText(dest);
 			}
 			else
 			{
-		        //statusText->setText(tmp);
-				if(statusText != nullptr)
-				  statusText->setText(0);
+				//statusText->setText(tmp);
+				statusText->setText(0);
 			}
+			
 		}
 
 		// RakNet per 
@@ -715,7 +714,7 @@ void CDemo::switchToNextScene()
 			keyMap[10].Action = EKA_ROTATE_RIGHT;
 			keyMap[10].KeyCode = KEY_KEY_1;
 			//camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //기본 플레이
-			camera = sm->addCameraSceneNode(0, core::vector3df(200, 140, 100), core::vector3df(100, 140, 0)); //시점 고정
+			camera = sm->addCameraSceneNode(0, core::vector3df(200, 140, 100), core::vector3df(100, 130, 0)); //시점 고정
 			//todo: 기본 플레이 시에는 setPostion 사용해야함
 
 			scene::ISceneNodeAnimatorList list = camera->getAnimators();
@@ -737,8 +736,6 @@ void CDemo::switchToNextScene()
 			// Last parameter is jump speed
 			// Tweaked so you can get up ladders
 			//camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/); //기본 플레이
-			
-
 			//scene::ISceneNodeAnimatorList list = camera->getAnimators();
 			//scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
 			//while (ait != list.end())
@@ -746,6 +743,7 @@ void CDemo::switchToNextScene()
 			//	fpsCamAnim = *ait;
 			//	break;
 			//}
+			
 			//파일
 			//vector3df 중간이 캐릭터 높이
 			if (platform == GamePlatform::PC) {
@@ -754,7 +752,7 @@ void CDemo::switchToNextScene()
 				    //PC Server Bot
 				}
 				else {
-					camera = sm->addCameraSceneNode(0, core::vector3df(0, 140, 100), core::vector3df(100, 140, 0));  //시점 고정
+					camera = sm->addCameraSceneNode(0, core::vector3df(0, 140, 100), core::vector3df(100, 130, 0));  //시점 고정
 					//PC Client
 				}
 			}
@@ -958,7 +956,6 @@ void CDemo::loadSceneData()
 	campFire->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
 	campFire->setMaterialTexture(0, driver->getTexture(mediaPath+ "fireball.bmp"));
 	campFire->setMaterialType(video::EMT_TRANSPARENT_VERTEX_ALPHA);
-
 	// load music
 
 #ifdef USE_IRRKLANG
@@ -1020,11 +1017,11 @@ void CDemo::createLoadingScreen()
 	const int lwidth = size.Width - 20;
 	const int lheight = 16;
 
-	//core::rect<int> pos(10, size.Height-lheight-10, 10+lwidth, size.Height-10);
+	core::rect<int> pos(10, size.Height-lheight-80, 10+lwidth, size.Height-80);
 
 	//device->getGUIEnvironment()->addImage(pos);
-	//statusText = device->getGUIEnvironment()->addStaticText(L"Loading...",	pos, true);
-	//statusText->setOverrideColor(video::SColor(255,205,200,200));
+	statusText = device->getGUIEnvironment()->addStaticText(L"Start",	pos, true);
+	statusText->setOverrideColor(video::SColor(255,205,200,200));
 
 	// load bigger font
 
@@ -1239,25 +1236,33 @@ void CDemo::shoot()
 	core::vector3df camAt = (camera->getTarget() - camPosition);
 	camAt.normalize();
 
-	if (!isServer) {
-		if(isLogged) PrintStatistics(nullptr, ID_CLIENT_NETWORK_SEND,bulletCount);
-		
-		RakNet::BitStream bs;
-		bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_BALL_REQUEST);
-		bs.Write(camPosition); // 예: 시작 위치
-		bs.Write(camAt); // 예: 방향
-		bs.Write(bulletCount); // 예: 방향
-		bulletCount++;
+	//if (!isServer) {
+	//	if(isLogged) PrintStatistics(nullptr, ID_CLIENT_NETWORK_SEND,bulletCount);
+	//	
+	//	RakNet::BitStream bs;
+	//	bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_BALL_REQUEST);
+	//	bs.Write(camPosition); // 예: 시작 위치
+	//	bs.Write(camAt); // 예: 방향
+	//	bs.Write(bulletCount); // 예: 방향
+	//	bulletCount++;
 
-		rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
-	}
+	//	rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+	//}
 
-	//BallReplica *br = new BallReplica;
-	//br->demo=this;
-	//br->position=camPosition;
-	//br->shotDirection=camAt;
-	//br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(camPosition, camAt);
-	//replicaManager3->Reference(br);
+	BallReplica *br = new BallReplica;
+	br->demo=this;
+	br->position=camPosition;
+	br->shotDirection=camAt;
+	br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(camPosition, camAt);
+	br->ownerGUID = rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS);
+	replicaManager3->Reference(br);
+	
+	//RakNet::RakString curMsg = "Ball shot from ";
+	//wchar_t dest[200];
+	//memset(dest, 0, sizeof(dest));
+	//mbstowcs(dest, curMsg.C_String(), curMsg.GetLength());
+	//if (statusText != nullptr)
+	//	statusText->setText(dest);
 }
 
 void CDemo::createParticleImpacts()
@@ -1349,32 +1354,32 @@ void CDemo::UpdateRakNet(void)
 		{
 		case ID_IP_RECENTLY_CONNECTED:
 			{
-				PushMessage(RakNet::RakString("This IP address recently connected from ") + targetName + RakNet::RakString("."));
+				//PushMessage(RakNet::RakString("This IP address recently connected from ") + targetName + RakNet::RakString("."));
 			}
 			break;
 		case ID_INCOMPATIBLE_PROTOCOL_VERSION:
 			{
-				PushMessage(RakNet::RakString("Incompatible protocol version from ") + targetName + RakNet::RakString("."));
+				//PushMessage(RakNet::RakString("Incompatible protocol version from ") + targetName + RakNet::RakString("."));
 			}
 			break;
 		case ID_DISCONNECTION_NOTIFICATION:
 			{
-				PushMessage(RakNet::RakString("Disconnected from ") + targetName + RakNet::RakString("."));
+				//PushMessage(RakNet::RakString("Disconnected from ") + targetName + RakNet::RakString("."));
 			}
 			break;
 		case ID_CONNECTION_LOST:
 			{
-				PushMessage(RakNet::RakString("Connection to ") + targetName + RakNet::RakString(" lost."));
+				//PushMessage(RakNet::RakString("Connection to ") + targetName + RakNet::RakString(" lost."));
 			}
 			break;
 		case ID_NO_FREE_INCOMING_CONNECTIONS:
 			{
-				PushMessage(RakNet::RakString("No free incoming connections to ") + targetName + RakNet::RakString("."));
+				//PushMessage(RakNet::RakString("No free incoming connections to ") + targetName + RakNet::RakString("."));
 			}
 			break;
 		case ID_NEW_INCOMING_CONNECTION:
 			{
-			    PushMessage(RakNet::RakString("Sending player list to new connection"));
+			    //PushMessage(RakNet::RakString("Sending player list to new connection"));
 				//systemAddress에 할당되는 Connection 객체를 만들고 
 				RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(packet->systemAddress, rakPeer->GetGuidFromSystemAddress(packet->systemAddress));
 				//replicaManager3에 추적될 수 있도록 할당
@@ -1390,7 +1395,7 @@ void CDemo::UpdateRakNet(void)
 		case ID_CONNECTION_REQUEST_ACCEPTED:
 		{
 			//(클라이언트 측에서) 연결을 허락 받았을 때
-			PushMessage(RakNet::RakString("Connection request to ") + targetName + RakNet::RakString(" accepted."));
+			//PushMessage(RakNet::RakString("Connection request to ") + targetName + RakNet::RakString(" accepted."));
 			//systemAddress에 할당되는 Connection 객체를 만들고 
 			RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(packet->systemAddress, rakPeer->GetGuidFromSystemAddress(packet->systemAddress));
 			//replicaManager3에 추적될 수 있도록 할당
@@ -1401,7 +1406,7 @@ void CDemo::UpdateRakNet(void)
 		    break;
 		case ID_CONNECTION_ATTEMPT_FAILED:
 			{
-				PushMessage(RakNet::RakString("Connection attempt to ") + targetName + RakNet::RakString(" failed."));
+				//PushMessage(RakNet::RakString("Connection attempt to ") + targetName + RakNet::RakString(" failed."));
 			}
 			break;
 		case ID_GAME_MESSAGE_BALL_REQUEST: {

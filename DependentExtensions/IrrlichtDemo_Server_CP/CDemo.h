@@ -197,7 +197,7 @@ private:
 	// CDemo.h 안에 다음 멤버 변수 추가
 	RakNet::TimeMS lastShootTime = 0;
 	const RakNet::TimeMS shootInterval = 500; // 0.5초 (500ms)
-	
+
 #ifdef __ANDROID__
 	s32 TouchID;
 	bool isRotate;

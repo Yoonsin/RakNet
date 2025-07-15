@@ -86,7 +86,8 @@
               "RelativeToolTip": "CMainMenu.cpp",
               "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:24:18.491Z"
+              "WhenOpened": "2025-06-23T06:24:18.491Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -98,7 +99,8 @@
               "RelativeToolTip": "LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
               "ViewState": "AgIAAG4FAAAAAAAAAAAlwGUFAAAuAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:18:46.521Z"
+              "WhenOpened": "2025-06-23T06:18:46.521Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -110,7 +112,8 @@
               "RelativeToolTip": "main.cpp",
               "ViewState": "AgIAADYAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:16:24.467Z"
+              "WhenOpened": "2025-06-23T06:16:24.467Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -122,7 +125,8 @@
               "RelativeToolTip": "RakNetStuff.cpp",
               "ViewState": "AgIAANUCAAAAAAAAAAAlwEEBAAAMAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:14:46.813Z"
+              "WhenOpened": "2025-06-23T06:14:46.813Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -132,7 +136,7 @@
               "RelativeDocumentMoniker": "CDemo.cpp",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
               "RelativeToolTip": "CDemo.cpp",
-              "ViewState": "AgIAAIUEAAAAAAAAAAAlwJwEAAATAAAAAAAAAA==",
+              "ViewState": "AgIAAIUEAAAAAAAAAAAlwJkEAAA5AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-06-23T06:11:16.76Z",
               "EditorCaption": ""
@@ -147,7 +151,8 @@
               "RelativeToolTip": "RakNetStuff.h",
               "ViewState": "AgIAAKkAAAAAAAAAAAAlwMAAAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-06-23T06:34:37.011Z"
+              "WhenOpened": "2025-06-23T06:34:37.011Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -159,7 +164,8 @@
               "RelativeToolTip": "CDemo.h",
               "ViewState": "AgIAAGwAAAAAAAAAAAAlwIkAAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-06-23T06:35:56.781Z"
+              "WhenOpened": "2025-06-23T06:35:56.781Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -171,7 +177,8 @@
               "RelativeToolTip": "CMakeLists.txt",
               "ViewState": "AgIAABUAAAAAAAAAAAAjwCoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
-              "WhenOpened": "2025-06-23T06:11:13.683Z"
+              "WhenOpened": "2025-06-23T06:11:13.683Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -183,7 +190,8 @@
               "RelativeToolTip": "IrrlichtDemo.v8.vcproj",
               "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:11:07.175Z"
+              "WhenOpened": "2025-06-23T06:11:07.175Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -195,7 +203,8 @@
               "RelativeToolTip": "IrrlichtDemo.v8.vcxproj",
               "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000698|",
-              "WhenOpened": "2025-06-23T06:11:05.096Z"
+              "WhenOpened": "2025-06-23T06:11:05.096Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -207,7 +216,8 @@
               "RelativeToolTip": "CMakeSettings.json",
               "ViewState": "AgIAAAMAAAAAAAAAAAAAAAwAAAAGAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-06-23T05:26:43.479Z"
+              "WhenOpened": "2025-06-23T05:26:43.479Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Bookmark",
