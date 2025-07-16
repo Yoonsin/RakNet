@@ -1380,11 +1380,11 @@ void CDemo::UpdateRakNet(void)
 				//replicaManager3에 추적될 수 있도록 할당
 				replicaManager3->PushConnection(connection);
 
-				if (logCount == replicaManager3->GetConnectionCount())
-				{
-					//모든 플레이어가 접속하면 봇 생성
-					replicaManager3->Reference(playerBotReplica);
-				}
+				//if (logCount == replicaManager3->GetConnectionCount())
+				//{
+				//	//모든 플레이어가 접속하면 봇 생성
+				//	replicaManager3->Reference(playerBotReplica);
+				//}
 			}
 			break;
 		case ID_CONNECTION_REQUEST_ACCEPTED:

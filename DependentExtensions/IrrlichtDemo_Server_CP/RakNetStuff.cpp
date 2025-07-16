@@ -166,11 +166,13 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged)
 #if __ANDROID__
 		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
+		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect("117.16.44.113", SERVER_PORT, 0, 0); //왠
 #else
 		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
+		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.27", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect("117.16.44.113", SERVER_PORT, 0, 0); //왠
 		
 #endif // __ANDROID__
 		RakAssert(car == CONNECTION_ATTEMPT_STARTED);
@@ -893,7 +895,7 @@ void BallReplica::Update(RakNet::TimeMS curTime)
 		// Destroy if shot expired
 		if (curTime > shotLifetime)
 		{
-			// Destroy on network
+			// Destroy on networkz
 			BroadcastDestruction();
 			delete this;
 			return;

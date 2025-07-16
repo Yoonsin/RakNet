@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 
 	bool isServer = false;
 	bool isLogged = false;
-	int logCount = 1;
+	int logCount = 2;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
