@@ -101,6 +101,10 @@ public:
 	scene::ISceneNodeAnimator* fpsCamAnim = nullptr;
 	bool isBulletRendering;
 
+	scene::IMetaTriangleSelector* metaSelector;
+	scene::ITriangleSelector* mapSelector;
+	scene::ITriangleSelector* playerSelector;
+
 #ifdef __ANDROID__
 	android_app* state;
 #endif
@@ -169,9 +173,6 @@ private:
 	scene::IAnimatedMeshSceneNode* model1;
 	scene::IAnimatedMeshSceneNode* model2;
 	scene::IParticleSystemSceneNode* campFire;
-
-	scene::IMetaTriangleSelector* metaSelector;
-	scene::ITriangleSelector* mapSelector;
 
 	s32 sceneStartTime;
 	s32 timeForThisScene;

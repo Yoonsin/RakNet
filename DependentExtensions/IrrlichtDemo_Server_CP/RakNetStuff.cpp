@@ -48,54 +48,165 @@ Topology topology;
 PacketLogger* loggerPlugin;
 StatisticsHistoryPlugin* statisticsPlugin; // Used to track network statistics
 
-//class DebugBoxSceneNode : public scene::ISceneNode 
-//{
-//public:
-//	DebugBoxSceneNode(scene::ISceneNode* parent,
-//		scene::ISceneManager* mgr,
-//		s32 id = -1);
-//	virtual const core::aabbox3d<f32>& getBoundingBox() const;
-//	virtual void OnRegisterSceneNode();
-//	virtual void render();
-//
-//	CDemo *demo;
-//};
-//DebugBoxSceneNode::DebugBoxSceneNode(
-//									 scene::ISceneNode* parent,
-//									 scene::ISceneManager* mgr,
-//									 s32 id)
-//									 : scene::ISceneNode(parent, mgr, id)
-//{
-//#ifdef _DEBUG
-//	setDebugName("DebugBoxSceneNode");
-//#endif
-//	setAutomaticCulling(scene::EAC_OFF);
-//} 
-//const core::aabbox3d<f32>& DebugBoxSceneNode::getBoundingBox() const
-//{
-//	return demo->GetSyndeyBoundingBox();
-//}
-//void DebugBoxSceneNode::OnRegisterSceneNode()
-//{
-//	if (IsVisible)
-//		demo->GetSceneManager()->registerNodeForRendering(this, scene::ESNRP_SOLID);
-//}
-//void DebugBoxSceneNode::render()
-//{
-//	if (DebugDataVisible)
-//	{ 
-//		video::IVideoDriver* driver = SceneManager->getVideoDriver();
-//		driver->setTransform(video::ETS_WORLD, AbsoluteTransformation); 
-//
-//		video::SMaterial m;
-//		m.Lighting = false;
-//		demo->GetDevice()->getVideoDriver()->setMaterial(m);
-//		demo->GetDevice()->getVideoDriver()->draw3DBox(demo->GetSyndeyBoundingBox());
-//	}
-//}
+class DebugBoxSceneNode : public scene::ISceneNode 
+{
+public:
+	DebugBoxSceneNode(scene::ISceneNode* parent, scene::ISceneManager* mgr, s32 id = -1);
+	virtual const core::aabbox3d<f32>& getBoundingBox() const;
+	virtual void OnRegisterSceneNode();
+	virtual void render();
+	void DrawBoxTriangles(scene::ITriangleSelector* selector, const core::matrix4& transform, video::IVideoDriver* driver);
+	void SetSelector(irr::scene::ITriangleSelector* selector);
+	void EnableDrawTriangles(bool enable);
+
+	CDemo *demo;
+private:
+	irr::scene::ITriangleSelector* triangleSelector = nullptr;
+	bool drawTriangles = false;
+};
+DebugBoxSceneNode::DebugBoxSceneNode(scene::ISceneNode* parent, scene::ISceneManager* mgr, s32 id) : scene::ISceneNode(parent, mgr, id)
+{
+#ifdef _DEBUG
+	setDebugName("DebugBoxSceneNode");
+#endif
+	setAutomaticCulling(scene::EAC_OFF);
+} 
+const core::aabbox3d<f32>& DebugBoxSceneNode::getBoundingBox() const
+{
+	return demo->GetSyndeyBoundingBox();
+}
+void DebugBoxSceneNode::OnRegisterSceneNode()
+{
+	if (IsVisible)
+		demo->GetSceneManager()->registerNodeForRendering(this, scene::ESNRP_SOLID);
+}
+void DebugBoxSceneNode::SetSelector(scene::ITriangleSelector* selector) {
+	triangleSelector = selector;
+}
+void DebugBoxSceneNode::EnableDrawTriangles(bool enable) {
+	drawTriangles = enable;
+}
+void DebugBoxSceneNode::render()
+{
+	video::IVideoDriver* driver = SceneManager->getVideoDriver();
+
+	if (DebugDataVisible)
+	{ 
+	  video::SMaterial m;
+	  m.Lighting = false;
+	  driver->setMaterial(m);
+	  driver->setTransform(video::ETS_WORLD, AbsoluteTransformation);
+	  driver->draw3DBox(demo->GetSyndeyBoundingBox(), video::SColor(255, 0, 255, 255));
+    }
+
+	// TriangleSelector 기반 triangle 출력
+	if (drawTriangles && triangleSelector != nullptr) {
+		core::matrix4 worldMat;
+		worldMat.makeIdentity();
+		DrawBoxTriangles(triangleSelector, worldMat, driver);
+	}
+}
+void DebugBoxSceneNode::DrawBoxTriangles(irr::scene::ITriangleSelector* selector, const irr::core::matrix4& transform, irr::video::IVideoDriver* driver)
+{
+	const int maxTriangles = 512;
+	irr::core::triangle3df tris[maxTriangles];
+	s32 outCount = 0;
+
+	selector->getTriangles(tris, maxTriangles, outCount, &transform);  // 월드 변환 적용!
+
+	for (int i = 0; i < outCount; ++i) {
+		driver->draw3DLine(tris[i].pointA, tris[i].pointB, irr::video::SColor(255, 255, 0, 0));
+		driver->draw3DLine(tris[i].pointB, tris[i].pointC, irr::video::SColor(255, 255, 0, 0));
+		driver->draw3DLine(tris[i].pointC, tris[i].pointA, irr::video::SColor(255, 255, 0, 0));
+	}
+}
+
+//Debug 용
+scene::ITriangleSelector* CreateSelectorFromCustomBox(
+	const core::aabbox3df& sydneyBox,
+	scene::ISceneManager* smgr) 
+{
+	// 내부 dummy node 생성 (이게 getBoundingBox()만 넘겨주는 역할)
+	class BoxNode : public irr::scene::ISceneNode {
+	public:
+		irr::core::aabbox3df box;
+		BoxNode(const irr::core::aabbox3df& b, irr::scene::ISceneManager* mgr)
+			: irr::scene::ISceneNode(mgr->getRootSceneNode(), mgr), box(b)
+		{
+			setAutomaticCulling(irr::scene::EAC_OFF);
+		}
+
+		virtual const irr::core::aabbox3df& getBoundingBox() const override { return box; }
+		virtual void render() override {} // 아무것도 그리지 않음
+	};
+
+	// 노드 생성
+	BoxNode* dummy = new BoxNode(sydneyBox, smgr);
+	// boundingBox 기반 TriangleSelector 생성
+	irr::scene::ITriangleSelector* selector = smgr->createTriangleSelectorFromBoundingBox(dummy);
+	// dummy는 더 이상 필요 없으므로 제거
+	dummy->remove();  // drop 포함됨
+	return selector;  // 호출자가 drop() 해줘야 함
+}
+
+//Collision Check 용
+scene::ITriangleSelector* CreateSelectorFromTransformedBox(
+	const core::aabbox3df& localBox,
+	const core::matrix4& worldTransform,
+	scene::ISceneManager* smgr, const RakNet::RakNetGUID& guid)
+{
+	// 로컬 박스의 꼭지점 8개 정의
+	core::vector3df corners[8];
+	localBox.getEdges(corners);
+
+	core::vector3df transformedCorner;
+	worldTransform.transformVect(transformedCorner, corners[0]);
+	core::aabbox3df worldBox;
+	worldBox.reset(transformedCorner);
+
+	for (int i = 1; i < 8; ++i) {
+		core::vector3df transformed;
+		worldTransform.transformVect(transformed, corners[i]);
+		worldBox.addInternalPoint(transformed);
+	}
+
+	// 임시 노드 (bounding box 전달용)
+	class TempBoxNode : public scene::ISceneNode {
+	public:
+		core::aabbox3df box;
+		TempBoxNode(const core::aabbox3df& b, scene::ISceneNode* parent, scene::ISceneManager* mgr)
+			: scene::ISceneNode(parent, mgr), box(b) {
+			setAutomaticCulling(scene::EAC_OFF);
+		}
+		virtual const core::aabbox3df& getBoundingBox() const override { return box; }
+		virtual void render() override {}
+		virtual void OnRegisterSceneNode() override {
+			if (IsVisible)
+				SceneManager->registerNodeForRendering(this);
+		}
+	};
+
+	TempBoxNode* dummy = new TempBoxNode(worldBox, smgr->getRootSceneNode(), smgr);
+	s32 id = static_cast<s32>(guid.g);
+	dummy->setID(id); // RakNetGUID를 ID로 설정
+	
+	scene::ITriangleSelector* selector = smgr->createTriangleSelectorFromBoundingBox(dummy);
+	dummy->remove(); // 노드 제거 (참조 카운트 감소)
+
+	return selector; // drop()은 사용자가 책임
+}
+
+
 
 DataStructures::List<RakNet::RakString> statBuf;
 DataStructures::List<PlayerReplica*> PlayerReplica::playerList;
+
+struct FrameState {
+	RakNet::TimeMS timeStamp;
+	irr::core::vector3df position;
+};
+const int HISTORY_DURATION_MS = 1000;
+DataStructures::Hash<RakNet::RakNetGUID, DataStructures::Queue<FrameState>, 64, RakNet::RakNetGUID::ToUint32> frameHistoryMap;
 
 // Take this many milliseconds to move the visible position to the real position
 static const float INTERP_TIME_MS=100.0f;
@@ -184,8 +295,6 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged)
 		//loggerPlugin = PacketLogger::GetInstance();
 		//rakPeer->AttachPlugin(loggerPlugin);
 	}
-
-	
 }
 void DeinitializeRakNetClasses(bool isLogged, const char* baseDir)
 {
@@ -209,7 +318,6 @@ void DeinitializeRakNetClasses(bool isLogged, const char* baseDir)
 	delete fullyConnectedMesh2;
 	// ReplicaManager3 deletes all referenced objects, including this one
 
-	
 	if (topology == SERVER) {
 		playerBotReplica->PreDestruction(0);
 		delete playerBotReplica;
@@ -480,7 +588,11 @@ PlayerReplica::~PlayerReplica()
 	unsigned int index = playerList.GetIndexOf(this);
 	if (index != (unsigned int) -1)
 		playerList.RemoveAtIndexFast(index);
+
+	if(topology == SERVER) frameHistoryMap.Remove(creatingSystemGUID, _FILE_AND_LINE_);
+	debugBox = nullptr;
 }
+
 RakNet::RM3ConstructionState PlayerReplica::QueryConstruction(RakNet::Connection_RM3* destinationConnection, RakNet::ReplicaManager3* replicaManager3) { 
 	return QueryConstruction_ClientConstruction(destinationConnection, topology != CLIENT);
 }
@@ -521,14 +633,21 @@ void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream *constructionB
 	mesh = sm->getMesh(IRRLICHT_MEDIA_PATH "sydney.md2");
 	model = sm->addAnimatedMeshSceneNode(mesh, 0);
 
-	//DebugBoxSceneNode * debugBox = new DebugBoxSceneNode(model,sm);
+	//debugBox = new DebugBoxSceneNode(model,sm);
 	//debugBox->demo=demo;
 	//debugBox->setDebugDataVisible(true); 
+	//debugBox->EnableDrawTriangles(true);
+	//
+	//scene::ITriangleSelector* selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), model->getAbsoluteTransformation(), sm, creatingSystemGUID);
+	//model->setTriangleSelector(selector);
+	//selector->drop();  // 참조 카운트 관리
+	//debugBox->SetSelector(model->getTriangleSelector());
 
 	model->setPosition(position);
 	model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
 	model->setScale(core::vector3df(2,2,2));
 	model->setMD2Animation(scene::EMAT_STAND);
+	
 	curAnim=scene::EMAT_STAND;
 	model->setMaterialTexture(0, demo->GetDevice()->getVideoDriver()->getTexture(IRRLICHT_MEDIA_PATH "sydney.bmp"));
 	model->setMaterialFlag(video::EMF_LIGHTING, true);
@@ -604,6 +723,8 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		if (topology == SERVER) {
 			playerBotReplica->position = demo->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
 			playerBotReplica->rotationAroundYAxis = demo->GetSceneManager()->getActiveCamera()->getRotation().Y - 90.0f;
+			playerBotReplica->botModel->setPosition(playerBotReplica->position);
+			playerBotReplica->botModel->setRotation(core::vector3df(0, playerBotReplica->rotationAroundYAxis, 0));
 		}
 		else {
 			playerReplica->position = demo->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
@@ -617,9 +738,27 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		// Ack, makes the screen messed up and the mouse move off the window
 		// Find another way to keep the dead player from moving
 	    demo->EnableInput(IsDead()==false);
-
-		return;
 	}
+
+	//record frame state
+	if (topology == SERVER)
+	{
+		RakNet::RakNetGUID g;
+		g = creatingSystemGUID;
+		auto* q = frameHistoryMap.Peek(g);
+		if (q == nullptr) {
+			DataStructures::Queue<FrameState> newQueue;
+			frameHistoryMap.Push(g, newQueue, _FILE_AND_LINE_);
+			q = frameHistoryMap.Peek(g);
+		}
+
+		FrameState frame{ curTime , position };
+		q->Push(frame, _FILE_AND_LINE_);
+		while (!q->IsEmpty() && frame.timeStamp - q->Peek().timeStamp > HISTORY_DURATION_MS)
+			q->Pop();
+	}
+
+	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) return;
 
 	// 원격에서는 보간
 	// Update interpolation
@@ -669,7 +808,7 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 			UpdateAnimation(scene::EMAT_STAND);
 			model->setLoopMode(true);
 		}
-	}	
+	}
 }
 void PlayerReplica::UpdateAnimation(irr::scene::EMD2_ANIMATION_TYPE anim)
 {
@@ -713,6 +852,13 @@ void PlayerReplica::PlayAttackAnimation(void)
 bool PlayerReplica::IsDead(void) const
 {
 	return deathTimeout > RakNet::GetTimeMS();
+}
+
+void PlayerBotReplica::PreDestruction(RakNet::Connection_RM3* sourceConnection)
+{
+	PlayerReplica::PreDestruction(sourceConnection);
+	if (botModel)
+		botModel->remove();
 }
 
 RakNet::RM3ConstructionState PlayerBotReplica::QueryConstruction(RakNet::Connection_RM3* destinationConnection, RakNet::ReplicaManager3* replicaManager3) {
@@ -779,6 +925,27 @@ void PlayerBotReplica::Deserialize(RakNet::DeserializeParameters* deserializePar
 	}
 }
 
+void PlayerBotReplica::CreateBotModel() 
+{
+	scene::IAnimatedMesh* mesh = 0;
+	scene::ISceneManager* sm = demo->GetSceneManager();
+	mesh = sm->getMesh(IRRLICHT_MEDIA_PATH "sydney.md2");
+	botModel = sm->addAnimatedMeshSceneNode(mesh, 0);
+
+	botModel->setPosition(position);
+	botModel->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
+	botModel->setScale(core::vector3df(2, 2, 2));
+	botModel->setMD2Animation(scene::EMAT_STAND);
+
+	curAnim = scene::EMAT_STAND;
+	botModel->setMaterialTexture(0, demo->GetDevice()->getVideoDriver()->getTexture(IRRLICHT_MEDIA_PATH "sydney.bmp"));
+	botModel->setMaterialFlag(video::EMF_LIGHTING, true);
+	botModel->addShadowVolumeSceneNode();
+	botModel->setAutomaticCulling(scene::EAC_BOX);
+	botModel->setVisible(true);
+	botModel->setAnimationEndCallback(this);
+}
+
 BallReplica::BallReplica()
 {
 	creationTime=RakNet::GetTimeMS();
@@ -827,7 +994,7 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream *constructionBitstre
 
 	if (creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
-		RakNet::TimeMS estimatedElapsed = rakPeer->GetLastPing(sourceConnection->GetSystemAddress()) / 2;
+		RakNet::TimeMS estimatedElapsed = rakPeer->GetAveragePing(sourceConnection->GetSystemAddress()) / 2;
 		position = position + shotDirection * (float)estimatedElapsed * SHOT_SPEED;
 	}
 
@@ -857,18 +1024,94 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 	// Shot visible effect and BallReplica classes are not linked, but they update the same way, such that
 	// they are in the same spot all the time
 	demo->shootFromOrigin(position, shotDirection);
+	if (topology != SERVER) return;
+	scene::ISceneManager* sm = demo->GetSceneManager();
+	scene::ICameraSceneNode* camera = sm->getActiveCamera();
+	scene::IMetaTriangleSelector* meta = nullptr;
 
-	// Find the owner of this ball, and make them play the attack animation
+	core::vector3df start = position;
+	core::vector3df end = start + (shotDirection * camera->getFarValue());
+	core::line3d<irr::f32> line(start, end);
+	core::triangle3df triangle;
+	core::vector3df hitPoint;
+	const scene::ISceneNode* hitNode;
+
+	
 	unsigned int idx;
-	for (idx=0; idx < PlayerReplica::playerList.Size(); idx++)
+	for (idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
 	{
-		if (PlayerReplica::playerList[idx]->creatingSystemGUID==ownerGUID)
+		auto* player = PlayerReplica::playerList[idx];
+		if (player->creatingSystemGUID == ownerGUID) {
+			player->PlayAttackAnimation();
+			continue; // 본인
+		}
+		
+		//if (player->isDead) continue; // 죽은 플레이어는 검사하지 않음
+
+		scene::ITriangleSelector* selector = nullptr;
+		core::matrix4 transform;
+		scene::ISceneNode* node = nullptr;
+
+		if (PlayerBotReplica* bot = dynamic_cast<PlayerBotReplica*>(player)) {
+			transform = bot->botModel->getAbsoluteTransformation();
+			selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), transform, sm, bot->creatingSystemGUID);
+			node = bot->botModel;
+
+			char buffer[512];
+			snprintf(buffer, sizeof(buffer),
+				"bot Transform Matrix:\n"
+				"[%.2f %.2f %.2f %.2f]\n"
+				"[%.2f %.2f %.2f %.2f]\n"
+				"[%.2f %.2f %.2f %.2f]\n"
+				"[%.2f %.2f %.2f %.2f]\n",
+				transform[0], transform[1], transform[2], transform[3],
+				transform[4], transform[5], transform[6], transform[7],
+				transform[8], transform[9], transform[10], transform[11],
+				transform[12], transform[13], transform[14], transform[15]);
+
+			OutputDebugStringA(buffer);
+		}
+		else {
+			transform = player->model->getAbsoluteTransformation();
+			selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), transform, sm, player->creatingSystemGUID);
+			node = player->model;
+
+			char buffer[512];
+			snprintf(buffer, sizeof(buffer),
+				"player Transform Matrix:\n"
+				"[%.2f %.2f %.2f %.2f]\n"
+				"[%.2f %.2f %.2f %.2f]\n"
+				"[%.2f %.2f %.2f %.2f]\n"
+				"[%.2f %.2f %.2f %.2f]\n",
+				transform[0], transform[1], transform[2], transform[3],
+				transform[4], transform[5], transform[6], transform[7],
+				transform[8], transform[9], transform[10], transform[11],
+				transform[12], transform[13], transform[14], transform[15]);
+
+			OutputDebugStringA(buffer);
+		}
+
+		if (selector == nullptr)
+			continue;
+
+		// 충돌 검사
+		bool hit = sm->getSceneCollisionManager()->getCollisionPoint(line, selector, hitPoint, triangle, hitNode);
+		selector->drop(); // drop 꼭 해주기
+
+		if (hit && hitNode && hitNode->getID() == static_cast<s32>(player->creatingSystemGUID.g))
 		{
-			PlayerReplica::playerList[idx]->PlayAttackAnimation();
-			break;
+			player->deathTimeout = RakNet::GetTimeMS() + 3000;
+			RakNet::RakString msg("%s Dead from : %s",
+				dynamic_cast<PlayerBotReplica*>(player) ? "Bot" : "Player",
+				rakPeer->GetSystemAddressFromGuid(creatingSystemGUID).ToString(true));
+			demo->PushMessage(msg);
+			OutputDebugStringA(msg.C_String());
+			//break; // 더 검사하지 않음
 		}
 	}
+	
 }
+
 void BallReplica::PreDestruction(RakNet::Connection_RM3 *sourceConnection)
 {
 	// The system that shot this ball destroyed it, or disconnected
@@ -898,37 +1141,37 @@ void BallReplica::Update(RakNet::TimeMS curTime)
 		}
 	}
 
-	// Keep at the same position as the visible effect
-	// Deterministic, so no need to actually transmit position
-	// The variable position is the origin that the ball was created at. For the player, it is their actual position
-	RakNet::TimeMS elapsedTime;
-	// Due to ping variances and timestamp miscalculations, it's possible with very low pings to get a slightly negative time, so we have to check
-	if (curTime>=creationTime)
-		elapsedTime = curTime - creationTime;
-	else
-		elapsedTime=0;
-	irr::core::vector3df updatedPosition = position + shotDirection * (float) elapsedTime * SHOT_SPEED;
+	//// Keep at the same position as the visible effect
+	//// Deterministic, so no need to actually transmit position
+	//// The variable position is the origin that the ball was created at. For the player, it is their actual position
+	//RakNet::TimeMS elapsedTime;
+	//// Due to ping variances and timestamp miscalculations, it's possible with very low pings to get a slightly negative time, so we have to check
+	//if (curTime>=creationTime)
+	//	elapsedTime = curTime - creationTime;
+	//else
+	//	elapsedTime=0;
+	//irr::core::vector3df updatedPosition = position + shotDirection * (float) elapsedTime * SHOT_SPEED;
 
-	//See if the bullet hit us
-	//외부 총알을 맞았을 때
-	if (creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
-	{
-		bool check = (topology == SERVER && playerBotReplica->IsDead() == false) || (topology == CLIENT && playerReplica->IsDead() == false);
-		if (check) {
-			float playerHalfHeight = demo->GetSyndeyBoundingBox().getExtent().Y / 2;
-			irr::core::vector3df positionRelativeToCharacter = updatedPosition - ((topology == SERVER) ?playerBotReplica->position : playerReplica->position);//+core::vector3df(0,playerHalfHeight,0);
-			if (demo->GetSyndeyBoundingBox().isPointInside(positionRelativeToCharacter))
-				//if ((playerReplica->position+core::vector3df(0,playerHalfHeight,0)-updatedPosition).getLengthSQ() < BALL_DIAMETER*BALL_DIAMETER/4.0f)
-			{
-				// We're dead for 3 seconds
-				if (topology == SERVER) {
-					playerBotReplica->deathTimeout = curTime + 3000;
-					demo->PushMessage(RakNet::RakString("Bot Dead from : ") + rakPeer->GetSystemAddressFromGuid(creatingSystemGUID).ToString(true));
+	////See if the bullet hit us
+	////외부 총알을 맞았을 때
+	//if (creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
+	//{
+	//	bool check = (topology == SERVER && playerBotReplica->IsDead() == false) || (topology == CLIENT && playerReplica->IsDead() == false);
+	//	if (check) {
+	//		float playerHalfHeight = demo->GetSyndeyBoundingBox().getExtent().Y / 2;
+	//		irr::core::vector3df positionRelativeToCharacter = updatedPosition - ((topology == SERVER) ?playerBotReplica->position : playerReplica->position);//+core::vector3df(0,playerHalfHeight,0);
+	//		if (demo->GetSyndeyBoundingBox().isPointInside(positionRelativeToCharacter))
+	//			//if ((playerReplica->position+core::vector3df(0,playerHalfHeight,0)-updatedPosition).getLengthSQ() < BALL_DIAMETER*BALL_DIAMETER/4.0f)
+	//		{
+	//			// We're dead for 3 seconds
+	//			if (topology == SERVER) {
+	//				playerBotReplica->deathTimeout = curTime + 3000;
+	//				demo->PushMessage(RakNet::RakString("Bot Dead from : ") + rakPeer->GetSystemAddressFromGuid(creatingSystemGUID).ToString(true));
 
-				}else playerReplica->deathTimeout = curTime + 3000;
-			}
-		}
-	}
+	//			}else playerReplica->deathTimeout = curTime + 3000;
+	//		}
+	//	}
+	//}
 }
 RakNet::Replica3 *Connection_RM3Irrlicht::AllocReplica(RakNet::BitStream *allocationId, ReplicaManager3 *replicaManager3)
 {
@@ -942,3 +1185,54 @@ RakNet::Replica3 *Connection_RM3Irrlicht::AllocReplica(RakNet::BitStream *alloca
 void ReplicaManager3Irrlicht::PrintTimeGap(char* str) {
 	statBuf.Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
 }
+
+//Time Wrap
+			//if (topology == SERVER) {
+			//	auto* q = frameHistoryMap.Peek(PlayerReplica::playerList[idx]->creatingSystemGUID);
+			//	if (q == nullptr) continue; // No history for this player
+
+			//	bool hit = false;
+			//	RakNet::Time now = RakNet::GetTimeMS()-(rakPeer->GetAveragePing(creatingSystemGUID)/2); //-ping time
+			//	
+			//	//char buf[64];
+			//	//snprintf(buf, sizeof(buf), "now : %d\n", now);
+			//	//OutputDebugStringA(buf); 
+			//	
+			//	for (int frameIdx = 1; frameIdx < q->Size(); ++frameIdx)
+			//	{
+			//		//char buf2[64];
+			//		//snprintf(buf2, sizeof(buf2), "frame time : %d\n", (*q)[frameIdx].timeStamp);
+			//		//OutputDebugStringA(buf2);
+
+			//		if ((*q)[frameIdx].timeStamp >= now) {
+			//			const FrameState& f0 = (*q)[frameIdx - 1]; const FrameState& f1 = (*q)[frameIdx];
+			//			float alpha = float(now - f0.timeStamp) / float(f1.timeStamp - f0.timeStamp);
+			//			core::vector3df targetPos = f0.position.getInterpolated(f1.position, alpha);
+			//			
+			//			core::vector3df toTarget = targetPos - position;
+			//			float distToLine = (toTarget.crossProduct(shotDirection)).getLength() / shotDirection.getLength();
+			//			if (distToLine <= BALL_DIAMETER / 2.0f) {
+			//				playerBotReplica->deathTimeout = now + 3000;
+			//				hit = true;
+			//			}
+
+			//			if (demo) {
+			//				auto* driver = demo->GetSceneManager()->getVideoDriver();
+			//				core::vector3df end = position + shotDirection * 100.0f;
+			//				driver->draw3DLine(position, end, video::SColor(255, 255, 0, 0));
+			//				driver->draw3DBox(core::aabbox3df(targetPos - core::vector3df(1), targetPos + core::vector3df(1)),
+			//					video::SColor(255, 0, hit ? 255 : 50, 0));
+			//			}
+			//		}
+			//	}
+
+			//	// fallback: 마지막 위치에서 판정
+			//	if (q->Size() >= 1) {
+			//		const core::vector3df& targetPos = q->PeekTail().position;
+			//		core::vector3df toTarget = targetPos - position;
+			//		float distToLine = (toTarget.crossProduct(shotDirection)).getLength() / shotDirection.getLength();
+			//		if (distToLine <= BALL_DIAMETER / 2.0f) {
+			//			playerBotReplica->deathTimeout = now + 3000;
+			//		}
+			//	}
+			// }

@@ -3,8 +3,7 @@
 
 #include <irrlicht.h>
 #ifdef _WIN32__
-//#include "WindowsIncludes.h" // Prevent 'fd_set' : 'struct' type redefinition
-//#include <windows.h>
+//#define _CRTDBG_MAP_ALLOC
 //#include <crtdbg.h>
 #endif
 
@@ -14,7 +13,6 @@
 #include "CDemo.h"
 
 using namespace irr;
-
 
 #ifdef  __ANDROID__
 #else
@@ -36,7 +34,7 @@ int main(int argc, char* argv[])
 
 	bool isServer = false;
 	bool isLogged = false;
-	int logCount = 1;
+	int logCount = 2;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
@@ -47,8 +45,8 @@ int main(int argc, char* argv[])
 	CDemo::GamePlatform platform = CDemo::GamePlatform::PC;
 
 #ifdef _WIN32
+	/*_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);*/
 	CMainMenu menu;
-
 	char* token = strtok(strCmdLine, " ");  // 공백을 기준으로 명령어를 분리
 	while (token != nullptr) {
 		if (strcmp(token, "-log") == 0) {
@@ -92,9 +90,6 @@ int main(int argc, char* argv[])
 	delete demo;
 	demo = nullptr;
 #endif // _WIN32
-
-	
-
 	return 0;
 }
 #endif //  __ANDROID__

@@ -32,6 +32,7 @@ class ReplicaManager3Irrlicht;
 class CDemo;
 class PlayerReplica;
 class PlayerBotReplica;
+class DebugBoxSceneNode;
 
 enum Topology
 {
@@ -164,6 +165,8 @@ public:
 	irr::core::vector3df replicatedCameraPos;
 	irr::core::vector3df replicatedCameraRot;
 
+	DebugBoxSceneNode* debugBox;
+
 };
 class PlayerBotReplica : public PlayerReplica
 {
@@ -174,11 +177,15 @@ public:
 	virtual bool QueryRemoteConstruction(RakNet::Connection_RM3* sourceConnection);
 	virtual RakNet::RM3QuerySerializationResult QuerySerialization(RakNet::Connection_RM3* destinationConnection);
 	virtual RakNet::RM3ActionOnPopConnection QueryActionOnPopConnection(RakNet::Connection_RM3* droppedConnection) const;
+	virtual void PreDestruction(RakNet::Connection_RM3* sourceConnection) override;
 
 	virtual RakNet::RM3SerializationResult Serialize(RakNet::SerializeParameters* serializeParameters);
 	virtual void Deserialize(RakNet::DeserializeParameters* deserializeParameters);
 
+	void CreateBotModel();
+
 	RakNet::RakString killPlayerName; // The player that this bot is trying to kill, set by the server
+	irr::scene::IAnimatedMeshSceneNode* botModel; // bot Àü¿ë Model 
 };
 class BallReplica : public BaseIrrlichtReplica
 {
@@ -203,8 +210,6 @@ public:
 
 	virtual void PostDeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *destinationConnection);
 	virtual void PreDestruction(RakNet::Connection_RM3 *sourceConnection);
-
-
 
 	virtual void Update(RakNet::TimeMS curTime);
 

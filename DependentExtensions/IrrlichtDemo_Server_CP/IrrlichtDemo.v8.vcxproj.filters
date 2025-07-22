@@ -129,7 +129,6 @@
     <ClCompile Include="..\miniupnpc-1.5\upnpreplyparse.c">
       <Filter>miniupnpc-1.5</Filter>
     </ClCompile>
-    <ClCompile Include="CDemo.cpp" />
     <ClCompile Include="CMainMenu.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="RakNetStuff.cpp" />
@@ -145,6 +144,7 @@
     <ClCompile Include="AndroidPackaging\app\src\main\cpp\android_tools.cpp">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClCompile>
+    <ClCompile Include="CDemo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\miniupnpc-1.5\connecthostport.h">

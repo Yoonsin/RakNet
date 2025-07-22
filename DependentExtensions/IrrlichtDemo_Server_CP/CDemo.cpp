@@ -290,6 +290,8 @@ void CDemo::run()
 
 	CalculateSyndeyBoundingBox();
 
+	if (isServer) playerBotReplica->CreateBotModel();
+
 	// draw everything
 	char strDisplay_2[100];
 	sprintf(strDisplay_2, "Rendering Scene");
@@ -410,8 +412,6 @@ void CDemo::run()
 		//		}
 		//	}
 		//}
-		
-		
 	}
 
 	// RakNet shutdown
@@ -733,29 +733,29 @@ void CDemo::switchToNextScene()
 			collider->drop();
 
 #else
-			// Last parameter is jump speed
-			// Tweaked so you can get up ladders
-			//camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/); //기본 플레이
-			//scene::ISceneNodeAnimatorList list = camera->getAnimators();
-			//scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
-			//while (ait != list.end())
-			//{
-			//	fpsCamAnim = *ait;
-			//	break;
-			//}
+			//Last parameter is jump speed
+			//Tweaked so you can get up ladders
+			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/); //기본 플레이
+			scene::ISceneNodeAnimatorList list = camera->getAnimators();
+			scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
+			while (ait != list.end())
+			{
+				fpsCamAnim = *ait;
+				break;
+			}
 			
 			//파일
 			//vector3df 중간이 캐릭터 높이
-			if (platform == GamePlatform::PC) {
-				if (isServer) {
-					camera = sm->addCameraSceneNode(0, core::vector3df(100, 140, 0), core::vector3df(100, 140, 300));  //시점 고정
-				    //PC Server Bot
-				}
-				else {
-					camera = sm->addCameraSceneNode(0, core::vector3df(0, 140, 100), core::vector3df(100, 130, 0));  //시점 고정
-					//PC Client
-				}
-			}
+			//if (platform == GamePlatform::PC) {
+			//	if (isServer) {
+			//		camera = sm->addCameraSceneNode(0, core::vector3df(100, 140, 0), core::vector3df(100, 140, 300));  //시점 고정
+			//	    //PC Server Bot
+			//	}
+			//	else {
+			//		camera = sm->addCameraSceneNode(0, core::vector3df(0, 140, 100), core::vector3df(100, 130, 0));  //시점 고정
+			//		//PC Client
+			//	}
+			//}
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
 				sm->createCollisionResponseAnimator(
 					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, quakeLevelMesh ? -10.f : 0.0f, 0), core::vector3df(0, 45, 0), 0.005f);
@@ -1196,31 +1196,6 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 		imp.when = device->getTimer()->getTime() + (time - 100);
 		Impacts.push_back(imp);
 	}
-
-	// play sound
-#ifdef USE_IRRKLANG
-	if (ballSound)
-	{
-		//	irrKlang->play2D(ballSound);
-		
-		/*
-		// RakNet: Make the sound 3d so others can hear it from the proper origin
-		irrklang::ISound* sound = 
-			irrKlang->play3D(ballSound, node->getPosition(), false, false, true);
-
-		if (sound)
-		{
-			// adjust max value a bit to make to sound of an impact louder
-			sound->setMinDistance(400);
-			sound->drop();
-		}
-		 */
-	}
-#endif
-#ifdef USE_SDL_MIXER
-	if (ballSound)
-		playSound(ballSound);
-#endif
 
 	return (RakNet::TimeMS) time;
 }
