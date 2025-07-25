@@ -79,6 +79,11 @@ public:
 		Android
 	};
 
+	enum GameMessages {
+		ID_GAME_MESSAGE_BALL_REQUEST = ID_USER_PACKET_ENUM + 1,
+		ID_GAME_MESSAGE_PLAYER_LIFE = ID_USER_PACKET_ENUM + 2
+	};
+
 	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base);
 	~CDemo();
 
@@ -104,6 +109,9 @@ public:
 	scene::IMetaTriangleSelector* metaSelector;
 	scene::ITriangleSelector* mapSelector;
 	scene::ITriangleSelector* playerSelector;
+
+	bool isConnected = false;
+	RakNet::SystemAddress serverSystemAddress;
 
 #ifdef __ANDROID__
 	android_app* state;

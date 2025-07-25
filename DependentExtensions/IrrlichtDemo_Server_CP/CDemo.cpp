@@ -15,10 +15,6 @@
 
 //#include <CSceneNodeAnimatorCameraFPS.h>
 
-enum GameMessages {
-	ID_GAME_MESSAGE_BALL_REQUEST = ID_USER_PACKET_ENUM + 1
-};
-
 
 
 #ifdef __ANDROID__
@@ -280,17 +276,10 @@ void CDemo::run()
 	//char dest[1024];
 	//memset(dest,0,sizeof(dest));
 	//wcstombs(dest, playerName.c_str(), playerName.size());
-	InstantiateRakNetClasses(isServer,isLogged);
-
-	// Hook RakNet stuff into this class
+	InstantiateRakNetClasses(isServer,isLogged, this);
 	//playerReplica->playerName = RakNet::RakString(dest);
-	if (isServer) playerBotReplica->demo = this;
-	else playerReplica->demo=this;
-	replicaManager3->demo=this;
 
 	CalculateSyndeyBoundingBox();
-
-	if (isServer) playerBotReplica->CreateBotModel();
 
 	// draw everything
 	char strDisplay_2[100];
@@ -326,7 +315,6 @@ void CDemo::run()
 				//irrKlang->setListenerPosition(cam->getAbsolutePosition(), cam->getTarget());
 		    }
 #endif
-
 			// load next scene if necessary
 			now = device->getTimer()->getTime();
 
@@ -393,7 +381,6 @@ void CDemo::run()
 		// RakNet per 
 		// update
 		UpdateRakNet();
-
 		//Statistics Timer
 		//if (isLogged && isServer) {
 		//	int logCnt = (isServer) ? logCount : 1;
@@ -765,7 +752,17 @@ void CDemo::switchToNextScene()
 			collider->drop();
 
 #endif // __ANDROID__
-			
+			//TODO: 데이터를 전부 로드를 하고 난 다음 연결요청
+			//(클라이언트 측에서) 연결을 허락 받았을 때
+			//PushMessage(RakNet::RakString("Connection request to ") + targetName + RakNet::RakString(" accepted."));
+			//systemAddress에 할당되는 Connection 객체를 만들고
+			if (isConnected) {
+				RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(serverSystemAddress, rakPeer->GetGuidFromSystemAddress(serverSystemAddress));
+				//replicaManager3에 추적될 수 있도록 할당
+				replicaManager3->PushConnection(connection);
+				//객체 생성
+				replicaManager3->Reference(playerReplica);
+			}
 		}
 		break;
 	}
@@ -1032,9 +1029,6 @@ void CDemo::createLoadingScreen()
 
 	device->getGUIEnvironment()->getSkin()->setColor(gui::EGDC_BUTTON_TEXT,
 		video::SColor(255,100,100,100));
-
-
-
 }
 void CDemo::CalculateSyndeyBoundingBox(void)
 {
@@ -1231,13 +1225,6 @@ void CDemo::shoot()
 	br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(camPosition, camAt);
 	br->ownerGUID = rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS);
 	replicaManager3->Reference(br);
-	
-	//RakNet::RakString curMsg = "Ball shot from ";
-	//wchar_t dest[200];
-	//memset(dest, 0, sizeof(dest));
-	//mbstowcs(dest, curMsg.C_String(), curMsg.GetLength());
-	//if (statusText != nullptr)
-	//	statusText->setText(dest);
 }
 
 void CDemo::createParticleImpacts()
@@ -1311,80 +1298,76 @@ void CDemo::createParticleImpacts()
 /// RakNet stuff
 void CDemo::UpdateRakNet(void)
 {
-	RakNet::Packet *packet;
+	RakNet::Packet* packet;
 	RakNet::TimeMS curTime = RakNet::GetTimeMS();
 	RakNet::RakString targetName;
-	for (packet=rakPeer->Receive(); packet; rakPeer->DeallocatePacket(packet), packet=rakPeer->Receive())
+	for (packet = rakPeer->Receive(); packet; rakPeer->DeallocatePacket(packet), packet = rakPeer->Receive())
 	{
-		if (strcmp(packet->systemAddress.ToString(false),DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP)==0)
+		if (strcmp(packet->systemAddress.ToString(false), DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP) == 0)
 		{
-			targetName="NATPunchthroughServer";
+			targetName = "NATPunchthroughServer";
 		}
 		else
 		{
-			targetName=packet->systemAddress.ToString(true);
+			targetName = packet->systemAddress.ToString(true);
 		}
 
 		switch (packet->data[0])
 		{
 		case ID_IP_RECENTLY_CONNECTED:
-			{
-				//PushMessage(RakNet::RakString("This IP address recently connected from ") + targetName + RakNet::RakString("."));
-			}
-			break;
-		case ID_INCOMPATIBLE_PROTOCOL_VERSION:
-			{
-				//PushMessage(RakNet::RakString("Incompatible protocol version from ") + targetName + RakNet::RakString("."));
-			}
-			break;
-		case ID_DISCONNECTION_NOTIFICATION:
-			{
-				//PushMessage(RakNet::RakString("Disconnected from ") + targetName + RakNet::RakString("."));
-			}
-			break;
-		case ID_CONNECTION_LOST:
-			{
-				//PushMessage(RakNet::RakString("Connection to ") + targetName + RakNet::RakString(" lost."));
-			}
-			break;
-		case ID_NO_FREE_INCOMING_CONNECTIONS:
-			{
-				//PushMessage(RakNet::RakString("No free incoming connections to ") + targetName + RakNet::RakString("."));
-			}
-			break;
-		case ID_NEW_INCOMING_CONNECTION:
-			{
-			    //PushMessage(RakNet::RakString("Sending player list to new connection"));
-				//systemAddress에 할당되는 Connection 객체를 만들고 
-				RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(packet->systemAddress, rakPeer->GetGuidFromSystemAddress(packet->systemAddress));
-				//replicaManager3에 추적될 수 있도록 할당
-				replicaManager3->PushConnection(connection);
-
-				if (logCount == replicaManager3->GetConnectionCount())
-				{
-					//모든 플레이어가 접속하면 봇 생성
-					replicaManager3->Reference(playerBotReplica);
-				}
-			}
-			break;
-		case ID_CONNECTION_REQUEST_ACCEPTED:
 		{
-			//(클라이언트 측에서) 연결을 허락 받았을 때
-			//PushMessage(RakNet::RakString("Connection request to ") + targetName + RakNet::RakString(" accepted."));
+			//PushMessage(RakNet::RakString("This IP address recently connected from ") + targetName + RakNet::RakString("."));
+		}
+		break;
+		case ID_INCOMPATIBLE_PROTOCOL_VERSION:
+		{
+			//PushMessage(RakNet::RakString("Incompatible protocol version from ") + targetName + RakNet::RakString("."));
+		}
+		break;
+		case ID_DISCONNECTION_NOTIFICATION:
+		{
+			//PushMessage(RakNet::RakString("Disconnected from ") + targetName + RakNet::RakString("."));
+		}
+		break;
+		case ID_CONNECTION_LOST:
+		{
+			//PushMessage(RakNet::RakString("Connection to ") + targetName + RakNet::RakString(" lost."));
+		}
+		break;
+		case ID_NO_FREE_INCOMING_CONNECTIONS:
+		{
+			//PushMessage(RakNet::RakString("No free incoming connections to ") + targetName + RakNet::RakString("."));
+		}
+		break;
+		case ID_NEW_INCOMING_CONNECTION:
+		{
+			//PushMessage(RakNet::RakString("Sending player list to new connection"));
 			//systemAddress에 할당되는 Connection 객체를 만들고 
 			RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(packet->systemAddress, rakPeer->GetGuidFromSystemAddress(packet->systemAddress));
 			//replicaManager3에 추적될 수 있도록 할당
 			replicaManager3->PushConnection(connection);
-			//객체 생성
-			replicaManager3->Reference(playerReplica);
-		}
-		    break;
-		case ID_CONNECTION_ATTEMPT_FAILED:
+
+			if (logCount == replicaManager3->GetConnectionCount())
 			{
-				//PushMessage(RakNet::RakString("Connection attempt to ") + targetName + RakNet::RakString(" failed."));
+				//모든 플레이어가 접속하면 봇 생성
+				replicaManager3->Reference(playerBotReplica);
 			}
-			break;
-		case ID_GAME_MESSAGE_BALL_REQUEST: {
+		}
+		break;
+		case ID_CONNECTION_REQUEST_ACCEPTED:
+		{
+			isConnected = true;
+			serverSystemAddress = packet->systemAddress;
+			//SwitchNextScene() 에서 연결하는 것으로 변경
+		}
+		break;
+		case ID_CONNECTION_ATTEMPT_FAILED:
+		{
+			//PushMessage(RakNet::RakString("Connection attempt to ") + targetName + RakNet::RakString(" failed."));
+		}
+		break;
+		case ID_GAME_MESSAGE_BALL_REQUEST:
+		{
 			if (isServer) {
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
 				bsIn.IgnoreBytes(1);
@@ -1400,36 +1383,54 @@ void CDemo::UpdateRakNet(void)
 					packet->systemAddress.ToString(false, ipStr);
 					PrintStatistics(ipStr, ID_SERVER_NETWORK_RECEIVE, bulletCnt);
 				}
-	            
-				BallReplica *br = new BallReplica;
-	            br->demo=this;
+
+				BallReplica* br = new BallReplica;
+				br->demo = this;
 				br->position = pos;
-	            br->shotDirection=target;
-	            br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(pos, target);
+				br->shotDirection = target;
+				br->shotLifetime = RakNet::GetTimeMS() + shootFromOrigin(pos, target);
 				br->ownerGUID = packet->guid; // Set the owner GUID to the one who shot
 				br->bulletCount = bulletCnt;
-	            replicaManager3->Reference(br);
+				replicaManager3->Reference(br);
 			}
 			break;
 		}
+		case ID_GAME_MESSAGE_PLAYER_LIFE: {
+			RakNet::BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(1);
+
+			RakNet::RakNetGUID guid;
+			bool isDead;
+			bsIn.Read(guid);
+			bsIn.Read(isDead);
+
+			for (int idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
+			{
+				PlayerReplica* player = PlayerReplica::playerList[idx];
+				if (player->creatingSystemGUID == guid)
+				{
+					player->isDead = isDead;
+				}
+			}
+		}
+		}
+
+		// Call the Update function for networked game objects added to BaseIrrlichtReplica once the game is ready
+		if (currentScene >= 1)
+		{
+			//RakNet::TimeMS curTime = RakNet::GetTimeMS();  // 현재 시간
+			// 0.5초마다 shoot 호출
+			//if (!isServer && curTime - lastShootTime >= shootInterval)
+			//{
+			//	shoot();  // 기존 shoot 함수
+			//	lastShootTime = curTime;
+			//}
+
+			unsigned int idx;
+			for (idx = 0; idx < replicaManager3->GetReplicaCount(); idx++)
+				((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);
 		}
 	}
-
-	// Call the Update function for networked game objects added to BaseIrrlichtReplica once the game is ready
-	if (currentScene>=1)
-	{
-		//RakNet::TimeMS curTime = RakNet::GetTimeMS();  // 현재 시간
-		// 0.5초마다 shoot 호출
-		//if (!isServer && curTime - lastShootTime >= shootInterval)
-		//{
-		//	shoot();  // 기존 shoot 함수
-		//	lastShootTime = curTime;
-		//}
-
-		unsigned int idx;
-		for (idx=0; idx < replicaManager3->GetReplicaCount(); idx++)
-			((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);
-	}	
 }
 
 bool CDemo::IsKeyDown(EKEY_CODE keyCode) const {return KeyIsDown[keyCode];}
@@ -1461,7 +1462,6 @@ const char *CDemo::GetCurrentMessage(void)
 		whenOutputMessageStarted=curTime;
 	}
 
-	
 	if (outputMessages.GetSize()==0)
 	{
 		whenOutputMessageStarted=0;

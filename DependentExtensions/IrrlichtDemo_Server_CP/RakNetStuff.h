@@ -27,12 +27,16 @@
 #include "vector3d.h"
 #include "IAnimatedMeshSceneNode.h"
 #include "MessageIdentifiers.h"
+#include <vector>
+
+using namespace std;
 
 class ReplicaManager3Irrlicht;
 class CDemo;
 class PlayerReplica;
 class PlayerBotReplica;
 class DebugBoxSceneNode;
+class CollisionBoxQueueSceneNode;
 
 enum Topology
 {
@@ -49,6 +53,20 @@ enum PrintStatics {
 	ID_CLIENT_RENDERING_START = 5,
 };
 
+struct FrameState {
+	RakNet::TimeMS timeStamp;
+	irr::core::matrix4 collisionTransform;
+	irr::core::vector3df shotPosition;
+	irr::core::vector3df shotDirection;
+};
+
+struct CollDebugState {
+	RakNet::TimeMS timeStamp;
+	std::vector<irr::core::triangle3df> tris;
+	irr::s32 outCount;
+	irr::core::line3d<irr::f32> line;
+};
+
 // All externs defined in the corresponding CPP file
 // Most of these classes has a manual entry, all of them have a demo
 extern RakNet::RakPeerInterface *rakPeer; // Basic communication
@@ -59,13 +77,14 @@ extern RakNet::CloudClient *cloudClient; // Used to upload game instance to the 
 extern RakNet::FullyConnectedMesh2 *fullyConnectedMesh2; // Used to find out who is the session host
 extern PlayerReplica* playerReplica; // Network object that represents the player
 extern PlayerBotReplica* playerBotReplica; // Network object that represents the player
+extern CollisionBoxQueueSceneNode* collisionBoxQueue;
 
 // A NAT punchthrough and proxy server Jenkins Software is hosting for free, should usually be online
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_PORT 61111
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP "natpunch.slikesoft.com" //"natpunch.jenkinssoftware.com" ¥Î√º
 #define SERVER_PORT 20123
 
-void InstantiateRakNetClasses(bool isServer, bool isLogged);
+void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo);
 void DeinitializeRakNetClasses(bool isLogged, const char* baseDir);
 void SaveStatisticsToCSV(const char* baseDir);
 
@@ -77,6 +96,9 @@ void PrintStatistics(char* ipStr, PrintStatics id,int num);
 
 long long GetCurrentTimeMS();
 //RakString FormatTime(long long milliseconds);
+
+void DrawBoxTriangles(irr::scene::ITriangleSelector* selector, const irr::core::matrix4& transform, irr::video::IVideoDriver* driver);
+void DebugPrintf(const char* format, ...);
 
 // Base RakNet custom classes for Replica Manager 3, setup peer to peer networking
 class BaseIrrlichtReplica : public RakNet::Replica3
@@ -152,21 +174,28 @@ public:
 	irr::scene::IAnimatedMeshSceneNode* model;
 	irr::scene::EMD2_ANIMATION_TYPE curAnim;
 
-	// deathTimeout is set from the local player
+	// deathTimeout is set from the Server, and is used to determine if the player is dead
 	RakNet::TimeMS deathTimeout;
 	bool IsDead(void) const;
 	// isDead is set from network packets for remote players
 	bool isDead;
+	// wasDead is set from the Server, and is used to determine if the player was dead before
+	bool wasDead;
 
 	// List of all players, including our own
 	static DataStructures::List<PlayerReplica*> playerList;
-	
+	// for Time Warp
+	DataStructures::Queue<FrameState>* fq;
+
 	bool firstUpdate = true;
 	irr::core::vector3df replicatedCameraPos;
 	irr::core::vector3df replicatedCameraRot;
 
 	DebugBoxSceneNode* debugBox;
 
+	irr::core::vector3df shootPosition; // The position the player is shooting from, set by the client
+	irr::core::vector3df shootDirection; // The direction the player is shooting, set by the client	
+	irr::core::matrix4 collisionTransform;
 };
 class PlayerBotReplica : public PlayerReplica
 {
