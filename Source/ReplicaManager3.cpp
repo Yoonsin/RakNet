@@ -2225,12 +2225,12 @@ void Connection_RM3::SendConstruction(DataStructures::List<Replica3*> &newObject
 	bsOut.Reset();
 
 	// Construction TimeStamp
-	RakNet::Time t = RakNet::GetTimeMS();
-	if (t != 0)
-	{
-		bsOut.Write((MessageID)ID_TIMESTAMP);
-		bsOut.Write(t);
-	}
+	//RakNet::Time t = RakNet::GetTimeMS();
+	//if (t != 0)
+	//{
+	//	bsOut.Write((MessageID)ID_TIMESTAMP);
+	//	bsOut.Write(t);
+	//}
 
 	bsOut.Write((MessageID)ID_REPLICA_MANAGER_CONSTRUCTION);
 	bsOut.Write(worldId);

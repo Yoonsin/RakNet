@@ -48,7 +48,7 @@ Topology topology;
 PacketLogger* loggerPlugin;
 StatisticsHistoryPlugin* statisticsPlugin; // Used to track network statistics
 CollisionBoxQueueSceneNode* collisionBoxQueue;
-
+//int ping = -65555;
 class DebugBoxSceneNode : public scene::ISceneNode 
 {
 public:
@@ -232,22 +232,15 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo)
 
 	// Basis of all UDP communications
 	rakPeer=RakNet::RakPeerInterface::GetInstance();
-	
+	rakPeer->SetPacketReturnDelay(0);
 	// Using fixed port so we can use AdvertiseSystem and connect on the LAN if the server is not available.
 	RakNet::SocketDescriptor sd((topology==SERVER)? SERVER_PORT : 1234, 0);
 	sd.socketFamily = AF_INET; // Only IPV4 supports broadcast on 255.255.255.255
 	
-#ifdef __ANDROID__
 	if (topology == CLIENT) {
 		while (IRNS2_Berkley::IsPortInUse(sd.port, sd.hostAddress, sd.socketFamily, SOCK_DGRAM) == true)
 			sd.port++;
 	}
-#else
-	if (topology == CLIENT) {
-		while (IRNS2_Berkley::IsPortInUse(sd.port, sd.hostAddress, sd.socketFamily, SOCK_DGRAM) == true)
-			sd.port++;
-	}
-#endif // __ANDROID__
 
 	// +1 is for the connection to the NAT punchthrough server
 	RakNet::StartupResult sr;
@@ -296,9 +289,9 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo)
 
 	if (topology == CLIENT) {
 #if __ANDROID__
-		ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
+		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
-		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 #else
 		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
@@ -703,22 +696,28 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *ser
 	
 	if (topology == SERVER) {
 		//서버에서는 전달만
+		serializeParameters->outputBitstream[0].Write(true);
 		serializeParameters->outputBitstream[0].Write(shootPosition);
 		serializeParameters->outputBitstream[0].Write(shootDirection);
 	}
 	else {
 		scene::ISceneManager* sm = demo->GetSceneManager();
 		scene::ICameraSceneNode* camera = sm->getActiveCamera();
-		core::vector3df camPosition = camera->getPosition();
-		core::vector3df camAt = (camera->getTarget() - camPosition);
-		camAt.normalize();
-
-		serializeParameters->outputBitstream[0].Write(camPosition);
-		serializeParameters->outputBitstream[0].Write(camAt);
+		if (camera == nullptr) {
+			serializeParameters->outputBitstream[0].Write(false);
+		}
+		else {
+			serializeParameters->outputBitstream[0].Write(true);
+			core::vector3df camPosition = camera->getPosition();
+			core::vector3df camAt = (camera->getTarget() - camPosition);
+			camAt.normalize();
+			serializeParameters->outputBitstream[0].Write(camPosition);
+			serializeParameters->outputBitstream[0].Write(camAt);
+		}
 	}
 	
 	//timeStamp
-	serializeParameters->messageTimestamp = RakNet::GetTimeMS();
+	//serializeParameters->messageTimestamp = RakNet::GetTimeMS();
 	//return RM3SR_BROADCAST_IDENTICALLY; 
 	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //값이 안바뀌어도 계속 동기화됨
 }
@@ -730,9 +729,12 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters *deserializeParame
 	deserializeParameters->serializationBitstream[0].Read(position);
 	deserializeParameters->serializationBitstream[0].Read(rotationAroundYAxis);
 	deserializeParameters->serializationBitstream[0].Read(isMoving);
-	deserializeParameters->serializationBitstream[0].Read(shootPosition);
-	deserializeParameters->serializationBitstream[0].Read(shootDirection);
-
+	deserializeParameters->serializationBitstream[0].Read(isCreatedCamera);
+	if (isCreatedCamera) {
+		deserializeParameters->serializationBitstream[0].Read(shootPosition);
+		deserializeParameters->serializationBitstream[0].Read(shootDirection);
+	}
+	
 	// Is a locally created object?
 	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
@@ -789,10 +791,16 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	}
 
 	//record frame state
-	if (topology == SERVER)
+	if (topology == SERVER && isCreatedCamera)
 	{
 		if (fq == nullptr) return;
-
+		//if (creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
+		//	int tmp = rakPeer->GetLastPing(creatingSystemGUID);
+		//	if (ping != tmp) {
+		//		ping = tmp;
+		//		DebugPrintf("ping time : %d\n", ping);
+		//	}
+		//}
 		//서버는 현재 position
 		//클라는 동기화된 position
 		//camPosition, CameraAt 도 같이
@@ -813,6 +821,7 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 
 	// Update interpolation at Remote
 	RakNet::TimeMS elapsed = curTime-lastUpdate;
+	DebugPrintf("Update curTime : %d, lastUpdate : %d, elapsed time : %d, guid : %llu\n", curTime, lastUpdate, elapsed, creatingSystemGUID.g);
 	if (elapsed<=1)
 		return;
 	if (elapsed>100)
@@ -904,6 +913,11 @@ bool PlayerReplica::IsDead(void) const
 	return deathTimeout > RakNet::GetTimeMS();
 }
 
+PlayerBotReplica::PlayerBotReplica()
+{
+	botModel = 0;
+}
+
 void PlayerBotReplica::PreDestruction(RakNet::Connection_RM3* sourceConnection)
 {
 	PlayerReplica::PreDestruction(sourceConnection);
@@ -936,7 +950,7 @@ RM3SerializationResult PlayerBotReplica::Serialize(RakNet::SerializeParameters* 
 	serializeParameters->outputBitstream[0].Write(killPlayerName);
 
 	//timeStamp
-	serializeParameters->messageTimestamp = RakNet::GetTimeMS();
+	//serializeParameters->messageTimestamp = RakNet::GetTimeMS();
 	//return RM3SR_BROADCAST_IDENTICALLY; 
 	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //값이 안바뀌어도 계속 동기화됨
 }
@@ -1173,7 +1187,18 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 
 		// 충돌 검사
 		// TODO : Mobile은 getCollisionPoint 인수가 HitResult 구조체
+#ifdef __ANDROID__
+		scene::SCollisionHit hitResult;
+		bool hit = sm->getSceneCollisionManager()->getCollisionPoint(hitResult, line, selector);
+		hitPoint = hitResult.Intersection;
+		triangle = hitResult.Triangle;
+		hitNode = hitResult.Node;
+#else 
 		bool hit = sm->getSceneCollisionManager()->getCollisionPoint(line, selector, hitPoint, triangle, hitNode);
+#endif // __ANDROID__
+
+		
+		
 		selector->drop(); // drop 꼭 해주기
 
 		if (hit && hitNode && hitNode->getID() == static_cast<s32>(player->creatingSystemGUID.g))
@@ -1335,6 +1360,7 @@ void ReplicaManager3Irrlicht::PrintTimeGap(char* str) {
 
 void DebugPrintf(const char* format, ...)
 {
+#ifndef __ANDROID__
 	char buf[512];
 
 	va_list args;
@@ -1343,6 +1369,7 @@ void DebugPrintf(const char* format, ...)
 	va_end(args);
 
 	OutputDebugStringA(buf);
+#endif // __ANDROID__	
 }
 
 //Time Wrap

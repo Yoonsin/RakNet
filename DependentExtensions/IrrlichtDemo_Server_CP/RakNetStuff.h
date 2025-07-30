@@ -193,6 +193,7 @@ public:
 
 	DebugBoxSceneNode* debugBox;
 
+	bool isCreatedCamera;
 	irr::core::vector3df shootPosition; // The position the player is shooting from, set by the client
 	irr::core::vector3df shootDirection; // The direction the player is shooting, set by the client	
 	irr::core::matrix4 collisionTransform;
@@ -200,6 +201,7 @@ public:
 class PlayerBotReplica : public PlayerReplica
 {
 public:
+	PlayerBotReplica();
 	virtual void WriteAllocationID(RakNet::Connection_RM3* destinationConnection, RakNet::BitStream* allocationIdBitstream) const;
 
 	virtual RakNet::RM3ConstructionState QueryConstruction(RakNet::Connection_RM3* destinationConnection, RakNet::ReplicaManager3* replicaManager3);

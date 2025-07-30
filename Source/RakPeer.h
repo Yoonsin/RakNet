@@ -693,6 +693,16 @@ public:
 		enum ConnectMode {NO_ACTION, DISCONNECT_ASAP, DISCONNECT_ASAP_SILENTLY, DISCONNECT_ON_NO_ACK, REQUESTED_CONNECTION, HANDLING_CONNECTION_REQUEST, UNVERIFIED_SENDER, CONNECTED} connectMode;
 	};
 
+	//Incoming Delay
+	struct DelayPacket
+	{
+		Packet* packet;
+		RakNet::Time executeTime;
+	};
+	DataStructures::Queue<DelayPacket> packetReturnDelayQueue;
+	virtual void SetPacketReturnDelay(int Delay) { packetReturnDelayMS = Delay; }
+	int packetReturnDelayMS;
+
 	// DS_APR
 	//void ProcessChromePacket(RakNetSocket2 *s, const char *buffer, int dataSize, const SystemAddress& recvFromAddress, RakNet::TimeUS timeRead);
 	// /DS_APR

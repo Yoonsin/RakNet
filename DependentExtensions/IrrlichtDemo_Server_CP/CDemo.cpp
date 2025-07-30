@@ -378,6 +378,7 @@ void CDemo::run()
 			
 		}
 
+
 		// RakNet per 
 		// update
 		UpdateRakNet();
@@ -756,13 +757,6 @@ void CDemo::switchToNextScene()
 			//(클라이언트 측에서) 연결을 허락 받았을 때
 			//PushMessage(RakNet::RakString("Connection request to ") + targetName + RakNet::RakString(" accepted."));
 			//systemAddress에 할당되는 Connection 객체를 만들고
-			if (isConnected) {
-				RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(serverSystemAddress, rakPeer->GetGuidFromSystemAddress(serverSystemAddress));
-				//replicaManager3에 추적될 수 있도록 할당
-				replicaManager3->PushConnection(connection);
-				//객체 생성
-				replicaManager3->Reference(playerReplica);
-			}
 		}
 		break;
 	}
@@ -1341,7 +1335,7 @@ void CDemo::UpdateRakNet(void)
 		break;
 		case ID_NEW_INCOMING_CONNECTION:
 		{
-			//PushMessage(RakNet::RakString("Sending player list to new connection"));
+			PushMessage(RakNet::RakString("Sending player list to new connection"));
 			//systemAddress에 할당되는 Connection 객체를 만들고 
 			RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(packet->systemAddress, rakPeer->GetGuidFromSystemAddress(packet->systemAddress));
 			//replicaManager3에 추적될 수 있도록 할당
@@ -1358,7 +1352,15 @@ void CDemo::UpdateRakNet(void)
 		{
 			isConnected = true;
 			serverSystemAddress = packet->systemAddress;
-			//SwitchNextScene() 에서 연결하는 것으로 변경
+			if (isConnected) {
+				RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(serverSystemAddress, rakPeer->GetGuidFromSystemAddress(serverSystemAddress));
+				//replicaManager3에 추적될 수 있도록 할당
+				replicaManager3->PushConnection(connection);
+				//객체 생성
+				replicaManager3->Reference(playerReplica);
+			}
+			//SwitchNextScene() 에서 연결하는 것으로 변경 -> 왜 이렇게 바꾸자고 했지?
+			//그렇게 변경하면 수신 딜레이 적용시 timeout으로 연결 수립이 안됩니다..
 		}
 		break;
 		case ID_CONNECTION_ATTEMPT_FAILED:
@@ -1415,21 +1417,23 @@ void CDemo::UpdateRakNet(void)
 		}
 		}
 
-		// Call the Update function for networked game objects added to BaseIrrlichtReplica once the game is ready
-		if (currentScene >= 1)
-		{
-			//RakNet::TimeMS curTime = RakNet::GetTimeMS();  // 현재 시간
-			// 0.5초마다 shoot 호출
-			//if (!isServer && curTime - lastShootTime >= shootInterval)
-			//{
-			//	shoot();  // 기존 shoot 함수
-			//	lastShootTime = curTime;
-			//}
+		
+	}
 
-			unsigned int idx;
-			for (idx = 0; idx < replicaManager3->GetReplicaCount(); idx++)
-				((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);
-		}
+	// Call the Update function for networked game objects added to BaseIrrlichtReplica once the game is ready
+	if (currentScene >= 1)
+	{
+		//RakNet::TimeMS curTime = RakNet::GetTimeMS();  // 현재 시간
+		// 0.5초마다 shoot 호출
+		//if (!isServer && curTime - lastShootTime >= shootInterval)
+		//{
+		//	shoot();  // 기존 shoot 함수
+		//	lastShootTime = curTime;
+		//}
+
+		unsigned int idx;
+		for (idx = 0; idx < replicaManager3->GetReplicaCount(); idx++)
+			((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);
 	}
 }
 

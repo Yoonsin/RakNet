@@ -67,9 +67,6 @@ const float BALL_DIAMETER=25.0f;
 #include "RakString.h"
 #include "RakNetTime.h"
 
-
-
-
 class CDemo : public IEventReceiver
 {
 public:
