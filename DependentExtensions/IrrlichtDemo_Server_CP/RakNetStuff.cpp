@@ -294,8 +294,8 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo)
 		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 #else
-		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 		
 #endif // __ANDROID__
@@ -864,15 +864,15 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 			playerBotReplica->botModel->setPosition(playerBotReplica->position);
 			playerBotReplica->botModel->setRotation(core::vector3df(0, playerBotReplica->rotationAroundYAxis, 0));
 
-			if (playerBotReplica->position.X <= 530.00) demo->isKeyLock = true;
+			/*if (playerBotReplica->position.X <= 530.00) demo->isKeyLock = true;*/
 		}
 		else {
 			playerReplica->position = demo->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
 			playerReplica->rotationAroundYAxis = demo->GetSceneManager()->getActiveCamera()->getRotation().Y - 90.0f;
 
-			if (playerReplica->position.X <= 530.00) {
-				demo->isKeyLock = true;
-			}
+			//if (playerReplica->position.X <= 530.00) {
+			//	demo->isKeyLock = true;
+			//}
 			
 		}
 		
@@ -885,7 +885,7 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	    demo->EnableInput((topology == SERVER) ? IsDead() == false : isDead == false);
 
 		//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", position.X, position.Y, position.Z, demo->isKeyLock, demo->wasKeyLock);
-		//DebugPrintf("Player target : %f, %f, %f\n", demo->GetSceneManager()->getActiveCamera()->getTarget().X, demo->GetSceneManager()->getActiveCamera()->getTarget().Y, demo->GetSceneManager()->getActiveCamera()->getTarget().Z);
+		// DebugPrintf("Player target : %f, %f, %f\n", demo->GetSceneManager()->getActiveCamera()->getTarget().X, demo->GetSceneManager()->getActiveCamera()->getTarget().Y, demo->GetSceneManager()->getActiveCamera()->getTarget().Z);
 	
 		if (demo->gamePlatform == Holder) {
 			demo->SetHolderPosText(playerReplica->position);

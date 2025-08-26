@@ -287,12 +287,13 @@ void CDemo::run()
 	const int lwidth = device->getVideoDriver()->getScreenSize().Width - 20;
 #ifdef __ANDROID__
 	myNameRect = core::rect<int>(10, 50, 1000, 100);
-	holderPosRect = core::rect<int>(10, 110, 2000, 300);
+	holderPosRect = core::rect<int>(10, 60, 2000, 100);
+	//holderPosRect = core::rect<int>(10, 110, 2000, 300);
 	KillLogRect = core::rect<int>(lwidth - 550, 50, lwidth - 50, 700);
 #else
 	myNameRect = core::rect<int>(10, 0, 200, 30);
-	//holderPosRect = core::rect<int>(10, 40, 250, 70);  //Font
-	holderPosRect = core::rect<int>(0, 40, 640, 200);  //Big Font
+	holderPosRect = core::rect<int>(10, 40, 250, 70);  //Font
+	//holderPosRect = core::rect<int>(0, 40, 640, 200);  //Big Font
 
 	KillLogRect = core::rect<int>(lwidth - 100, 0, lwidth, 150);
 #endif // __ANDROID__
@@ -1126,11 +1127,11 @@ void CDemo::createLoadingScreen()
 	statusText->setOverrideColor(video::SColor(255,205,200,200));
 
 #ifdef __ANDROID__
-	//device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "bigfont.png"));
-	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "font_56px.xml"));
+	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "bigfont.png"));
+	//device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "font_56px.xml"));
 #else
-	//device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath+ "fonthaettenschweiler.bmp"));
-	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "font_24px.xml"));
+	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath+ "fonthaettenschweiler.bmp"));
+	//device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "font_24px.xml"));
 #endif
 
 
@@ -1742,8 +1743,8 @@ void CDemo::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform pla
 	switch (platform)
 	{
 	case GamePlatform::Holder: {
-		initPos = core::vector3df(618.605652, 389.012695 + 50, 81.900139);
-		initTarget = core::vector3df(615.039551, 395.019623, -674.768677);
+		initPos = core::vector3df(499.329315, 391.089996 + 50, 82.463745);
+		initTarget = core::vector3df(496.170868, 402.124542, -587.731873);
 	}
 		  break;
 	case GamePlatform::Shooter: {

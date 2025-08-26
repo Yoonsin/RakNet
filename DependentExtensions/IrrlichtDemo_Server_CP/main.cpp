@@ -34,14 +34,14 @@ int main(int argc, char* argv[])
 
 	bool isServer = false;
 	bool isLogged = false;
-	int logCount = 2;
+	int logCount = 1;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
 #else
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
 #endif
-	GamePlatform platform = GamePlatform::Shooter;
+	GamePlatform platform = GamePlatform::Holder;
 
 #ifdef _WIN32
 	/*_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);*/
