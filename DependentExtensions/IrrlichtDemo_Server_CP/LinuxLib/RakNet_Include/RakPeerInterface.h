@@ -605,6 +605,7 @@ public:
 	/// \internal
 	virtual bool SendOutOfBand(const char *host, unsigned short remotePort, const char *data, BitSize_t dataLength, unsigned connectionSocketIndex=0 )=0;
 
+	virtual void SetPacketReturnDelay(int Delay) = 0;
 }
 // #if defined(SN_TARGET_PSP2)
 // __attribute__((aligned(8)))

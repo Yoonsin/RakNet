@@ -23,12 +23,11 @@
 #include <chrono>
 
 #include <irrlicht.h>
-//#include <CSceneNodeAnimatorCameraFPS.h>
-//#include <CCameraSceneNode.h>
 #ifdef __linux__
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>   // memcpy, memset
 #endif
 
 
@@ -49,6 +48,7 @@ PacketLogger* loggerPlugin;
 StatisticsHistoryPlugin* statisticsPlugin; // Used to track network statistics
 CollisionBoxQueueSceneNode* collisionBoxQueue;
 //int ping = -65555;
+int score = 0;
 class DebugBoxSceneNode : public scene::ISceneNode 
 {
 public:
@@ -138,7 +138,7 @@ public:
 	virtual void render() {
 		video::IVideoDriver* driver = SceneManager->getVideoDriver();
 		video::SMaterial m;
-		m.Lighting = false;
+		m.Lighting = true;
 		driver->setMaterial(m);
 		// 기존 transform을 유지하고, 월드 좌표계로 설정
 		driver->setTransform(video::ETS_WORLD, core::IdentityMatrix);
@@ -148,23 +148,20 @@ public:
 		while (idx < q.Size() ) {
 			CollDebugState& item = q[idx];
 			for (int i = 0; i < item.outCount; ++i) {
-				driver->draw3DLine(item.tris[i].pointA, item.tris[i].pointB, irr::video::SColor(255, 255, 0, 0));
-				driver->draw3DLine(item.tris[i].pointB, item.tris[i].pointC, irr::video::SColor(255, 255, 0, 0));
-				driver->draw3DLine(item.tris[i].pointC, item.tris[i].pointA, irr::video::SColor(255, 255, 0, 0));
+				driver->draw3DLine(item.tris[i].pointA, item.tris[i].pointB, irr::video::SColor(255, 0, 0, 255));
+				driver->draw3DLine(item.tris[i].pointB, item.tris[i].pointC, irr::video::SColor(255, 0, 0, 255));
+				driver->draw3DLine(item.tris[i].pointC, item.tris[i].pointA, irr::video::SColor(255, 0, 0, 255));
 			}
-			driver->draw3DLine(item.line.start, item.line.end, irr::video::SColor(255, 0, 255, 0));
-			//DebugPrintf("Line start: (%.2f, %.2f, %.2f) → end: (%.2f, %.2f, %.2f)\n",
-			//	item.line.start.X, item.line.start.Y, item.line.start.Z,
-			//	item.line.end.X, item.line.end.Y, item.line.end.Z);
+			
+			if (item.line != irr::core::line3d<irr::f32>()) driver->draw3DLine(item.line.start, item.line.end, irr::video::SColor(255, 0, 255, 0));
 
-			if (now > item.timeStamp + DrawTimeout) q.RemoveAtIndex(idx); // 시간 초과된 항목 제거
+			if (now > item.timeStamp + item.drawTimeOut) q.RemoveAtIndex(idx); // 시간 초과된 항목 제거
 			else ++idx;
 		}
 	}
 	CDemo* demo;
 	DataStructures::Queue <CollDebugState> q;
 private:
-	RakNet::TimeMS DrawTimeout = 1000; // 1초 후에 사라짐
 };
 
 //Collision Check 용
@@ -220,6 +217,7 @@ const int HISTORY_DURATION_MS = 1000;
 
 // Take this many milliseconds to move the visible position to the real position
 static const float INTERP_TIME_MS=100.0f;
+static const int INGOING_TIME_MS = 0;
 
 void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo)
 {
@@ -232,7 +230,7 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo)
 
 	// Basis of all UDP communications
 	rakPeer=RakNet::RakPeerInterface::GetInstance();
-	rakPeer->SetPacketReturnDelay(0);
+	rakPeer->SetPacketReturnDelay(INGOING_TIME_MS);
 	// Using fixed port so we can use AdvertiseSystem and connect on the LAN if the server is not available.
 	RakNet::SocketDescriptor sd((topology==SERVER)? SERVER_PORT : 1234, 0);
 	sd.socketFamily = AF_INET; // Only IPV4 supports broadcast on 255.255.255.255
@@ -277,24 +275,27 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo)
 		playerBotReplica = new PlayerBotReplica;
 		playerBotReplica->demo = demo;
 		playerBotReplica->CreateBotModel();
-
-		scene::ISceneManager* smgr = demo->GetSceneManager();
-		collisionBoxQueue = new CollisionBoxQueueSceneNode(smgr->getRootSceneNode(), smgr);
-		collisionBoxQueue->demo = demo;
+		playerBotReplica->gamePlatform = demo->gamePlatform;
 	}
 	else {
 		playerReplica = new PlayerReplica;
 		playerReplica->demo = demo;
+		playerReplica->gamePlatform = demo->gamePlatform;
 	}
+
+	//Draw debug 
+	//scene::ISceneManager* smgr = demo->GetSceneManager();
+	//collisionBoxQueue = new CollisionBoxQueueSceneNode(smgr->getRootSceneNode(), smgr);
+	//collisionBoxQueue->demo = demo;
 
 	if (topology == CLIENT) {
 #if __ANDROID__
 		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
-		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
+		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 #else
-		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
-		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
+		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 		
 #endif // __ANDROID__
@@ -346,6 +347,8 @@ void DeinitializeRakNetClasses(bool isLogged, const char* baseDir)
 		delete playerReplica;
 		//delete loggerPlugin;
 	}
+
+	PrintOneLineNewline();
 }
 
 void PrintStatistics(bool isExportFile)
@@ -565,6 +568,37 @@ long long GetCurrentTimeMS()
 	return duration.count();
 }
 
+void DrawDebugFrame(const core::aabbox3df& boundingBox, core::vector3df position, float rotationAroundYAxis, scene::ISceneManager* sm, RakNet::RakNetGUID g, RakNet::TimeMS drawTimeOut)
+{
+	if (collisionBoxQueue == nullptr) return;
+	core::matrix4 transform;
+	transform.setTranslation(position);
+
+	core::matrix4 rotation;
+	rotation.setRotationDegrees(core::vector3df(0, rotationAroundYAxis, 0));
+
+	core::matrix4 scale;
+	scale.setScale(core::vector3df(1, 1, 1));
+
+	transform *= rotation;
+	transform *= scale;
+	
+	irr::scene::ITriangleSelector* selector = CreateSelectorFromTransformedBox(boundingBox, transform, sm, g);
+	DrawDebugFrame(selector, drawTimeOut, true);
+}
+
+void DrawDebugFrame(irr::scene::ITriangleSelector* selector, RakNet::TimeMS drawTimeOut, bool isDrop)
+{
+	if (collisionBoxQueue == nullptr) return;
+	const int maxTriangles = 512;
+	std::vector<irr::core::triangle3df> tris(maxTriangles);
+	s32 outCount = 0;
+	selector->getTriangles(tris.data(), maxTriangles, outCount, &core::IdentityMatrix);
+	CollDebugState item = { RakNet::GetTimeMS(),tris,outCount,irr::core::line3d<irr::f32>(), drawTimeOut };
+	collisionBoxQueue->q.Push(item, _FILE_AND_LINE_);
+	if(isDrop) selector->drop();
+}
+
 BaseIrrlichtReplica::BaseIrrlichtReplica()
 {
 }
@@ -600,6 +634,7 @@ PlayerReplica::PlayerReplica()
 	lastUpdate=RakNet::GetTimeMS();
 	isDead = false;
 	wasDead = false;
+	isBot = false;
 	playerList.Push(this,_FILE_AND_LINE_);
 	fq = new DataStructures::Queue<FrameState>();
 }
@@ -632,14 +667,14 @@ void PlayerReplica::SerializeConstruction(RakNet::BitStream *constructionBitstre
 {
 	BaseIrrlichtReplica::SerializeConstruction(constructionBitstream, destinationConnection);
 	constructionBitstream->Write(rotationAroundYAxis);
-	constructionBitstream->Write(playerName);
+	constructionBitstream->Write(gamePlatform);
 }
 bool PlayerReplica::DeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *sourceConnection)
 {
 	if (!BaseIrrlichtReplica::DeserializeConstruction(constructionBitstream, sourceConnection))
 		return false;
 	constructionBitstream->Read(rotationAroundYAxis);
-	constructionBitstream->Read(playerName);
+	constructionBitstream->Read(gamePlatform);
 	//demo->PushMessage(RakNet::RakString("Deserialize Construction"));
 	return true;
 }
@@ -693,7 +728,8 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *ser
 	serializeParameters->outputBitstream[0].Write(position);
 	serializeParameters->outputBitstream[0].Write(rotationAroundYAxis);
 	serializeParameters->outputBitstream[0].Write(isMoving);
-	
+	serializeParameters->outputBitstream[0].Write(gamePlatform);
+
 	if (topology == SERVER) {
 		//서버에서는 전달만
 		serializeParameters->outputBitstream[0].Write(true);
@@ -729,12 +765,14 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters *deserializeParame
 	deserializeParameters->serializationBitstream[0].Read(position);
 	deserializeParameters->serializationBitstream[0].Read(rotationAroundYAxis);
 	deserializeParameters->serializationBitstream[0].Read(isMoving);
+	deserializeParameters->serializationBitstream[0].Read(gamePlatform);
 	deserializeParameters->serializationBitstream[0].Read(isCreatedCamera);
 	if (isCreatedCamera) {
 		deserializeParameters->serializationBitstream[0].Read(shootPosition);
 		deserializeParameters->serializationBitstream[0].Read(shootDirection);
 	}
-	
+
+	RakNet::TimeMS curTime = RakNet::GetTimeMS();
 	// Is a locally created object?
 	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
@@ -748,7 +786,7 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters *deserializeParame
 		float rotationOffset;
 		rotationOffset = GetRotationDifference(rotationAroundYAxis, model->getRotation().Y);
 		rotationDeltaPerMS = rotationOffset / INTERP_TIME_MS;
-		interpEndTime = RakNet::GetTimeMS() + (RakNet::TimeMS)INTERP_TIME_MS;
+		interpEndTime = curTime + (RakNet::TimeMS)INTERP_TIME_MS;
 	}
 }
 void PlayerReplica::Update(RakNet::TimeMS curTime)
@@ -766,19 +804,76 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		}
 	}
 
+	//record frame state
+	if (topology == SERVER && isCreatedCamera)
+	{
+		if (fq == nullptr) return;
+		core::matrix4 transform;
+		transform.setTranslation(position);
+
+		core::matrix4 rotation;
+		rotation.setRotationDegrees(core::vector3df(0, rotationAroundYAxis, 0));
+
+		core::matrix4 scale;
+		scale.setScale(core::vector3df(1, 1, 1));
+
+		transform *= rotation;
+		transform *= scale;
+
+		//TODO : shootPosition, shootDirection 모두 position 처럼 보정을 해줄 필요가 있음
+		//TODO : 지금은 서버 봇이 총을 안쏴서 shoot 관련 변수가 0,0,0 으로 초기화되어 있음. 다만 나중에 총을 쏜다면 serialize~deserialize 시에 값 초기화 필요
+
+		FrameState frame{ curTime - (rakPeer->GetAveragePing(creatingSystemGUID) / 2), transform, shootPosition, shootDirection };
+		fq->Push(frame, _FILE_AND_LINE_);
+		//맨 앞에 남아있는 프레임부터 차례대로 검사 -> 현재 시간이랑 1초 이상 차이나면 버림
+		while (!fq->IsEmpty() && frame.timeStamp - fq->Peek().timeStamp > HISTORY_DURATION_MS)
+			fq->Pop();
+
+		//만약 이 플레이어가 Holder라면
+		if (gamePlatform == Holder) {
+			//현재 Shoooter가 Holder에게 총을 쐈을 때 
+			//Time Wrap가 적용되는 위치를 출력한다 (Shooter ~ Server 간 딜레이가 없다고 가정)
+			RakNet::TimeMS now = curTime - INTERP_TIME_MS;
+			core::vector3df printPos;
+			for (int frameIdx = 1; frameIdx < fq->Size(); frameIdx++)
+			{
+				if ((*fq)[frameIdx].timeStamp >= now) {
+					//now가 frameIdx-1 과 frameIdx 사이에 있으므로 보간
+					const FrameState& f0 = (*fq)[frameIdx - 1];
+					const FrameState& f1 = (*fq)[frameIdx];
+					float alpha = float(now - f0.timeStamp) / float(f1.timeStamp - f0.timeStamp);
+
+					//Shot Position 보간
+					//= f0.shotPosition.getInterpolated(f1.shotPosition, alpha);
+					printPos = f0.collisionTransform.getTranslation().getInterpolated(f1.collisionTransform.getTranslation(), alpha);
+					break;
+				}
+			}
+			PrintHoldPosOneLine(printPos.X, printPos.Y, printPos.Z);
+		}
+	}
+
 	// Is a locally created object?
 	// 이동 적용
 	if (creatingSystemGUID==rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
+		
 		if (topology == SERVER) {
 			playerBotReplica->position = demo->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
 			playerBotReplica->rotationAroundYAxis = demo->GetSceneManager()->getActiveCamera()->getRotation().Y - 90.0f;
 			playerBotReplica->botModel->setPosition(playerBotReplica->position);
 			playerBotReplica->botModel->setRotation(core::vector3df(0, playerBotReplica->rotationAroundYAxis, 0));
+
+			if (playerBotReplica->position.X <= 530.00) demo->isKeyLock = true;
 		}
 		else {
 			playerReplica->position = demo->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
 			playerReplica->rotationAroundYAxis = demo->GetSceneManager()->getActiveCamera()->getRotation().Y - 90.0f;
+
+			if (playerReplica->position.X <= 530.00) {
+				demo->isKeyLock = true;
+			}
+			
 		}
 		
 		// Local player has no mesh to interpolate
@@ -788,40 +883,24 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		// Ack, makes the screen messed up and the mouse move off the window
 		// Find another way to keep the dead player from moving
 	    demo->EnableInput((topology == SERVER) ? IsDead() == false : isDead == false);
-	}
 
-	//record frame state
-	if (topology == SERVER && isCreatedCamera)
-	{
-		if (fq == nullptr) return;
-		//if (creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
-		//	int tmp = rakPeer->GetLastPing(creatingSystemGUID);
-		//	if (ping != tmp) {
-		//		ping = tmp;
-		//		DebugPrintf("ping time : %d\n", ping);
-		//	}
-		//}
-		//서버는 현재 position
-		//클라는 동기화된 position
-		//camPosition, CameraAt 도 같이
-		core::matrix4 transform;
-		if(PlayerBotReplica* bot = dynamic_cast<PlayerBotReplica*>(this)) transform = bot->botModel->getAbsoluteTransformation();
-		else transform = this->model->getAbsoluteTransformation();
-		
-		//TODO : shootPosition, shootDirection 모두 position 처럼 보정을 해줄 필요가 있음
-		//TODO : 지금은 서버 봇이 총을 안쏴서 shoot 관련 변수가 0,0,0 으로 초기화되어 있음. 다만 나중에 총을 쏜다면 serialize~deserialize 시에 값 초기화 필요
-		FrameState frame{ curTime, transform, shootPosition, shootDirection };
-		fq->Push(frame, _FILE_AND_LINE_);
-		//맨 앞에 남아있는 프레임부터 차례대로 검사 -> 현재 시간이랑 1초 이상 차이나면 버림
-		while (!fq->IsEmpty() && frame.timeStamp - fq->Peek().timeStamp > HISTORY_DURATION_MS)
-			fq->Pop();
+		//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", position.X, position.Y, position.Z, demo->isKeyLock, demo->wasKeyLock);
+		//DebugPrintf("Player target : %f, %f, %f\n", demo->GetSceneManager()->getActiveCamera()->getTarget().X, demo->GetSceneManager()->getActiveCamera()->getTarget().Y, demo->GetSceneManager()->getActiveCamera()->getTarget().Z);
+	
+		if (demo->gamePlatform == Holder) {
+			demo->SetHolderPosText(playerReplica->position);
+		}
 	}
 
 	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) return;
 
+
+	//Debug Frame
+	DrawDebugFrame(demo->GetSyndeyBoundingBox(),position, rotationAroundYAxis, demo->GetSceneManager(), creatingSystemGUID, 500);
+
 	// Update interpolation at Remote
 	RakNet::TimeMS elapsed = curTime-lastUpdate;
-	DebugPrintf("Update curTime : %d, lastUpdate : %d, elapsed time : %d, guid : %llu\n", curTime, lastUpdate, elapsed, creatingSystemGUID.g);
+	//DebugPrintf("Update curTime : %d, lastUpdate : %d, elapsed time : %d, guid : %llu\n", curTime, lastUpdate, elapsed, creatingSystemGUID.g);
 	if (elapsed<=1)
 		return;
 	if (elapsed>100)
@@ -850,6 +929,15 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		model->setRotation(core::vector3df(0,rotationAroundYAxis,0));
 	}
 
+	//Print HolderPos
+	if (gamePlatform == Holder ) {
+		if (demo->gamePlatform == Shooter) {
+			//보간된 위치
+			demo->SetHolderPosText(model->getPosition());
+		}
+	}
+
+	//Set Animation
 	if ((topology == SERVER) ? IsDead(): isDead)
 	{
 		UpdateAnimation(scene::EMAT_DEATH_FALLBACK);
@@ -916,6 +1004,7 @@ bool PlayerReplica::IsDead(void) const
 PlayerBotReplica::PlayerBotReplica()
 {
 	botModel = 0;
+	isBot = true;
 }
 
 void PlayerBotReplica::PreDestruction(RakNet::Connection_RM3* sourceConnection)
@@ -947,7 +1036,6 @@ RM3SerializationResult PlayerBotReplica::Serialize(RakNet::SerializeParameters* 
 	serializeParameters->outputBitstream[0].Write(position);
 	serializeParameters->outputBitstream[0].Write(rotationAroundYAxis);
 	serializeParameters->outputBitstream[0].Write(isMoving);
-	serializeParameters->outputBitstream[0].Write(killPlayerName);
 
 	//timeStamp
 	//serializeParameters->messageTimestamp = RakNet::GetTimeMS();
@@ -962,8 +1050,6 @@ void PlayerBotReplica::Deserialize(RakNet::DeserializeParameters* deserializePar
 	deserializeParameters->serializationBitstream[0].Read(position);
 	deserializeParameters->serializationBitstream[0].Read(rotationAroundYAxis);
 	deserializeParameters->serializationBitstream[0].Read(isMoving);
-	RakString prevKillPlayerName = killPlayerName;
-	deserializeParameters->serializationBitstream[0].Read(killPlayerName);
 
 	// Is a locally created object?
 	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
@@ -1025,7 +1111,7 @@ void BallReplica::SerializeConstruction(RakNet::BitStream *constructionBitstream
 {
 	BaseIrrlichtReplica::SerializeConstruction(constructionBitstream, destinationConnection);
 	constructionBitstream->Write(shotDirection);
-	constructionBitstream->Write(ownerGUID);
+	constructionBitstream->Write(shooterName);
 	constructionBitstream->Write(bulletCount);
 	////TimeStamp
 	//constructionBitstream->Write(GetCurrentTimeMS());
@@ -1035,18 +1121,11 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream *constructionBitstre
 	if (!BaseIrrlichtReplica::DeserializeConstruction(constructionBitstream, sourceConnection))
 		return false;
 	constructionBitstream->Read(shotDirection);
-	constructionBitstream->Read(ownerGUID);
+	constructionBitstream->Read(shooterName);
 	constructionBitstream->Read(bulletCount);
 	//TimeStamp
 	//long long timeStampMS;
 	//constructionBitstream->Read(timeStampMS);
-
-//	//visual studio debugger
-//	char buffer[1024];
-//	snprintf(buffer, sizeof(buffer), "%lld\n", timeStampMS);
-//#ifdef _WIN32
-//OutputDebugStringA(buffer);
-//#endif
 
 	if (creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
@@ -1059,7 +1138,7 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream *constructionBitstre
 
 void BallReplica::PostSerializeConstruction(RakNet::BitStream* constructionBitstream, RakNet::Connection_RM3* destinationConnection)
 {
-	if (replicaManager3->isLog&&(ownerGUID==destinationConnection->GetRakNetGUID())) {
+	if (replicaManager3->isLog&&(creatingSystemGUID==destinationConnection->GetRakNetGUID())) {
 		// Start
 		char ipStr[64];
 		destinationConnection->GetSystemAddress().ToString(false, ipStr);
@@ -1070,7 +1149,7 @@ void BallReplica::PostSerializeConstruction(RakNet::BitStream* constructionBitst
 void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *destinationConnection)
 {
 	//time check
-	if (ownerGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
+	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
 		if (replicaManager3->isLog) {
 		PrintStatistics(nullptr, ID_CLIENT_NETWORK_RECEIVE, bulletCount);
 		demo->isBulletRendering = true;
@@ -1079,8 +1158,11 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 
 	// Shot visible effect and BallReplica classes are not linked, but they update the same way, such that
 	// they are in the same spot all the time
-	demo->shootFromOrigin(position, shotDirection);
-	if (topology != SERVER) return;
+	if (topology != SERVER) {
+		demo->shootFromOrigin(position, shotDirection);
+		return;
+	}
+
 	unsigned int idx;
 	scene::ISceneManager* sm = demo->GetSceneManager();
 	scene::ICameraSceneNode* camera = sm->getActiveCamera();
@@ -1095,9 +1177,9 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
     core::vector3df hitPoint;
     const scene::ISceneNode* hitNode;
 
-	RakNet::TimeMS now = RakNet::GetTimeMS() - (rakPeer->GetAveragePing(creatingSystemGUID) / 2); //-ping 
-	
-	DebugPrintf("now time : %u | RTT time : %u | RTT/2 time : %u | Client time : %u\n", RakNet::GetTimeMS(), rakPeer->GetAveragePing(creatingSystemGUID) ,(rakPeer->GetAveragePing(creatingSystemGUID) / 2), now);
+	RakNet::TimeMS now = RakNet::GetTimeMS() - (rakPeer->GetAveragePing(creatingSystemGUID) / 2) - INTERP_TIME_MS - INGOING_TIME_MS; //Rewind Time = Server Current Time - RTT/2 - Client View Interpolation Time - Ingoing Delay Time
+	bool wallHit = false;
+	core::vector3df wallHitPoint;
 	for (idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
 	{
 		auto* player = PlayerReplica::playerList[idx];
@@ -1113,7 +1195,7 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 				const FrameState& f1 = (*q)[frameIdx];
 				float alpha = float(now - f0.timeStamp) / float(f1.timeStamp - f0.timeStamp);
 
-				if (player->creatingSystemGUID == ownerGUID) {
+				if (player->creatingSystemGUID == creatingSystemGUID) {
 					//Shot Position 보간
 					start = f0.shotPosition.getInterpolated(f1.shotPosition, alpha);
 					//Shot Direction 보간 및 정규화
@@ -1121,6 +1203,9 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 					interpolatedShotDir.normalize();
 					end = start + (interpolatedShotDir * camera->getFarValue());
 					line.setLine(start, end);
+
+					//벽 충돌 판정 및 비주얼 애니메이션
+					demo->shootFromOrigin(start,interpolatedShotDir,start,end,wallHit,wallHitPoint);
 				}
 				else {
 					//Collision Transform 보간
@@ -1135,12 +1220,15 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 		// fallback 처리: 보간 실패 시 가장 최신 값 사용
 		if (!didTimeWarp && q->Size() >= 1) {
 			const FrameState& lastFrame = q->PeekTail();
-			if (player->creatingSystemGUID == ownerGUID) {
+			if (player->creatingSystemGUID == creatingSystemGUID) {
 				start = lastFrame.shotPosition;
 				core::vector3df dir = lastFrame.shotDirection;
 				dir.normalize();
 				end = start + dir * camera->getFarValue();
 				line.setLine(start, end);
+
+				//벽 충돌 판정 및 비주얼 애니메이션
+				demo->shootFromOrigin(lastFrame.shotPosition, lastFrame.shotDirection, start, end, wallHit, wallHitPoint);
 			}
 			else {
 				player->collisionTransform = lastFrame.collisionTransform;
@@ -1148,11 +1236,12 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 		}
 	}
 
+	
 	RakNet::TimeMS debugTime = RakNet::GetTimeMS();
 	for (idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
 	{
 		auto* player = PlayerReplica::playerList[idx];
-		if (player->creatingSystemGUID == ownerGUID) {
+		if (player->creatingSystemGUID == creatingSystemGUID) {
 			player->PlayAttackAnimation();
 			continue; // 총을 쏜 본인
 		}
@@ -1160,33 +1249,14 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 		scene::ITriangleSelector* selector = nullptr;
 		scene::ISceneNode* node = nullptr;
 
-		if (PlayerBotReplica* bot = dynamic_cast<PlayerBotReplica*>(player)) {
-			if (bot->IsDead()) continue;
-			selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), bot->collisionTransform, sm, bot->creatingSystemGUID);
-			node = bot->botModel;
-		}
-		else {
-			if (player->IsDead()) continue;
-			selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), player->collisionTransform, sm, player->creatingSystemGUID);
-			node = player->model;
-		}
+		if (player->IsDead()) continue;
+		selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), player->collisionTransform, sm, player->creatingSystemGUID);
 
-		if (selector == nullptr)
-			continue;
-		else {
-			//Collision Debug;
-			if (collisionBoxQueue != nullptr) {
-				const int maxTriangles = 512;
-				std::vector<irr::core::triangle3df> tris(maxTriangles);
-				s32 outCount = 0;
-				selector->getTriangles(tris.data(), maxTriangles, outCount, &core::IdentityMatrix);
-				CollDebugState item = { debugTime,tris,outCount,line };
-				collisionBoxQueue->q.Push(item, _FILE_AND_LINE_);
-			}
-		}
+		if (selector == nullptr) continue;
+		//DrawDebugFrame(selector, 1000);
+
 
 		// 충돌 검사
-		// TODO : Mobile은 getCollisionPoint 인수가 HitResult 구조체
 #ifdef __ANDROID__
 		scene::SCollisionHit hitResult;
 		bool hit = sm->getSceneCollisionManager()->getCollisionPoint(hitResult, line, selector);
@@ -1197,31 +1267,44 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 		bool hit = sm->getSceneCollisionManager()->getCollisionPoint(line, selector, hitPoint, triangle, hitNode);
 #endif // __ANDROID__
 
-		
-		
-		selector->drop(); // drop 꼭 해주기
+		selector->drop(); 
 
 		if (hit && hitNode && hitNode->getID() == static_cast<s32>(player->creatingSystemGUID.g))
 		{
-			player->deathTimeout = RakNet::GetTimeMS() + 3000;
+			if (wallHit) {
+				//벽에 부딫히면 플레이어 맞음 처리하면 안됨
+				float distToPlayer = line.start.getDistanceFrom(hitPoint);
+				float distToWall = line.start.getDistanceFrom(wallHitPoint);
+				//DebugPrintf("distToPlayer : %f, distToWall : %f\n", distToPlayer, distToWall);
+				if (distToWall < distToPlayer) continue;
+			}
+
+			player->deathTimeout = RakNet::GetTimeMS() + 200;
+			printf("HIT! : %d\n", ++score);
 			RakNet::RakString msg("%s Dead from : %s",
-				dynamic_cast<PlayerBotReplica*>(player) ? "Bot" : "Player",
+				player->isBot ? "Bot" : "Player",
 				rakPeer->GetSystemAddressFromGuid(creatingSystemGUID).ToString(true));
 			demo->PushMessage(msg);
 			//OutputDebugStringA(msg.C_String());
 			
 			RakNet::BitStream bs;
 			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_LIFE);
-			bs.Write(player->creatingSystemGUID);
+			bs.Write((creatingSystemGUID));       //Shooter 
 			bs.Write(player->IsDead());
 			player->wasDead = true;
+			bs.Write(player->creatingSystemGUID); //Holder
+			bs.Write(shooterName);                //Shooter Name
+			bs.Write(player->playerName);         //Holder Name
+			//TODO : 점수 득점도 포함하기
+
+			KillLog logEntry{ shooterName + RakNet::RakString(" -> ") + player->playerName + RakNet::RakString("\n"), RakNet::GetTimeMS() };
+			demo->killLogMessages.Push(logEntry, _FILE_AND_LINE_); // Record the kill log message
 
 			rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 			break; // 더 검사하지 않음
 		}
 	}
 
-	
 	// Hit Scan Only
 	//core::vector3df start = position;
 	//core::vector3df end = start + (shotDirection * camera->getFarValue());
@@ -1368,9 +1451,62 @@ void DebugPrintf(const char* format, ...)
 	vsnprintf(buf, sizeof(buf), format, args);
 	va_end(args);
 
+#ifdef _WIN32
 	OutputDebugStringA(buf);
+#endif // _WIN32
+
 #endif // __ANDROID__	
 }
+
+
+#ifdef __linux__
+// 한 줄만 갱신 (out: '\r' + "문자열" + 필요 시 공백패딩), syscall 1회
+static inline void PrintHoldPosOneLine(float x, float y, float z)
+{
+	static int last_len = 0;           // 이전에 찍은 문자열 길이(잔상 지우기용)
+	char msg[128];
+
+	int msg_len = snprintf(msg, sizeof(msg),
+		"Hold Pos : %.2f, %.2f, %.2f", x, y, z);
+	if (msg_len < 0) return;
+	if (msg_len > (int)sizeof(msg))    // (이상 방지: 잘릴 일은 사실상 없음)
+		msg_len = (int)sizeof(msg);
+
+	char out[256];
+	int n = 0;
+
+	out[n++] = '\r';                   // 커서를 현재 줄 맨 앞으로
+	memcpy(out + n, msg, msg_len);     // 새 내용 복사
+	n += msg_len;
+
+	// 이전 줄이 더 길었으면 남은 꼬리 지우기(공백으로 덮어쓰기)
+	int pad = last_len - msg_len;
+	if (pad > 0) {
+		memset(out + n, ' ', pad);
+		n += pad;
+	}
+
+	// 최종: write() 1회
+	write(STDOUT_FILENO, out, n);
+
+	last_len = msg_len;
+}
+
+// (선택) 출력 마무리로 줄을 고정하고 싶을 때 호출
+static inline void PrintOneLineNewline(void) {
+	write(STDOUT_FILENO, "\n", 1);
+}
+#else
+// ── Windows / 기타 플랫폼: no-op ──────────────────────────────────────
+static inline void PrintHoldPosOneLine(float x, float y, float z) {
+	(void)x; (void)y; (void)z; // 경고 억제
+	// no-op
+}
+static inline void PrintOneLineNewline(void) {
+	// no-op
+}
+
+#endif // __linux__
 
 //Time Wrap
 			//if (topology == SERVER) {

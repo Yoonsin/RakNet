@@ -18,20 +18,19 @@
       "cmakeExecutable": "cmake",
       "remoteCopySourcesExclusionList": [ ".vs", ".git", "out" ],
       "cmakeCommandArgs": "",
-      "buildCommandArgs": "",//"C:\\GitHub\\RakNet\\copy_files.bat", //로컬 RakNet의 include file을 LinuxLib의 include file에 삽입 
+      "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "buildRoot": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib", //프로젝트 파일에 옮겨 넣을 수 있도록
+      "buildRoot": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib",
       "installRoot": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\install\\${name}",
       "inheritEnvironments": [ "linux_x64" ],
-      "remoteMachineName": "-779549207;192.168.0.20 (username=parts, port=22, authentication=Password)",
+      "remoteMachineName": "-2116054852;192.168.1.2 (username=parts, port=22, authentication=Password)",
       "remoteCMakeListsRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/src",
       "remoteBuildRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/out/build/${name}",
       "remoteInstallRoot": "$HOME/.vs/${projectDirName}/${workspaceHash}/out/install/${name}",
       "remoteCopySources": true,
       "rsyncCommandArgs": "-t --delete",
       "remoteCopyBuildOutput": true,
-      "remoteCopySourcesMethod": "rsync",
-      "variables": []
+      "remoteCopySourcesMethod": "rsync"
     }
   ]
 }

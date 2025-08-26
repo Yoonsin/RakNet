@@ -29,6 +29,7 @@
 #include "MessageIdentifiers.h"
 #include <vector>
 
+
 using namespace std;
 
 class ReplicaManager3Irrlicht;
@@ -42,6 +43,12 @@ enum Topology
 {
 	CLIENT,
 	SERVER
+};
+
+enum GamePlatform {
+	Shooter,
+	Holder,
+	Server
 };
 
 enum PrintStatics {
@@ -65,6 +72,7 @@ struct CollDebugState {
 	std::vector<irr::core::triangle3df> tris;
 	irr::s32 outCount;
 	irr::core::line3d<irr::f32> line;
+	RakNet::TimeMS drawTimeOut;
 };
 
 // All externs defined in the corresponding CPP file
@@ -99,6 +107,12 @@ long long GetCurrentTimeMS();
 
 void DrawBoxTriangles(irr::scene::ITriangleSelector* selector, const irr::core::matrix4& transform, irr::video::IVideoDriver* driver);
 void DebugPrintf(const char* format, ...);
+
+void DrawDebugFrame(const irr::core::aabbox3df& boundingBox, irr::core::vector3df position, float rotationAroundYAxis, irr::scene::ISceneManager* sm, RakNet::RakNetGUID g, RakNet::TimeMS drawTimeOut);
+void DrawDebugFrame(irr::scene::ITriangleSelector* selector, RakNet::TimeMS drawTimeOut, bool isDrop = false);
+
+static inline void PrintHoldPosOneLine(float x, float y, float z);
+static inline void PrintOneLineNewline(void);
 
 // Base RakNet custom classes for Replica Manager 3, setup peer to peer networking
 class BaseIrrlichtReplica : public RakNet::Replica3
@@ -182,6 +196,8 @@ public:
 	// wasDead is set from the Server, and is used to determine if the player was dead before
 	bool wasDead;
 
+	bool isBot;
+
 	// List of all players, including our own
 	static DataStructures::List<PlayerReplica*> playerList;
 	// for Time Warp
@@ -197,6 +213,8 @@ public:
 	irr::core::vector3df shootPosition; // The position the player is shooting from, set by the client
 	irr::core::vector3df shootDirection; // The direction the player is shooting, set by the client	
 	irr::core::matrix4 collisionTransform;
+
+	GamePlatform gamePlatform;
 };
 class PlayerBotReplica : public PlayerReplica
 {
@@ -214,8 +232,6 @@ public:
 	virtual void Deserialize(RakNet::DeserializeParameters* deserializeParameters);
 
 	void CreateBotModel();
-
-	RakNet::RakString killPlayerName; // The player that this bot is trying to kill, set by the server
 	irr::scene::IAnimatedMeshSceneNode* botModel; // bot Àü¿ë Model 
 };
 class BallReplica : public BaseIrrlichtReplica
@@ -250,9 +266,8 @@ public:
 	// shotlifetime is calculated, not networked
 	RakNet::TimeMS shotLifetime;
 
-	RakNet::RakNetGUID ownerGUID; 
-	
 	int bulletCount;
+	RakNet::RakString shooterName;
 };
 class Connection_RM3Irrlicht : public RakNet::Connection_RM3 {
 public:

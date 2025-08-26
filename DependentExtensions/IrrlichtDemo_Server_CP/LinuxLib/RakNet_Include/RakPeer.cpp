@@ -216,7 +216,7 @@ RakPeer::RakPeer()
 	endThreads = true;
 	isMainLoopThreadActive = false;
 	incomingDatagramEventHandler=0;
-
+	packetReturnDelayMS = 0;
 
 
 
@@ -1536,15 +1536,47 @@ Packet* RakPeer::Receive( void )
 
 	do
 	{
-		packetReturnMutex.Lock();
-		if (packetReturnQueue.IsEmpty())
-			packet=0;
-		else
-			packet = packetReturnQueue.Pop();
-		packetReturnMutex.Unlock();
-		if (packet==0)
-			return 0;
+		if (packetReturnDelayMS == 0) {
+			packetReturnMutex.Lock();
+			if (packetReturnQueue.IsEmpty())
+				packet=0;
+			else
+				packet = packetReturnQueue.Pop();
+			packetReturnMutex.Unlock();
+			if (packet==0)
+				return 0;
+		}
+		else {
+			packetReturnMutex.Lock();
+			if (!packetReturnQueue.IsEmpty()) {
+				//OutputDebugStringA("[PacketReturnQueue] Not Empty in the PacketReturnQueue.\n");
+				DelayPacket delayPacket = { packetReturnQueue.Pop(), RakNet::GetTime() + packetReturnDelayMS };
+				packetReturnDelayQueue.Push(delayPacket, _FILE_AND_LINE_);
+			}
+			packetReturnMutex.Unlock();
+			if (!packetReturnDelayQueue.IsEmpty() && packetReturnDelayQueue.Peek().executeTime <= RakNet::GetTime()) {
+				packet = packetReturnDelayQueue.Pop().packet;
 
+				// 패킷이 유효하고 길이가 충분한 경우 ID 출력
+		/*		if (packet && packet->length >= 1) {
+					unsigned char msgId = packet->data[0];
+					char debugStr[128];
+					sprintf(debugStr, "[DelayQueue] Next packet ID: 0x%02X (decimal: %d)\n", msgId, msgId);
+					OutputDebugStringA(debugStr);
+				}
+				else {
+					OutputDebugStringA("[DelayQueue] Next packet is invalid or too short.\n");
+				}*/
+			}
+			else {
+				/*if (packetReturnDelayQueue.IsEmpty()) OutputDebugStringA("[DelayQueue] empty.\n");
+				if (!packetReturnDelayQueue.IsEmpty() && packetReturnDelayQueue.Peek().executeTime > RakNet::GetTime())  OutputDebugStringA("[DelayQueue] execute time > now.\n");*/
+				packet = 0;
+			}
+			if (packet == 0)
+				return 0;
+		}
+		
 //		unsigned char msgId;
 		if ( ( packet->length >= sizeof(unsigned char) + sizeof( RakNet::Time ) ) &&
 			( (unsigned char) packet->data[ 0 ] == ID_TIMESTAMP ) )

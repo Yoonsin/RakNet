@@ -700,7 +700,8 @@ void CDemo::CalculateSyndeyBoundingBox(void)
 	mesh = sm->getMesh(IRRLICHT_MEDIA_PATH "sydney.md2");
 	irr::scene::IAnimatedMeshSceneNode* model;
 	model = sm->addAnimatedMeshSceneNode(mesh, 0);
-	model->setScale(core::vector3df(2,2,2));
+	//model->setScale(core::vector3df(2, 2, 2));
+	model->setScale(core::vector3df(1,1,1));
 	// Bounding box changed in Irrlicht 1.5.1
 	core::aabbox3df modelBoundingBox = model->getMesh()->getBoundingBox();
 	// core::aabbox3df modelBoundingBox = model->getBoundingBox();

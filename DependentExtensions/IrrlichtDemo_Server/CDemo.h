@@ -73,6 +73,7 @@ public:
 	bool IsMovementKeyDown(void) const;
 	// RakNet: Decouple the origin of the shot from the camera, so the network code can use this same graphical effect
 	RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt);
+	
 	const core::aabbox3df& GetSyndeyBoundingBox(void) const;
 	void PlayDeathSound(core::vector3df position);
 	void EnableInput(bool enabled);

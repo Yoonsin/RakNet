@@ -34,15 +34,14 @@ int main(int argc, char* argv[])
 
 	bool isServer = false;
 	bool isLogged = false;
-	int logCount = 1;
+	int logCount = 2;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
 #else
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
 #endif
-
-	CDemo::GamePlatform platform = CDemo::GamePlatform::PC;
+	GamePlatform platform = GamePlatform::Shooter;
 
 #ifdef _WIN32
 	/*_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);*/
@@ -65,6 +64,7 @@ int main(int argc, char* argv[])
 	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer))
 		//#endif
 	{
+		if (isServer) platform = GamePlatform::Server;
 		demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir);
 		demo->run();
 		delete demo;
@@ -73,6 +73,7 @@ int main(int argc, char* argv[])
 #else
 	isServer = true;
 	vsync = true;
+	if (isServer) platform = GamePlatform::Server;
 
 	// 명령행 인수를 처리하여 isLogged 값 설정
 	for (int i = 1; i < argc; ++i) {

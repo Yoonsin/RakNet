@@ -85,6 +85,9 @@ using namespace gui;
 
 CDemo* demo = nullptr;
 
+/* Raknet stuff */
+#include "RakNetStuff.h"
+
 /**
  * Our saved state data.
  */
@@ -487,7 +490,7 @@ void android_main(android_app* state) {
     core::stringw playerName;
     bool isServer = false;
     video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
-	CDemo::GamePlatform platform = CDemo::GamePlatform::Android;
+	GamePlatform platform = GamePlatform::Holder;
     bool isLogged = false;
     int logCount = 1;
     
@@ -498,7 +501,6 @@ void android_main(android_app* state) {
     demo->run();
     delete demo;
     demo = nullptr;
-
 }
 
 #else

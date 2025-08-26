@@ -13,8 +13,6 @@
 #include "Itoa.h"
 #include "RakNetSmartPtr.h"
 
-//#include <CSceneNodeAnimatorCameraFPS.h>
-
 
 
 #ifdef __ANDROID__
@@ -83,16 +81,25 @@ public:
 //#include "upnpcommands.h"
 //#include "upnperrors.h"
 
+static inline core::vector3df DirToEuler(const core::vector3df& pos, const core::vector3df& tgt) {
+	core::vector3df d = tgt - pos; d.normalize();
+	const f32 RAD2DEG = 180.0f / core::PI;
+	f32 yaw = atan2f(d.Z, d.X) * RAD2DEG;   // Y축 회전
+	f32 pitch = -asinf(d.Y) * RAD2DEG;        // X축 회전(위로 보면 -)
+	return core::vector3df(pitch, yaw, 0.f);
+}
+
+
 CDemo::CDemo(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw &_playerName, bool isS, GamePlatform plat, bool isLog, int logCnt, const char* base)
 : fullscreen(f), music(m), shadows(s), additive(a), vsync(v), aa(fsaa),
-driverType(d), device(0), playerName(_playerName), isServer(isS), platform(plat), isLogged(isLog), logCount(logCnt), baseDir(base),
+driverType(d), device(0), playerName(_playerName), isServer(isS), gamePlatform(plat), isLogged(isLog), logCount(logCnt), baseDir(base),
 #ifdef USE_IRRKLANG
 	irrKlang(0), ballSound(0), impactSound(0),
 #endif
 #ifdef USE_SDL_MIXER
 	stream(0), ballSound(0), impactSound(0),
 #endif
- currentScene(-2), backColor(0), statusText(0), inOutFader(0),
+	currentScene(-2), backColor(0), statusText(0), inOutFader(0), killLogText(0), myNameText(0), holderPosText(0),
  quakeLevelMesh(0), quakeLevelNode(0), skyboxNode(0), model1(0), model2(0),
  campFire(0), metaSelector(0), mapSelector(0), sceneStartTime(0),
  timeForThisScene(0), whenOutputMessageStarted(0), isConnectedToNATPunchthroughServer(false)
@@ -113,6 +120,8 @@ driverType(d), device(0), playerName(_playerName), isServer(isS), platform(plat)
 
 	bulletCount = 0;
 	isBulletRendering = false;
+	isKeyLock = false;
+	wasKeyLock = false;
 }
 
 
@@ -246,7 +255,7 @@ void CDemo::run()
 	bool horizontal = false;
 	//JoyStickElement* joyStick = new JoyStickElement(drawer, env, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,false, AppSkin::DEFAULT_AGGREGATABLE,video::SColor(255,255,255,255),NULL,NULL,testArea3);
 	AggregateGUIElement* a3 = new AggregateGUIElement(guienv, 1.f, 1.f, 1.f, 1.f, true, horizontal, scrollable, {
-		new JoyStickElement(drawer, guienv, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,true,  AppSkin::DEFAULT_AGGREGATABLE, video::SColor(255,255,255,255), static_cast<void*>(&KeyIsDown)) },
+		new JoyStickElement(drawer, guienv, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,true,  AppSkin::DEFAULT_AGGREGATABLE, video::SColor(255,255,255,255),  static_cast<void*>(&isKeyLock)) },
 		{}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea3);
 
 	//AppSkin::DEFAULT_AGGREGATABLE
@@ -272,6 +281,33 @@ void CDemo::run()
 #endif // __ANDROID__
 	}
 
+	core::rect<int> myNameRect;
+	core::rect<int> KillLogRect;
+	core::rect<int> holderPosRect;
+	const int lwidth = device->getVideoDriver()->getScreenSize().Width - 20;
+#ifdef __ANDROID__
+	myNameRect = core::rect<int>(10, 50, 1000, 100);
+	holderPosRect = core::rect<int>(10, 110, 2000, 300);
+	KillLogRect = core::rect<int>(lwidth - 550, 50, lwidth - 50, 700);
+#else
+	myNameRect = core::rect<int>(10, 0, 200, 30);
+	//holderPosRect = core::rect<int>(10, 40, 250, 70);  //Font
+	holderPosRect = core::rect<int>(0, 40, 640, 200);  //Big Font
+
+	KillLogRect = core::rect<int>(lwidth - 100, 0, lwidth, 150);
+#endif // __ANDROID__
+
+	myNameText = device->getGUIEnvironment()->addStaticText(L"My Name : ", myNameRect);
+	myNameText->setOverrideColor(video::SColor(255, 255, 255, 255));
+
+	wchar_t* killText = L"";
+	killLogText = device->getGUIEnvironment()->addStaticText(killText, KillLogRect);
+	killLogText->setOverrideColor(video::SColor(255, 255, 255, 255));
+
+	holderPosText = device->getGUIEnvironment()->addStaticText(L"Holder Position : ", holderPosRect);
+	holderPosText->setOverrideColor(video::SColor(255, 255, 255, 255));
+	holderPosText->setBackgroundColor(video::SColor(255, 0, 0, 0));
+
 	// RakNet startup
 	//char dest[1024];
 	//memset(dest,0,sizeof(dest));
@@ -281,12 +317,8 @@ void CDemo::run()
 
 	CalculateSyndeyBoundingBox();
 
-	// draw everything
-	char strDisplay_2[100];
-	sprintf(strDisplay_2, "Rendering Scene");
-	logger->log(strDisplay_2);
-
 	s32 now = 0;
+
 #ifdef __ANDROID__
 	//에뮬레이터에서 getTime이 0을 반환하므로 임의로 설정
 	sceneStartTime = device->getTimer()->getTime();
@@ -375,7 +407,19 @@ void CDemo::run()
 				//statusText->setText(tmp);
 				statusText->setText(0);
 			}
-			
+
+			RakNet::RakString KillMsg = GetCurrentKillLogMessage();
+			if (KillMsg.IsEmpty() == false)
+			{
+				wchar_t dest[500];
+				memset(dest, 0, sizeof(dest));
+				mbstowcs(dest, KillMsg.C_String(), KillMsg.GetLength());
+				killLogText->setText(dest);
+			}
+			else
+			{
+				killLogText->setText(0);
+			}
 		}
 
 
@@ -400,6 +444,12 @@ void CDemo::run()
 		//		}
 		//	}
 		//}
+		
+		//if (GetSceneManager()->getActiveCamera()) {
+		//	DebugPrintf("Player position : %f, %f, %f\n", GetSceneManager()->getActiveCamera()->getPosition().X, GetSceneManager()->getActiveCamera()->getPosition().Y, GetSceneManager()->getActiveCamera()->getPosition().Z);
+		//	DebugPrintf("Player target : %f, %f, %f\n", GetSceneManager()->getActiveCamera()->getTarget().X, GetSceneManager()->getActiveCamera()->getTarget().Y, GetSceneManager()->getActiveCamera()->getTarget().Z);
+		//}
+
 	}
 
 	// RakNet shutdown
@@ -433,9 +483,9 @@ bool CDemo::OnEvent(const SEvent& event)
 					}
 					else
 					if (jump_button && jump_button->isPointInside(touchPoint)) {
-						KeyIsDown[KEY_SPACE] = true;
-						fakeKeyEvent.KeyInput.Key = KEY_SPACE;
-						fakeKeyEvent.KeyInput.PressedDown = true;
+						//KeyIsDown[KEY_SPACE] = true;
+						//fakeKeyEvent.KeyInput.Key = KEY_SPACE;
+						//fakeKeyEvent.KeyInput.PressedDown = true;
 						curTouchID.jump = id;
 					}
 					else
@@ -450,9 +500,9 @@ bool CDemo::OnEvent(const SEvent& event)
 						isRotate = true;
 						if (fpsCamAnim) {
 							fpsCamAnim->isRotate = isRotate;
-							fpsCamAnim->TouchStartPos = touchPoint;
-							fpsCamAnim->TouchCurrentPos = touchPoint;
-							fpsCamAnim->startRotation = fpsCamAnim->relativeRotation;
+							//fpsCamAnim->TouchStartPos = touchPoint;
+							//fpsCamAnim->TouchCurrentPos = touchPoint;
+							//fpsCamAnim->startRotation = fpsCamAnim->relativeRotation;
 						}
 						curTouchID.viewRotate = id;
 					}
@@ -475,7 +525,7 @@ bool CDemo::OnEvent(const SEvent& event)
 				}
 				else {
 					if (fpsCamAnim) {
-							fpsCamAnim->TouchCurrentPos = touchPoint;
+							//fpsCamAnim->TouchCurrentPos = touchPoint;
 					}
 				}
 			}
@@ -489,9 +539,16 @@ bool CDemo::OnEvent(const SEvent& event)
 				}
 				else
 				if (jump_button && jump_button->isPointInside(touchPoint) && id == curTouchID.jump) {
-					KeyIsDown[KEY_SPACE] = false;
-					fakeKeyEvent.KeyInput.Key = KEY_SPACE;
-					fakeKeyEvent.KeyInput.PressedDown = false;
+					//KeyIsDown[KEY_SPACE] = false;
+					//fakeKeyEvent.KeyInput.Key = KEY_SPACE;
+					//fakeKeyEvent.KeyInput.PressedDown = false;
+					if (GetSceneManager()->getActiveCamera())
+					{
+						GetSceneManager()->getActiveCamera()->setPosition(initPos);
+						GetSceneManager()->getActiveCamera()->setTarget(initTarget);
+						isKeyLock = false;
+					}
+					
 					curTouchID.jump = -1;
 				}
 				else
@@ -544,7 +601,40 @@ bool CDemo::OnEvent(const SEvent& event)
 #else
 if (!device)
 return false;
-	// Remember whether each key is down or up
+
+if (isKeyLock && !wasKeyLock) {
+	FlushMovementKeys();   // 잠금 켜질 때 즉시 정지
+	wasKeyLock = true;
+}
+else if (!isKeyLock && wasKeyLock) {
+	wasKeyLock = false;    // 잠금 해제됨
+}
+
+//잠금 중에는 입력 기록/전달을 차단 (화이트리스트 키만 허용)
+if (isKeyLock) {
+	// 허용할 키(예: ESC, F9, R)만 통과
+	if (event.EventType == EET_KEY_INPUT_EVENT) {
+		const auto key = event.KeyInput.Key;
+		const bool down = event.KeyInput.PressedDown;
+
+		const bool allow =
+			key == KEY_ESCAPE ||
+			key == KEY_F9 ||
+			key == KEY_KEY_R;
+
+		if (!allow) {
+			// 눌림은 무시, 떼는 입력은 내부 상태만 false로 정리
+			if (!down) KeyIsDown[key] = false;
+			return true;   // 이벤트 소비
+		}
+	}
+	// 마우스(회전/사격)도 차단
+	if (event.EventType == EET_MOUSE_INPUT_EVENT) {
+		return true;       // 이벤트 소비
+	}
+}
+
+// Remember whether each key is down or up
 	if (event.EventType == irr::EET_KEY_INPUT_EVENT)
 		KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
 
@@ -597,11 +687,11 @@ return false;
 				shoot();
 			}
 		}
-		else
-			if (event.EventType == EET_KEY_INPUT_EVENT &&
-				event.KeyInput.Key == KEY_F9 &&
-				event.KeyInput.PressedDown == false)
-			{
+	else
+		if (event.EventType == EET_KEY_INPUT_EVENT &&
+			event.KeyInput.Key == KEY_F9 &&
+			event.KeyInput.PressedDown == false)
+		{
 				video::IImage* image = device->getVideoDriver()->createScreenShot();
 				if (image)
 				{
@@ -613,13 +703,36 @@ return false;
 					device->getVideoDriver()->writeImageToFile(image, "screenshot.pcx");
 					image->drop();
 				}
+		}
+	else
+		if (
+				event.EventType == EET_KEY_INPUT_EVENT &&
+				event.KeyInput.Key == KEY_KEY_R &&
+				event.KeyInput.PressedDown == false)
+		{
+			if (auto* cam = device->getSceneManager()->getActiveCamera()) {
+				cam->setPosition(initPos);
+				cam->setTarget(initTarget);
+				isKeyLock = false;
+				FlushMovementKeys(); //리셋 시에도 모든 이동키 해제
+
 			}
-			else
-				if (device->getSceneManager()->getActiveCamera())
-				{
-					device->getSceneManager()->getActiveCamera()->OnEvent(event);
-					return true;
-				}
+		}
+	else
+		if (device->getSceneManager()->getActiveCamera())
+		{
+			if (isKeyLock)
+				return true; // 여기서 바로 빠져나가면 기존 방향으로 계속 이동하지 않음
+
+			if (event.EventType == EET_MOUSE_INPUT_EVENT) {
+				/*if(isServer == false) device->getSceneManager()->getActiveCamera()->OnEvent(event);*/
+			}
+			else if (event.EventType == EET_KEY_INPUT_EVENT) {
+				//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", GetSceneManager()->getActiveCamera()->getPosition().X, GetSceneManager()->getActiveCamera()->getPosition().Y, GetSceneManager()->getActiveCamera()->getPosition().Z, isKeyLock, wasKeyLock);
+				device->getSceneManager()->getActiveCamera()->OnEvent(event);
+			}
+			return true;
+		}
 
 	
 #endif //__ANDROID__
@@ -701,9 +814,9 @@ void CDemo::switchToNextScene()
 			keyMap[9].KeyCode = KEY_KEY_0;
 			keyMap[10].Action = EKA_ROTATE_RIGHT;
 			keyMap[10].KeyCode = KEY_KEY_1;
-			//camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //기본 플레이
-			camera = sm->addCameraSceneNode(0, core::vector3df(200, 140, 100), core::vector3df(100, 130, 0)); //시점 고정
-			//todo: 기본 플레이 시에는 setPostion 사용해야함
+			camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //기본 플레이
+			SetTransformCamera(camera, gamePlatform);
+			//camera = sm->addCameraSceneNode(0, core::vector3df(200, 140, 100), core::vector3df(100, 130, 0)); //시점 고정
 
 			scene::ISceneNodeAnimatorList list = camera->getAnimators();
 			scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
@@ -724,6 +837,9 @@ void CDemo::switchToNextScene()
 			//Last parameter is jump speed
 			//Tweaked so you can get up ladders
 			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/); //기본 플레이
+			if (isServer) 	SetTransformCamera(camera, gamePlatform);
+			else SetTransformCamera(camera, gamePlatform);
+
 			scene::ISceneNodeAnimatorList list = camera->getAnimators();
 			scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
 			while (ait != list.end())
@@ -736,7 +852,7 @@ void CDemo::switchToNextScene()
 			//vector3df 중간이 캐릭터 높이
 			//if (platform == GamePlatform::PC) {
 			//	if (isServer) {
-			//		camera = sm->addCameraSceneNode(0, core::vector3df(100, 140, 0), core::vector3df(100, 140, 300));  //시점 고정
+			//	camera = sm->addCameraSceneNode(0, core::vector3df(100, 140, 0), core::vector3df(100, 140, 300));  //시점 고정
 			//	    //PC Server Bot
 			//	}
 			//	else {
@@ -968,7 +1084,7 @@ void CDemo::loadSceneData()
 	int offset = 50;
 	int offset2 = 150;
 	core::rect<int> jumpPos(size.Width-150-offset-offset2, size.Height-200 - offset, size.Width-offset2, size.Height );
-	device->getGUIEnvironment()->addButton(jumpPos, 0, AppSkin::GUI_JUMP, L"JUMP");
+	device->getGUIEnvironment()->addButton(jumpPos, 0, AppSkin::GUI_JUMP, L"RESET"); //디버그 용으로 점프 -> 리셋으로 수정
 
 	core::rect<int> firePos(size.Width-150 - offset-offset2, size.Height-550 - offset, size.Width-offset2 ,size.Height-350);
 	device->getGUIEnvironment()->addButton(firePos, 0, AppSkin::GUI_FIRE, L"FIRE");
@@ -995,13 +1111,8 @@ void CDemo::createLoadingScreen()
 	backColor.set(255,90,90,156);
 
 	// create in fader
-
 	//inOutFader = device->getGUIEnvironment()->addInOutFader();
 	//inOutFader->setColor(backColor,	video::SColor ( 0, 230, 230, 230 ));
-
-	// irrlicht logo
-	device->getGUIEnvironment()->addImage(device->getVideoDriver()->getTexture(mediaPath +"irrlichtlogo2.png"),
-		core::position2d<s32>(5,5));
 
 	// loading text
 
@@ -1011,15 +1122,17 @@ void CDemo::createLoadingScreen()
 	core::rect<int> pos(10, size.Height-lheight-80, 10+lwidth, size.Height-80);
 
 	//device->getGUIEnvironment()->addImage(pos);
-	statusText = device->getGUIEnvironment()->addStaticText(L"Start",	pos, true);
+	statusText = device->getGUIEnvironment()->addStaticText(L"Start", pos, true);
 	statusText->setOverrideColor(video::SColor(255,205,200,200));
 
-	// load bigger font
+#ifdef __ANDROID__
+	//device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "bigfont.png"));
+	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "font_56px.xml"));
+#else
+	//device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath+ "fonthaettenschweiler.bmp"));
+	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "font_24px.xml"));
+#endif
 
-	device->getGUIEnvironment()->getSkin()->setFont(
-		device->getGUIEnvironment()->getFont(mediaPath+ "fonthaettenschweiler.bmp"));
-
-	// set new font color
 
 	device->getGUIEnvironment()->getSkin()->setColor(gui::EGDC_BUTTON_TEXT,
 		video::SColor(255,100,100,100));
@@ -1032,18 +1145,18 @@ void CDemo::CalculateSyndeyBoundingBox(void)
 	mesh = sm->getMesh(mediaPath + "sydney.md2");
 	irr::scene::IAnimatedMeshSceneNode* model;
 	model = sm->addAnimatedMeshSceneNode(mesh, 0);
-	model->setScale(core::vector3df(2,2,2));
+	model->setScale(core::vector3df(1,1,1));
 	// Bounding box changed in Irrlicht 1.5.1
 	core::aabbox3df modelBoundingBox = model->getMesh()->getBoundingBox();
 	// core::aabbox3df modelBoundingBox = model->getBoundingBox();
 	core::vector3df minEdgeExtended = modelBoundingBox.MinEdge;
 	core::vector3df maxEdgeExtended = modelBoundingBox.MaxEdge;
-	minEdgeExtended.X-=BALL_DIAMETER/2;
-	minEdgeExtended.Y-=BALL_DIAMETER/2;
-	minEdgeExtended.Z-=BALL_DIAMETER/2;
-	maxEdgeExtended.X+=BALL_DIAMETER/2;
-	maxEdgeExtended.Y+=BALL_DIAMETER/2;
-	maxEdgeExtended.Z+=BALL_DIAMETER/2;
+	minEdgeExtended.X-=BALL_DIAMETER;
+	minEdgeExtended.Y -= BALL_DIAMETER*1.25;
+	minEdgeExtended.Z-=BALL_DIAMETER*0.2;
+	maxEdgeExtended.X+=BALL_DIAMETER;///2
+	maxEdgeExtended.Y+=BALL_DIAMETER*1.25;
+	maxEdgeExtended.Z+=BALL_DIAMETER*0.2;
 	syndeyBoundingBox.MinEdge=minEdgeExtended;
 	syndeyBoundingBox.MaxEdge=maxEdgeExtended;
 	model->remove();
@@ -1082,21 +1195,29 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 {
 	scene::ISceneManager* sm = device->getSceneManager();
 	scene::ICameraSceneNode* camera = sm->getActiveCamera();
-
-	if (!camera || !mapSelector)
-		return 0;
-
-	SParticleImpact imp;
-	imp.when = 0;
-
 	// get line of camera
-
 	core::vector3df start = camPosition;
 	core::vector3df end = (camAt);
 	//end.normalize();
 	start += end*8.0f;
 	end = start + (end * camera->getFarValue());
 
+	bool wallHit = false;
+	core::vector3df wallHitPoint(0, 0, 0);
+	return shootFromOrigin(camPosition, camAt, start, end, wallHit, wallHitPoint);
+}
+
+RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3df camAt,core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint)
+{
+	scene::ISceneManager* sm = device->getSceneManager();
+	scene::ICameraSceneNode* camera = sm->getActiveCamera();
+
+	if (!camera || !mapSelector)
+		return 0;
+
+	SParticleImpact imp;
+	imp.when = 0;
+	
 	core::triangle3df triangle;
 
 	core::line3d<irr::f32> line(start, end);
@@ -1116,6 +1237,9 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 
 	if (flag) {
 		// collides with wall
+		wallHit = true;
+		wallHitPoint = end;
+		
 		core::vector3df out = triangle.getNormal();
 		out.setLength(0.03f);
 
@@ -1125,6 +1249,9 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 	}
 	else {
 		// doesnt collide with wall
+		wallHit = false;
+		wallHitPoint = core::vector3df(0, 0, 0);
+
 		core::vector3df start = camPosition;
 		core::vector3df end = (camAt);
 		//end.normalize();
@@ -1136,6 +1263,9 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 	if (sm->getSceneCollisionManager()->getCollisionPoint(line, mapSelector, end, triangle, hitNode))
 	{
 		// collides with wall
+		wallHit = true;
+		wallHitPoint = end;
+		
 		core::vector3df out = triangle.getNormal();
 		out.setLength(0.03f);
 
@@ -1146,6 +1276,9 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 	else
 	{
 		// doesnt collide with wall
+		wallHit = false;
+		wallHitPoint = core::vector3df(0, 0, 0);
+
 		core::vector3df start = camPosition;
 		core::vector3df end = (camAt);
 		//end.normalize();
@@ -1157,7 +1290,7 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 	// create fire ball
 	scene::ISceneNode* node = 0;
 	node = sm->addBillboardSceneNode(0,
-		core::dimension2d<f32>(BALL_DIAMETER,BALL_DIAMETER), start);
+		core::dimension2d<f32>(BALL_DIAMETER - 10, BALL_DIAMETER - 10), start);
 
 	node->setMaterialFlag(video::EMF_LIGHTING, false);
 	node->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "fireball.bmp"));
@@ -1185,8 +1318,10 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 		Impacts.push_back(imp);
 	}
 
-	return (RakNet::TimeMS) time;
+	return (RakNet::TimeMS)time;
+
 }
+
 
 void CDemo::shoot()
 {
@@ -1217,7 +1352,8 @@ void CDemo::shoot()
 	br->position=camPosition;
 	br->shotDirection=camAt;
 	br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(camPosition, camAt);
-	br->ownerGUID = rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS);
+	br->shooterName = playerReplica->playerName;
+
 	replicaManager3->Reference(br);
 }
 
@@ -1359,6 +1495,7 @@ void CDemo::UpdateRakNet(void)
 				//객체 생성
 				replicaManager3->Reference(playerReplica);
 			}
+			
 			//SwitchNextScene() 에서 연결하는 것으로 변경 -> 왜 이렇게 바꾸자고 했지?
 			//그렇게 변경하면 수신 딜레이 적용시 timeout으로 연결 수립이 안됩니다..
 		}
@@ -1391,33 +1528,87 @@ void CDemo::UpdateRakNet(void)
 				br->position = pos;
 				br->shotDirection = target;
 				br->shotLifetime = RakNet::GetTimeMS() + shootFromOrigin(pos, target);
-				br->ownerGUID = packet->guid; // Set the owner GUID to the one who shot
+				br->shooterName = playerReplica->playerName; // 플레이어 이름 설정
 				br->bulletCount = bulletCnt;
 				replicaManager3->Reference(br);
 			}
-			break;
 		}
-		case ID_GAME_MESSAGE_PLAYER_LIFE: {
+		break;
+		case ID_GAME_MESSAGE_PLAYER_LIFE: 
+		{
 			RakNet::BitStream bsIn(packet->data, packet->length, false);
 			bsIn.IgnoreBytes(1);
 
-			RakNet::RakNetGUID guid;
+			RakNet::RakNetGUID LifeUpdateGuid;
+			RakNet::RakNetGUID ShooterGuid;
 			bool isDead;
-			bsIn.Read(guid);
+			bsIn.Read(ShooterGuid); // The player who shot
 			bsIn.Read(isDead);
 
+			if (isDead) {
+				//Shooter = 죽인 사람 / Holder = 죽은 사람
+				RakNet::RakNetGUID HolderGuid;
+				bsIn.Read(HolderGuid);
+				RakNet::RakString shooterName;
+				RakNet::RakString holderName;
+				bsIn.Read(shooterName);
+				bsIn.Read(holderName);
+
+				//DebugPrintf("Shooter Name : %s / Holder Name : %s\n", shooterName, holderName);
+				KillLog logEntry{ shooterName + RakNet::RakString(" -> ") + holderName + RakNet::RakString("\n"), RakNet::GetTimeMS() };
+				killLogMessages.Push(logEntry, _FILE_AND_LINE_); // Record the kill log message
+				LifeUpdateGuid = HolderGuid;
+			}
+			else {
+				//Shooter = 부활한 사람
+				LifeUpdateGuid = ShooterGuid;
+			}
+			
 			for (int idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
 			{
 				PlayerReplica* player = PlayerReplica::playerList[idx];
-				if (player->creatingSystemGUID == guid)
+				if (player->creatingSystemGUID == LifeUpdateGuid)
 				{
 					player->isDead = isDead;
 				}
 			}
-		}
-		}
 
-		
+		}
+		break;
+		case ID_GAME_MESSAGE_PLAYER_NAME:
+		{
+			RakNet::BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(1);
+			int playerCnt;
+			bsIn.Read(playerCnt); // Read the number of players
+			
+			for (int i = 0; i < playerCnt; i++) {
+				RakNet::RakString name;
+				bsIn.Read(name);
+				RakNet::RakNetGUID g;
+				bsIn.Read(g); 
+
+				for (int i = 0; i < PlayerReplica::playerList.Size(); i++) {
+					if (PlayerReplica::playerList[i]->creatingSystemGUID == g) {
+						PlayerReplica::playerList[i]->playerName = name;
+
+						//만약 현재 플랫폼이 Android (Holder) 이고, 다른 플랫폼이 PC (Shooter)인 경우 (그 반대도 포함)
+						//Android의 위치를 GUI에 띄울 수 있도록 한다
+						if (playerReplica->gamePlatform == Holder && PlayerReplica::playerList[i]->gamePlatform == Shooter)
+							SetHolderPosText(playerReplica->position); 
+						else if (playerReplica->gamePlatform == Shooter && PlayerReplica::playerList[i]->gamePlatform == Holder)
+							SetHolderPosText(PlayerReplica::playerList[i]->model->getPosition());
+					}
+				}
+			}
+			const char* charStr = (RakNet::RakString("My Name : ") + playerReplica->playerName).C_String();  // 멀티바이트 문자열 얻기
+			wchar_t wcharStr[128];
+			mbstowcs(wcharStr, charStr, sizeof(wcharStr) / sizeof(wchar_t));
+			myNameText->setText(wcharStr);
+			PushMessage(RakNet::RakString("Client Name Update"));
+		}
+		break;
+		}	
 	}
 
 	// Call the Update function for networked game objects added to BaseIrrlichtReplica once the game is ready
@@ -1431,6 +1622,42 @@ void CDemo::UpdateRakNet(void)
 		//	lastShootTime = curTime;
 		//}
 
+
+		//(서버 봇을 제외한) 모든 플레이어가 생성되면 서버 측에서 이름을 할당
+		//클라 측에서 이름을 할당하는게 더 편하나 현재 모바일에서 이름을 할당하기 어려운 문제가 있어서 서버 측에서 할당.
+		if (isServer && isPlayersNameSet == false && logCount == PlayerReplica::playerList.Size()-serverBotCnt){
+			isPlayersNameSet = true;
+			int playerCnt = 1; int botCnt = 1;
+			RakNet::RakString botNames("My Name : ");
+			
+			RakNet::BitStream bs;
+			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_NAME);
+			bs.Write(PlayerReplica::playerList.Size());
+			for (int i = 0; i < PlayerReplica::playerList.Size(); i++) {
+				PlayerReplica* player = PlayerReplica::playerList[i];
+				if (player->isBot) {
+					player->playerName = RakNet::RakString("bot%d", botCnt++);
+					botNames += player->playerName + RakNet::RakString(" ");
+				}
+				else {
+					player->playerName = RakNet::RakString("Player%d", playerCnt++); 
+					
+				}
+				bs.Write(player->playerName);
+				bs.Write(player->creatingSystemGUID); 
+				//DebugPrintf("Player Name : %s / GUID : %s\n", player->playerName.C_String(), player->creatingSystemGUID.ToString());
+			}
+
+			rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+
+			//서버 측 이름은 여기서 할당
+			const char* charStr = botNames.C_String();  // 멀티바이트 문자열 얻기
+			wchar_t wcharStr[128];
+			mbstowcs(wcharStr, charStr, sizeof(wcharStr) / sizeof(wchar_t));
+			myNameText->setText(wcharStr);
+			PushMessage(RakNet::RakString("Bot Name Update"));
+		}
+
 		unsigned int idx;
 		for (idx = 0; idx < replicaManager3->GetReplicaCount(); idx++)
 			((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);
@@ -1438,14 +1665,21 @@ void CDemo::UpdateRakNet(void)
 }
 
 bool CDemo::IsKeyDown(EKEY_CODE keyCode) const {return KeyIsDown[keyCode];}
-bool CDemo::IsMovementKeyDown(void) const {return KeyIsDown[KEY_UP] | 
-KeyIsDown[KEY_DOWN] | 
-KeyIsDown[KEY_LEFT] | 
-KeyIsDown[KEY_RIGHT] | 
-KeyIsDown[KEY_KEY_W] | 
-KeyIsDown[KEY_KEY_S] | 
-KeyIsDown[KEY_KEY_A] | 
-KeyIsDown[KEY_KEY_D];
+bool CDemo::IsMovementKeyDown(void) const {
+	if (isKeyLock) return false;
+
+#ifdef __ANDROID__
+	return (curTouchID.move != -1);
+#else
+	return KeyIsDown[KEY_UP] |
+		KeyIsDown[KEY_DOWN] |
+		KeyIsDown[KEY_LEFT] |
+		KeyIsDown[KEY_RIGHT] |
+		KeyIsDown[KEY_KEY_W] |
+		KeyIsDown[KEY_KEY_S] |
+		KeyIsDown[KEY_KEY_A] |
+		KeyIsDown[KEY_KEY_D];
+#endif // __ANDROID__
 }
 void CDemo::PushMessage(RakNet::RakString rs)
 {
@@ -1474,6 +1708,89 @@ const char *CDemo::GetCurrentMessage(void)
 	return outputMessages.Peek().C_String();
 }
 
+RakNet::RakString CDemo::GetCurrentKillLogMessage(void)
+{
+	int ItemCnt = killLogMessages.Size();
+	RakNet::RakString result = RakNet::RakString("");
+	if (ItemCnt == 0)
+		return RakNet::RakString("");
+	
+	if (ItemCnt > 5) {
+		for (int i = 0; i < ItemCnt - 5; i++) killLogMessages.Pop();
+		ItemCnt = killLogMessages.Size();
+	}
+	
+	for (int i = 0; i < ItemCnt; i++)
+	{
+		RakNet::RakString msg = killLogMessages[i].message;
+		RakNet::TimeMS time = killLogMessages[i].timeStamp;
+
+		if (time + 5000 < RakNet::GetTimeMS()) // 5초 이상 지난 메시지는 삭제
+		{
+			killLogMessages.Pop();
+			ItemCnt--;
+			i--;
+			continue;
+		}
+		result += msg;
+	}
+	
+	return result;
+}
+
+void CDemo::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform platform) {
+	switch (platform)
+	{
+	case GamePlatform::Holder: {
+		initPos = core::vector3df(618.605652, 389.012695 + 50, 81.900139);
+		initTarget = core::vector3df(615.039551, 395.019623, -674.768677);
+	}
+		  break;
+	case GamePlatform::Shooter: {
+		initPos = core::vector3df(558.439941, 391.010010 + 50, -368.623077);
+		initTarget = core::vector3df(565.280701, 421.927612, 432.511810);
+	}
+		  break;
+	case GamePlatform::Server: {
+		initPos = core::vector3df(702.535706, 391.032776 + 50, 201.749161);
+		initTarget = core::vector3df(159.187500, 340.216034, -448.925781);
+	}
+		  break;
+	default:
+		break;
+	}
+
+	camera->setPosition(initPos);
+	camera->setTarget(initTarget);
+}
+
+void CDemo::SetHolderPosText(core::vector3df pos) {
+	if (holderPosText == nullptr) return;
+	RakNet::RakString msg("Hold Pos : %.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z);
+	wchar_t wcharStr[128];
+	mbstowcs(wcharStr, msg.C_String(), sizeof(wcharStr) / sizeof(wchar_t));
+	holderPosText->setText(wcharStr);
+}
+
+void CDemo::FlushMovementKeys()
+{
+	static const EKEY_CODE keys[] = {
+		KEY_KEY_W, KEY_KEY_A, KEY_KEY_S, KEY_KEY_D,
+		KEY_UP, KEY_LEFT, KEY_DOWN, KEY_RIGHT,
+		KEY_SPACE
+	};
+
+	SEvent ev{};
+	ev.EventType = EET_KEY_INPUT_EVENT;
+	ev.KeyInput.PressedDown = false;
+
+	for (EKEY_CODE k : keys) {
+		KeyIsDown[k] = false;      // 내부 키 상태 해제
+		ev.KeyInput.Key = k;       // 카메라에도 KeyUp 전달
+		if (auto* cam = device->getSceneManager()->getActiveCamera())
+			cam->OnEvent(ev);
+	}
+}
 
 
 #ifdef USE_IRRKLANG

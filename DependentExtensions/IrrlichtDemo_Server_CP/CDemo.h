@@ -58,7 +58,7 @@ using namespace irr;
 
 const int CAMERA_COUNT = 7;
 const float CAMERA_HEIGHT=50.0f;
-const float SHOT_SPEED=.6f;
+const float SHOT_SPEED = 2.2f; //.6f;
 const float BALL_DIAMETER=25.0f;
 
 // RakNet
@@ -67,18 +67,20 @@ const float BALL_DIAMETER=25.0f;
 #include "RakString.h"
 #include "RakNetTime.h"
 
+struct KillLog {
+	RakNet::RakString message;
+	RakNet::TimeMS timeStamp;
+};
+
+
 class CDemo : public IEventReceiver
 {
 public:
 
-	enum class GamePlatform {
-		PC,
-		Android
-	};
-
 	enum GameMessages {
 		ID_GAME_MESSAGE_BALL_REQUEST = ID_USER_PACKET_ENUM + 1,
-		ID_GAME_MESSAGE_PLAYER_LIFE = ID_USER_PACKET_ENUM + 2
+		ID_GAME_MESSAGE_PLAYER_LIFE = ID_USER_PACKET_ENUM + 2,
+		ID_GAME_MESSAGE_PLAYER_NAME = ID_USER_PACKET_ENUM + 3,
 	};
 
 	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base);
@@ -95,10 +97,13 @@ public:
 	bool IsMovementKeyDown(void) const;
 	// RakNet: Decouple the origin of the shot from the camera, so the network code can use this same graphical effect
 	RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt);
+	RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint);
 	const core::aabbox3df& GetSyndeyBoundingBox(void) const;
 	void PlayDeathSound(core::vector3df position);
 	void EnableInput(bool enabled);
 	void PushMessage(RakNet::RakString rs);
+	void SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform platform);
+	void SetHolderPosText(core::vector3df pos);
 
 	scene::ISceneNodeAnimator* fpsCamAnim = nullptr;
 	bool isBulletRendering;
@@ -110,6 +115,20 @@ public:
 	bool isConnected = false;
 	RakNet::SystemAddress serverSystemAddress;
 
+	bool isPlayersNameSet = false;
+	int serverBotCnt = 1;
+
+	DataStructures::Queue<KillLog> killLogMessages;
+
+	GamePlatform gamePlatform = GamePlatform::Shooter;
+	core::vector3df initPos;
+	core::vector3df initTarget;
+
+	bool isKeyLock;
+	bool wasKeyLock;
+
+	void FlushMovementKeys();
+
 #ifdef __ANDROID__
 	android_app* state;
 #endif
@@ -120,8 +139,6 @@ private:
 	void shoot();
 	void createParticleImpacts();
 
-	void SaveStatisticsToCSV();
-	
 	bool fullscreen;
 	bool music;
 	bool shadows;
@@ -138,7 +155,7 @@ private:
 	bool isLogged;
 	bool isServer;
 	int logCount;
-	GamePlatform platform = GamePlatform::PC;
+	
 	irr::core::stringc mediaPath;
 	int bulletCount;
 	
@@ -170,6 +187,9 @@ private:
 	video::SColor backColor;
 
 	gui::IGUIStaticText* statusText;
+	gui::IGUIStaticText* killLogText;
+	gui::IGUIStaticText* myNameText;
+	gui::IGUIStaticText* holderPosText;
 	gui::IGUIInOutFader* inOutFader;
 
 	scene::IQ3LevelMesh* quakeLevelMesh;
@@ -191,6 +211,7 @@ private:
 	RakNet::TimeMS whenOutputMessageStarted;
 	
 	const char *GetCurrentMessage(void);
+	RakNet::RakString GetCurrentKillLogMessage(void);
 	// We use this array to store the current state of each key
 	bool KeyIsDown[KEY_KEY_CODES_COUNT];
 	

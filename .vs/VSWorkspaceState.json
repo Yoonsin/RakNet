@@ -1,6 +1,6 @@
 {
-  "ActiveTargetSystem": "192.168.0.20",
   "DevContainersInfoBarHidden": true,
+  "ActiveTargetSystem": "192.168.1.2",
   "OutputFoldersPerTargetSystem": {
     "Local Machine": [
       "out\\build\\x64-Debug",
@@ -11,11 +11,16 @@
       "out\\install\\x64-Debug",
       "DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib",
       "DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\install\\Linux-GCC-Debug"
+    ],
+    "192.168.1.2": [
+      "out\\build\\x64-Debug",
+      "out\\install\\x64-Debug",
+      "DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib",
+      "DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\install\\Linux-GCC-Debug"
     ]
   },
   "ExpandedNodes": [
     ""
   ],
-  "SelectedNode": "\\DependentExtensions",
   "PreviewInSolutionExplorer": false
 }
