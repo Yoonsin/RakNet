@@ -161,6 +161,10 @@ namespace scene
 		*/
 		virtual void setCollisionCallback(ICollisionCallback* callback) = 0;
 
+		//virtual void collisionOccurred() const = 0;
+
+		virtual void setReset(bool reset) = 0;
+
 	};
 
 

@@ -53,6 +53,8 @@ namespace scene
 		/** If enabled then moving the mouse down will cause
 		the camera to look up. It is disabled by default. */
 		virtual void setInvertMouse(bool invert) = 0;
+
+		virtual void setReset(bool reset) = 0;
 	};
 } // end namespace scene
 } // end namespace irr

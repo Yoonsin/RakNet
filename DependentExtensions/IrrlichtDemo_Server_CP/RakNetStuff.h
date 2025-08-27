@@ -195,7 +195,6 @@ public:
 	bool isDead;
 	// wasDead is set from the Server, and is used to determine if the player was dead before
 	bool wasDead;
-
 	bool isBot;
 
 	// List of all players, including our own
@@ -215,6 +214,10 @@ public:
 	irr::core::matrix4 collisionTransform;
 
 	GamePlatform gamePlatform;
+
+	//KDA
+	int killCnt;
+	int deathCnt;
 };
 class PlayerBotReplica : public PlayerReplica
 {

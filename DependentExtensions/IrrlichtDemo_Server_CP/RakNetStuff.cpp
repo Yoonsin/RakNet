@@ -294,8 +294,8 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo)
 		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 #else
-		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
-		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
+		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 		
 #endif // __ANDROID__
@@ -637,6 +637,8 @@ PlayerReplica::PlayerReplica()
 	isBot = false;
 	playerList.Push(this,_FILE_AND_LINE_);
 	fq = new DataStructures::Queue<FrameState>();
+	killCnt = 0;
+	deathCnt = 0;
 }
 PlayerReplica::~PlayerReplica()
 {
@@ -1279,7 +1281,7 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 				if (distToWall < distToPlayer) continue;
 			}
 
-			player->deathTimeout = RakNet::GetTimeMS() + 200;
+			player->deathTimeout = RakNet::GetTimeMS() + 3000;
 			printf("HIT! : %d\n", ++score);
 			RakNet::RakString msg("%s Dead from : %s",
 				player->isBot ? "Bot" : "Player",

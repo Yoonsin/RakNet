@@ -287,7 +287,7 @@ void CDemo::run()
 	const int lwidth = device->getVideoDriver()->getScreenSize().Width - 20;
 #ifdef __ANDROID__
 	myNameRect = core::rect<int>(10, 50, 1000, 100);
-	holderPosRect = core::rect<int>(10, 60, 2000, 100);
+	holderPosRect = core::rect<int>(10, 110, 1000, 160);
 	//holderPosRect = core::rect<int>(10, 110, 2000, 300);
 	KillLogRect = core::rect<int>(lwidth - 550, 50, lwidth - 50, 700);
 #else
@@ -300,10 +300,12 @@ void CDemo::run()
 
 	myNameText = device->getGUIEnvironment()->addStaticText(L"My Name : ", myNameRect);
 	myNameText->setOverrideColor(video::SColor(255, 255, 255, 255));
+	myNameText->setBackgroundColor(video::SColor(255, 0, 0, 0));
 
 	wchar_t* killText = L"";
 	killLogText = device->getGUIEnvironment()->addStaticText(killText, KillLogRect);
 	killLogText->setOverrideColor(video::SColor(255, 255, 255, 255));
+	killLogText->setBackgroundColor(video::SColor(255, 0, 0, 0));
 
 	holderPosText = device->getGUIEnvironment()->addStaticText(L"Holder Position : ", holderPosRect);
 	holderPosText->setOverrideColor(video::SColor(255, 255, 255, 255));
@@ -469,6 +471,13 @@ bool CDemo::OnEvent(const SEvent& event)
 	fakeKeyEvent.EventType = EET_KEY_INPUT_EVENT;
 	fakeKeyEvent.KeyInput.Key = KEY_KEY_CODES_COUNT;
 
+	if (isKeyLock && event.EventType == EET_TOUCH_INPUT_EVENT) {
+		curTouchID.move = curTouchID.jump = curTouchID.fire = curTouchID.exit = curTouchID.viewRotate = -1;
+		isRotate = false;
+		if (fpsCamAnim) fpsCamAnim->isRotate = false;
+		return true;
+	}
+
 	if (event.EventType == EET_TOUCH_INPUT_EVENT)
 	{
 		s32 id = event.TouchInput.ID;
@@ -545,8 +554,7 @@ bool CDemo::OnEvent(const SEvent& event)
 					//fakeKeyEvent.KeyInput.PressedDown = false;
 					if (GetSceneManager()->getActiveCamera())
 					{
-						GetSceneManager()->getActiveCamera()->setPosition(initPos);
-						GetSceneManager()->getActiveCamera()->setTarget(initTarget);
+						Respawn();
 						isKeyLock = false;
 					}
 					
@@ -712,11 +720,9 @@ if (isKeyLock) {
 				event.KeyInput.PressedDown == false)
 		{
 			if (auto* cam = device->getSceneManager()->getActiveCamera()) {
-				cam->setPosition(initPos);
-				cam->setTarget(initTarget);
+				Respawn();
 				isKeyLock = false;
 				FlushMovementKeys(); //리셋 시에도 모든 이동키 해제
-
 			}
 		}
 	else
@@ -729,13 +735,11 @@ if (isKeyLock) {
 				/*if(isServer == false) device->getSceneManager()->getActiveCamera()->OnEvent(event);*/
 			}
 			else if (event.EventType == EET_KEY_INPUT_EVENT) {
+				if(event.KeyInput.Key == KEY_KEY_A || event.KeyInput.Key == KEY_KEY_D) device->getSceneManager()->getActiveCamera()->OnEvent(event);
 				//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", GetSceneManager()->getActiveCamera()->getPosition().X, GetSceneManager()->getActiveCamera()->getPosition().Y, GetSceneManager()->getActiveCamera()->getPosition().Z, isKeyLock, wasKeyLock);
-				device->getSceneManager()->getActiveCamera()->OnEvent(event);
 			}
 			return true;
 		}
-
-	
 #endif //__ANDROID__
 	return false;
 }
@@ -1084,13 +1088,18 @@ void CDemo::loadSceneData()
 	core::dimension2d<u32> size = device->getVideoDriver()->getScreenSize();
 	int offset = 50;
 	int offset2 = 150;
-	core::rect<int> jumpPos(size.Width-150-offset-offset2, size.Height-200 - offset, size.Width-offset2, size.Height );
+	core::rect<int> jumpPos(size.Width-150-offset-offset2, size.Height-300 - offset, size.Width-offset2, size.Height - 150);
 	device->getGUIEnvironment()->addButton(jumpPos, 0, AppSkin::GUI_JUMP, L"RESET"); //디버그 용으로 점프 -> 리셋으로 수정
 
-	core::rect<int> firePos(size.Width-150 - offset-offset2, size.Height-550 - offset, size.Width-offset2 ,size.Height-350);
+	core::rect<int> firePos(size.Width-150 - offset-offset2, size.Height-550 - offset, size.Width-offset2 ,size.Height-400);
 	device->getGUIEnvironment()->addButton(firePos, 0, AppSkin::GUI_FIRE, L"FIRE");
 
-	core::rect<int> exitPos(size.Width - 150 - offset - offset2, offset , size.Width - offset2, offset + 250);
+	core::rect<int> exitPos(
+		size.Width - 200 - 2 * offset - 2 * offset2,  // left  = jumpLeft - gap - w
+		size.Height - 300 - offset,               // top
+		size.Width - 50 - offset - 2 * offset2,    // right = jumpLeft - gap
+		size.Height - 150                              // bottom
+	);
 	device->getGUIEnvironment()->addButton(exitPos, 0, AppSkin::GUI_EXIT, L"EXIT");
 
 	joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
@@ -1559,10 +1568,20 @@ void CDemo::UpdateRakNet(void)
 				KillLog logEntry{ shooterName + RakNet::RakString(" -> ") + holderName + RakNet::RakString("\n"), RakNet::GetTimeMS() };
 				killLogMessages.Push(logEntry, _FILE_AND_LINE_); // Record the kill log message
 				LifeUpdateGuid = HolderGuid;
+
+				if (shooterName == playerReplica->playerName) playerReplica->killCnt++;
+				else if (holderName == playerReplica->playerName) playerReplica->deathCnt++;
+				SetPlayerNameText();
+
+				isKeyLock = true;              // onEvent 등에서 키 처리 차단 (이미 사용중인 플래그)
+				EnableInput(!isKeyLock);
 			}
 			else {
 				//Shooter = 부활한 사람
 				LifeUpdateGuid = ShooterGuid;
+				Respawn();
+				isKeyLock = false;              
+				EnableInput(!isKeyLock);
 			}
 			
 			for (int idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
@@ -1602,10 +1621,7 @@ void CDemo::UpdateRakNet(void)
 					}
 				}
 			}
-			const char* charStr = (RakNet::RakString("My Name : ") + playerReplica->playerName).C_String();  // 멀티바이트 문자열 얻기
-			wchar_t wcharStr[128];
-			mbstowcs(wcharStr, charStr, sizeof(wcharStr) / sizeof(wchar_t));
-			myNameText->setText(wcharStr);
+			SetPlayerNameText();
 			PushMessage(RakNet::RakString("Client Name Update"));
 		}
 		break;
@@ -1753,8 +1769,12 @@ void CDemo::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform pla
 	}
 		  break;
 	case GamePlatform::Server: {
-		initPos = core::vector3df(702.535706, 391.032776 + 50, 201.749161);
-		initTarget = core::vector3df(159.187500, 340.216034, -448.925781);
+		initPos = core::vector3df(646.534058, 217.090012, 235.449814);
+		initTarget = core::vector3df(187.311462, 131.882629, -314.482239);
+
+		//Motivation 2
+		//initPos = core::vector3df(702.535706, 391.032776 + 50, 201.749161);
+		//initTarget = core::vector3df(159.187500, 340.216034, -448.925781);
 	}
 		  break;
 	default:
@@ -1771,6 +1791,14 @@ void CDemo::SetHolderPosText(core::vector3df pos) {
 	wchar_t wcharStr[128];
 	mbstowcs(wcharStr, msg.C_String(), sizeof(wcharStr) / sizeof(wchar_t));
 	holderPosText->setText(wcharStr);
+}
+
+void CDemo::SetPlayerNameText() {
+	if (myNameText == nullptr) return;
+	RakNet::RakString msg("my Name : %s / K : %d / D : %d ", playerReplica->playerName.C_String(), playerReplica->killCnt, playerReplica->deathCnt);
+	wchar_t wcharStr[128];
+	mbstowcs(wcharStr, msg.C_String(), sizeof(wcharStr) / sizeof(wchar_t));
+	myNameText->setText(wcharStr);
 }
 
 void CDemo::FlushMovementKeys()
@@ -1793,6 +1821,38 @@ void CDemo::FlushMovementKeys()
 	}
 }
 
+void CDemo::Respawn()
+{
+	if (!(GetSceneManager()->getActiveCamera())) return;
+
+	GetSceneManager()->getActiveCamera()->setPosition(initPos);
+	GetSceneManager()->getActiveCamera()->setTarget(initTarget);
+
+	scene::ISceneNodeAnimatorList animators = GetSceneManager()->getActiveCamera()->getAnimators();
+	scene::ISceneNodeAnimatorList::ConstIterator it = animators.begin();
+	while (it != animators.end())
+	{
+		(*it)->getType();
+		if (scene::ESNAT_COLLISION_RESPONSE == (*it)->getType())
+		{
+			scene::ISceneNodeAnimatorCollisionResponse* collisionResponse =
+				static_cast<scene::ISceneNodeAnimatorCollisionResponse*>(*it);
+
+			if (collisionResponse) collisionResponse->setReset(true);
+			//collisionResponse->setTargetNode(cam);
+
+		}
+		else if (scene::ESNAT_CAMERA_FPS == (*it)->getType())
+		{
+			// reset the camera's internal state too
+			scene::ISceneNodeAnimatorCameraFPS* fpsCam =
+				static_cast<scene::ISceneNodeAnimatorCameraFPS*>(*it);
+
+			if (fpsCam) fpsCam->setReset(true);
+		}
+		it++;
+	}
+}
 
 #ifdef USE_IRRKLANG
 void CDemo::startIrrKlang()

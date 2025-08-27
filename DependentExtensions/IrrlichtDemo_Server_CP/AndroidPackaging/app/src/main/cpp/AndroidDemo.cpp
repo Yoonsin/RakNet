@@ -490,7 +490,7 @@ void android_main(android_app* state) {
     core::stringw playerName;
     bool isServer = false;
     video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
-	GamePlatform platform = GamePlatform::Holder;
+	GamePlatform platform = GamePlatform::Shooter;
     bool isLogged = false;
     int logCount = 1;
     

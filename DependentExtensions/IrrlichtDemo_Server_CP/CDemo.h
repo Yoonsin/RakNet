@@ -104,6 +104,7 @@ public:
 	void PushMessage(RakNet::RakString rs);
 	void SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform platform);
 	void SetHolderPosText(core::vector3df pos);
+	void SetPlayerNameText();
 
 	scene::ISceneNodeAnimator* fpsCamAnim = nullptr;
 	bool isBulletRendering;
@@ -128,6 +129,7 @@ public:
 	bool wasKeyLock;
 
 	void FlushMovementKeys();
+	void Respawn();
 
 #ifdef __ANDROID__
 	android_app* state;
