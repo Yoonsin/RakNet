@@ -677,7 +677,7 @@ bool PlayerReplica::DeserializeConstruction(RakNet::BitStream *constructionBitst
 		return false;
 	constructionBitstream->Read(rotationAroundYAxis);
 	constructionBitstream->Read(gamePlatform);
-	//demo->PushMessage(RakNet::RakString("Deserialize Construction"));
+
 	return true;
 }
 void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *destinationConnection)
@@ -727,36 +727,54 @@ void PlayerReplica::PreDestruction(RakNet::Connection_RM3 *sourceConnection)
 RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *serializeParameters)
 {
 	BaseIrrlichtReplica::Serialize(serializeParameters);
-	serializeParameters->outputBitstream[0].Write(position);
-	serializeParameters->outputBitstream[0].Write(rotationAroundYAxis);
-	serializeParameters->outputBitstream[0].Write(isMoving);
-	serializeParameters->outputBitstream[0].Write(gamePlatform);
-
-	if (topology == SERVER) {
-		//서버에서는 전달만
-		serializeParameters->outputBitstream[0].Write(true);
-		serializeParameters->outputBitstream[0].Write(shootPosition);
-		serializeParameters->outputBitstream[0].Write(shootDirection);
-	}
-	else {
+	
+	//Local Player : 입력 이벤트와 시뮬레이션에 필요한 정보 전송 / Server : 시뮬레이션 결과 전송
+	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
+	{
 		scene::ISceneManager* sm = demo->GetSceneManager();
 		scene::ICameraSceneNode* camera = sm->getActiveCamera();
-		if (camera == nullptr) {
-			serializeParameters->outputBitstream[0].Write(false);
+		if (camera == nullptr) {serializeParameters->outputBitstream[0].Write(false);
 		}
 		else {
-			serializeParameters->outputBitstream[0].Write(true);
-			core::vector3df camPosition = camera->getPosition();
-			core::vector3df camAt = (camera->getTarget() - camPosition);
-			camAt.normalize();
-			serializeParameters->outputBitstream[0].Write(camPosition);
-			serializeParameters->outputBitstream[0].Write(camAt);
+			//카메라 정보
+			serializeParameters->outputBitstream[0].Write(camera->getPosition());
+			serializeParameters->outputBitstream[0].Write(camera->getTarget());
+			serializeParameters->outputBitstream[0].Write(camera->getAbsolutePosition());
+			
+			//TODO 나중에 초기화 할 때 fpsCam 변수 얻어서 하기
+			scene::ISceneNodeAnimatorList animators = camera->getAnimators();
+			scene::ISceneNodeAnimatorList::ConstIterator it = animators.begin();
+			while (it != animators.end())
+			{
+				(*it)->getType();
+				if (scene::ESNAT_CAMERA_FPS == (*it)->getType())
+				{
+					// reset the camera's internal state too
+					scene::ISceneNodeAnimatorCameraFPS* fpsCam =
+						static_cast<scene::ISceneNodeAnimatorCameraFPS*>(*it);
+
+					if (fpsCam) serializeParameters->outputBitstream[0].Write(fpsCam->getMoveSpeed());
+					break;
+				}
+				it++;
+			}
+			//Time Diff도 필요할까
+
+			//이번 턴에 키 이벤트가 발생한 키 + 키 이벤트 유형 리스트
+			int qSize = demo->curTickKeyqueue.Size();
+			serializeParameters->outputBitstream[0].Write(qSize);
+			for (int i = 0; i < qSize; i++) {
+				serializeParameters->outputBitstream[0].Write((int)demo->curTickKeyqueue[i].keyInput.Key);
+				serializeParameters->outputBitstream[0].Write(demo->curTickKeyqueue[i].keyInput.PressedDown);
+			}
 		}
 	}
-	
-	//timeStamp
-	//serializeParameters->messageTimestamp = RakNet::GetTimeMS();
-	//return RM3SR_BROADCAST_IDENTICALLY; 
+	else if (topology == SERVER) {
+		//시뮬레이션 한 후 위치 전송
+		//serializeParameters->outputBitstream[0].Write(position);
+		//serializeParameters->outputBitstream[0].Write(target);
+	}
+
 	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //값이 안바뀌어도 계속 동기화됨
 }
 //destination에 존재하지 않는 객체를 전송해야 하는지?
@@ -764,16 +782,41 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *ser
 void PlayerReplica::Deserialize(RakNet::DeserializeParameters *deserializeParameters)
 {
 	BaseIrrlichtReplica::Deserialize(deserializeParameters);
-	deserializeParameters->serializationBitstream[0].Read(position);
-	deserializeParameters->serializationBitstream[0].Read(rotationAroundYAxis);
-	deserializeParameters->serializationBitstream[0].Read(isMoving);
-	deserializeParameters->serializationBitstream[0].Read(gamePlatform);
-	deserializeParameters->serializationBitstream[0].Read(isCreatedCamera);
-	if (isCreatedCamera) {
-		deserializeParameters->serializationBitstream[0].Read(shootPosition);
-		deserializeParameters->serializationBitstream[0].Read(shootDirection);
-	}
 
+	//All Player : 시뮬레이션 결과 송신 / Server : 입력 이벤트 수신
+	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
+	{
+		
+	}
+	else if (topology == SERVER) {
+		bool isCameraExist;
+		deserializeParameters->serializationBitstream[0].Read(isCameraExist);
+		if (isCameraExist) return;
+
+		core::vector3df camPos;
+		core::vector3df camTarget;
+		core::vector3df camAbsPos;
+		f32 moveSpeed;
+
+		deserializeParameters->serializationBitstream[0].Read(camPos);
+		deserializeParameters->serializationBitstream[0].Read(camTarget);
+		deserializeParameters->serializationBitstream[0].Read(camAbsPos);
+		deserializeParameters->serializationBitstream[0].Read(moveSpeed);
+
+		int qSize;
+		deserializeParameters->serializationBitstream[0].Read(qSize);
+		for (int i = 0; i < qSize; i++) {
+			int key;
+			bool isPressed;
+			deserializeParameters->serializationBitstream[0].Read(key);
+			deserializeParameters->serializationBitstream[0].Read(isPressed);
+
+			//key에 따른 시뮬레이션을 할 수 있도록 Update에서 준비
+			//걍 여기서 해도 되는거 아니냐
+			demo->SimulateCamera();
+		}
+	}
+	
 	RakNet::TimeMS curTime = RakNet::GetTimeMS();
 	// Is a locally created object?
 	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))

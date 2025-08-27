@@ -72,6 +72,15 @@ struct KillLog {
 	RakNet::TimeMS timeStamp;
 };
 
+struct KeyState {
+	RakNet::TimeMS timeStamp;
+	SEvent::SKeyInput keyInput;
+};
+
+struct MouseState {
+	RakNet::TimeMS timeStamp;
+	SEvent::SMouseInput MouseInput;
+};
 
 class CDemo : public IEventReceiver
 {
@@ -120,6 +129,8 @@ public:
 	int serverBotCnt = 1;
 
 	DataStructures::Queue<KillLog> killLogMessages;
+	DataStructures::Queue<KeyState> curTickKeyqueue;
+	DataStructures::Queue<MouseState> curTickMousequeue;
 
 	GamePlatform gamePlatform = GamePlatform::Shooter;
 	core::vector3df initPos;
@@ -130,6 +141,10 @@ public:
 
 	void FlushMovementKeys();
 	void Respawn();
+	void SimulateCamera();
+
+	// We use this array to store the current state of each key
+	bool KeyIsDown[KEY_KEY_CODES_COUNT];
 
 #ifdef __ANDROID__
 	android_app* state;
@@ -214,8 +229,7 @@ private:
 	
 	const char *GetCurrentMessage(void);
 	RakNet::RakString GetCurrentKillLogMessage(void);
-	// We use this array to store the current state of each key
-	bool KeyIsDown[KEY_KEY_CODES_COUNT];
+	
 	
 	// Bounding box of syndney.md2, extended by BALL_DIAMETER/2 for collision against shots
 	core::aabbox3df syndeyBoundingBox;

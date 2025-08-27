@@ -429,6 +429,8 @@ void CDemo::run()
 		// RakNet per 
 		// update
 		UpdateRakNet();
+		curTickKeyqueue.Clear(_FILE_AND_LINE_);
+
 		//Statistics Timer
 		//if (isLogged && isServer) {
 		//	int logCnt = (isServer) ? logCount : 1;
@@ -644,9 +646,10 @@ if (isKeyLock) {
 }
 
 // Remember whether each key is down or up
-	if (event.EventType == irr::EET_KEY_INPUT_EVENT)
-		KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
-
+if (event.EventType == irr::EET_KEY_INPUT_EVENT) {
+	KeyIsDown[event.KeyInput.Key] = event.KeyInput.PressedDown;
+	curTickKeyqueue.Push(KeyState{ RakNet::GetTimeMS() ,event.KeyInput } , _FILE_AND_LINE_);
+}
 	if (event.EventType == EET_KEY_INPUT_EVENT &&
 		event.KeyInput.Key == KEY_ESCAPE &&
 		event.KeyInput.PressedDown == false)
@@ -853,18 +856,6 @@ void CDemo::switchToNextScene()
 				break;
 			}
 			
-			//파일
-			//vector3df 중간이 캐릭터 높이
-			//if (platform == GamePlatform::PC) {
-			//	if (isServer) {
-			//	camera = sm->addCameraSceneNode(0, core::vector3df(100, 140, 0), core::vector3df(100, 140, 300));  //시점 고정
-			//	    //PC Server Bot
-			//	}
-			//	else {
-			//		camera = sm->addCameraSceneNode(0, core::vector3df(0, 140, 100), core::vector3df(100, 130, 0));  //시점 고정
-			//		//PC Client
-			//	}
-			//}
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
 				sm->createCollisionResponseAnimator(
 					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, quakeLevelMesh ? -10.f : 0.0f, 0), core::vector3df(0, 45, 0), 0.005f);
@@ -872,12 +863,32 @@ void CDemo::switchToNextScene()
 			//	waypoint[0].set(-150,40,100); waypoint[1].set(350, 40, 100);
 			camera->addAnimator(collider);
 			collider->drop();
-
 #endif // __ANDROID__
-			//TODO: 데이터를 전부 로드를 하고 난 다음 연결요청
-			//(클라이언트 측에서) 연결을 허락 받았을 때
-			//PushMessage(RakNet::RakString("Connection request to ") + targetName + RakNet::RakString(" accepted."));
-			//systemAddress에 할당되는 Connection 객체를 만들고
+
+			//Set Server Simulation 
+			scene::ISceneNodeAnimatorList animators = GetSceneManager()->getActiveCamera()->getAnimators();
+			scene::ISceneNodeAnimatorList::ConstIterator it = animators.begin();
+			while (it != animators.end())
+			{
+				(*it)->getType();
+				if (scene::ESNAT_COLLISION_RESPONSE == (*it)->getType())
+				{
+					scene::ISceneNodeAnimatorCollisionResponse* collisionResponse =
+						static_cast<scene::ISceneNodeAnimatorCollisionResponse*>(*it);
+
+					if (collisionResponse) collisionResponse->setServerSimulation(true);
+
+				}
+				else if (scene::ESNAT_CAMERA_FPS == (*it)->getType())
+				{
+					// reset the camera's internal state too
+					scene::ISceneNodeAnimatorCameraFPS* fpsCam =
+						static_cast<scene::ISceneNodeAnimatorCameraFPS*>(*it);
+
+					if (fpsCam) fpsCam->setServerSimulation(true);
+				}
+				it++;
+			}
 		}
 		break;
 	}
@@ -1852,6 +1863,11 @@ void CDemo::Respawn()
 		}
 		it++;
 	}
+}
+
+void CDemo::SimulateCamera()
+{
+	//CSceneNodeAnimatorCameraFPS::animateNode -> CSceneNodeAnimatorCollisionResponse::animateNode
 }
 
 #ifdef USE_IRRKLANG
