@@ -57,9 +57,10 @@ using namespace irr;
 #endif
 
 const int CAMERA_COUNT = 7;
+const int BOT_MOVE_TIME = 5000;
 const float CAMERA_HEIGHT=50.0f;
-const float SHOT_SPEED = 2.2f; //.6f;
-const float BALL_DIAMETER=25.0f;
+const float SHOT_SPEED = 5.0f; //.6f;
+const float BALL_DIAMETER=20.0f;
 
 // RakNet
 #include "RakNetStuff.h"
@@ -72,6 +73,7 @@ struct KillLog {
 	RakNet::TimeMS timeStamp;
 };
 
+inline bool isWithinRange(f32 value, f32 target, f32 range) { return (target - range <= value) && (value <= target + range); }
 
 class CDemo : public IEventReceiver
 {
@@ -106,7 +108,9 @@ public:
 	void SetHolderPosText(core::vector3df pos);
 	void SetPlayerNameText();
 
-	scene::ISceneNodeAnimator* fpsCamAnim = nullptr;
+	scene::ISceneNodeAnimatorCameraFPS* fpsCamAnim = nullptr;
+	scene::ISceneNodeAnimatorCollisionResponse* fpsCamResponse = nullptr;
+	
 	bool isBulletRendering;
 
 	scene::IMetaTriangleSelector* metaSelector;
@@ -124,12 +128,21 @@ public:
 	GamePlatform gamePlatform = GamePlatform::Shooter;
 	core::vector3df initPos;
 	core::vector3df initTarget;
-
+	
 	bool isKeyLock;
 	bool wasKeyLock;
+	// We use this array to store the current state of each key
+	bool KeyIsDown[KEY_KEY_CODES_COUNT];
+	
+	RakNet::TimeMS botMoveTime = 2000;
+	RakNet::TimeMS preT = 0;
+	int dir;
+	bool isShoot;
 
 	void FlushMovementKeys();
-	void Respawn();
+	void Respawn(core::vector3df& pos, core::vector3df& target);
+	void SetResetBot();
+
 
 #ifdef __ANDROID__
 	android_app* state;
@@ -140,7 +153,7 @@ private:
 	void switchToNextScene();
 	void shoot();
 	void createParticleImpacts();
-
+	
 	bool fullscreen;
 	bool music;
 	bool shadows;
@@ -214,9 +227,7 @@ private:
 	
 	const char *GetCurrentMessage(void);
 	RakNet::RakString GetCurrentKillLogMessage(void);
-	// We use this array to store the current state of each key
-	bool KeyIsDown[KEY_KEY_CODES_COUNT];
-	
+
 	// Bounding box of syndney.md2, extended by BALL_DIAMETER/2 for collision against shots
 	core::aabbox3df syndeyBoundingBox;
 	void CalculateSyndeyBoundingBox(void);
@@ -226,6 +237,9 @@ private:
 	// CDemo.h 안에 다음 멤버 변수 추가
 	RakNet::TimeMS lastShootTime = 0;
 	const RakNet::TimeMS shootInterval = 500; // 0.5초 (500ms)
+
+	video::ITexture* crosshairTex = nullptr;
+	void DrawCrosshairHUD();
 
 #ifdef __ANDROID__
 	s32 TouchID;

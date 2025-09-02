@@ -12,9 +12,8 @@
 #include "RakNetTypes.h"
 #include "Itoa.h"
 #include "RakNetSmartPtr.h"
-
-
-
+#include "RandSync.h"
+#include <chrono>
 #ifdef __ANDROID__
 #include "android_tools.h"
 #include <sys/auxv.h>
@@ -77,16 +76,33 @@ public:
 };
 #endif
 
-//#include "miniupnpc.h"
-//#include "upnpcommands.h"
-//#include "upnperrors.h"
+#define RandomFloat(min, max) RandomFloatImpl(min, max)
+#define RandomInt(min, max)   RandomIntImpl(min, max)
+#define RandomVector3(min, max) RandomVector3Impl(min, max)
+RakNet::RakNetRandom gRand;
 
-static inline core::vector3df DirToEuler(const core::vector3df& pos, const core::vector3df& tgt) {
-	core::vector3df d = tgt - pos; d.normalize();
-	const f32 RAD2DEG = 180.0f / core::PI;
-	f32 yaw = atan2f(d.Z, d.X) * RAD2DEG;   // Y축 회전
-	f32 pitch = -asinf(d.Y) * RAD2DEG;        // X축 회전(위로 보면 -)
-	return core::vector3df(pitch, yaw, 0.f);
+inline void InitRandom(unsigned int t) {
+	// 시드를 시간 기반으로 주면 매번 다른 난수열
+	gRand.SeedMT(t);
+}
+
+inline float RandomFloatImpl(float min, float max) {
+	return min + gRand.FrandomMT() * (max - min);
+}
+
+inline int RandomIntImpl(int min, int max) {
+	return min + (int)(gRand.RandomMT() % (uint32_t)(max - min + 1));
+}
+
+inline irr::core::vector3df RandomVector3Impl(
+	const irr::core::vector3df& min,
+	const irr::core::vector3df& max)
+{
+	return irr::core::vector3df(
+		RandomFloatImpl(min.X, max.X),
+		RandomFloatImpl(min.Y, max.Y),
+		RandomFloatImpl(min.Z, max.Z)
+	);
 }
 
 
@@ -122,6 +138,7 @@ driverType(d), device(0), playerName(_playerName), isServer(isS), gamePlatform(p
 	isBulletRendering = false;
 	isKeyLock = false;
 	wasKeyLock = false;
+	isShoot = false;
 }
 
 
@@ -200,7 +217,6 @@ void CDemo::run()
 	params.Vsync = vsync;
 	params.AntiAlias = aa;
 	params.EventReceiver = this;
-
 	device = createDeviceEx(params);
 #endif //__ANDROID__
 
@@ -311,17 +327,15 @@ void CDemo::run()
 	holderPosText->setOverrideColor(video::SColor(255, 255, 255, 255));
 	holderPosText->setBackgroundColor(video::SColor(255, 0, 0, 0));
 
-	// RakNet startup
-	//char dest[1024];
-	//memset(dest,0,sizeof(dest));
-	//wcstombs(dest, playerName.c_str(), playerName.size());
-	InstantiateRakNetClasses(isServer,isLogged, this);
-	//playerReplica->playerName = RakNet::RakString(dest);
+	auto duration = std::chrono::system_clock::now().time_since_epoch();
+	auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+	InitRandom(millis);
 
+	// RakNet startup
+	InstantiateRakNetClasses(isServer, isLogged, this);
 	CalculateSyndeyBoundingBox();
 
 	s32 now = 0;
-
 #ifdef __ANDROID__
 	//에뮬레이터에서 getTime이 0을 반환하므로 임의로 설정
 	sceneStartTime = device->getTimer()->getTime();
@@ -330,7 +344,7 @@ void CDemo::run()
 #else
 	sceneStartTime = device->getTimer()->getTime();
 #endif 
-	
+
 	//서버가 게임을 측정할 시간
 	s32 logTime = 1 * 1000 * 60; //1분
 	//현재 시간
@@ -338,7 +352,7 @@ void CDemo::run()
 	//최대 인원
 	bool isLogStart = false;
 
-	while(device->run() && driver)
+	while (device->run() && driver)
 	{
 		// RakNet: Render even if not active, multiplayer never stops
 		//if (device->isWindowActive())
@@ -346,10 +360,51 @@ void CDemo::run()
 #ifdef USE_IRRKLANG
 			// update 3D position for sound engine
 			scene::ICameraSceneNode* cam = smgr->getActiveCamera();
-			if (cam && irrKlang){
+			if (cam && irrKlang) {
 				//irrKlang->setListenerPosition(cam->getAbsolutePosition(), cam->getTarget());
-		    }
+			}
 #endif
+			RakNet::TimeMS t = RakNet::GetTimeMS();
+			//Bot movement for server
+			if (isServer && playerBotReplica) {
+				if (!playerBotReplica->IsDead() && !playerBotReplica->wasDead && device->getSceneManager()->getActiveCamera()) {
+					SEvent botKeyEvent;
+					botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
+					botKeyEvent.KeyInput.Key = KEY_KEY_W;
+					if (botMoveTime >= t){
+						if (dir != 0) {
+							botKeyEvent.KeyInput.PressedDown = KeyIsDown[botKeyEvent.KeyInput.Key] = true;
+							device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
+						}
+						//DebugPrintf("go / timeDiff : %d\n", t-preT);
+					}
+					else {
+						if (dir != 0) {
+							botKeyEvent.KeyInput.PressedDown = KeyIsDown[botKeyEvent.KeyInput.Key] = false;
+							device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
+						}
+						SetResetBot();
+						Respawn(initPos, initTarget);
+						botMoveTime = t + BOT_MOVE_TIME;
+
+						RakNet::BitStream bs;
+						bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_LIFE);
+						bs.Write(playerBotReplica->creatingSystemGUID);
+						bs.Write(false);
+						bs.Write(initPos);
+						bs.Write(initTarget);
+						rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+					}
+				}
+			}
+			preT = t;
+			
+			//Client Shoot in Range
+			if (isShoot) {
+				shoot();
+				isShoot = false;
+			}
+
 			// load next scene if necessary
 			now = device->getTimer()->getTime();
 
@@ -367,6 +422,8 @@ void CDemo::run()
 			smgr->drawAll();
 			guienv->drawAll();
 
+            //create crosshair
+			if(crosshairTex) DrawCrosshairHUD();		
 			driver->endScene();
 			
 #ifdef __ANDROID__
@@ -424,8 +481,7 @@ void CDemo::run()
 				killLogText->setText(0);
 			}
 		}
-
-
+		
 		// RakNet per 
 		// update
 		UpdateRakNet();
@@ -448,10 +504,10 @@ void CDemo::run()
 		//	}
 		//}
 		
-		//if (GetSceneManager()->getActiveCamera()) {
-		//	DebugPrintf("Player position : %f, %f, %f\n", GetSceneManager()->getActiveCamera()->getPosition().X, GetSceneManager()->getActiveCamera()->getPosition().Y, GetSceneManager()->getActiveCamera()->getPosition().Z);
-		//	DebugPrintf("Player target : %f, %f, %f\n", GetSceneManager()->getActiveCamera()->getTarget().X, GetSceneManager()->getActiveCamera()->getTarget().Y, GetSceneManager()->getActiveCamera()->getTarget().Z);
-		//}
+		/*if (GetSceneManager()->getActiveCamera()) {
+		DebugPrintf("Player position : %f, %f, %f\n", GetSceneManager()->getActiveCamera()->getPosition().X, GetSceneManager()->getActiveCamera()->getPosition().Y, GetSceneManager()->getActiveCamera()->getPosition().Z);
+		DebugPrintf("Player target : %f, %f, %f\n", GetSceneManager()->getActiveCamera()->getTarget().X, GetSceneManager()->getActiveCamera()->getTarget().Y, GetSceneManager()->getActiveCamera()->getTarget().Z);
+		}*/
 
 	}
 
@@ -554,7 +610,7 @@ bool CDemo::OnEvent(const SEvent& event)
 					//fakeKeyEvent.KeyInput.PressedDown = false;
 					if (GetSceneManager()->getActiveCamera())
 					{
-						Respawn();
+						Respawn(initPos,initTarget);
 						isKeyLock = false;
 					}
 					
@@ -680,7 +736,7 @@ if (isKeyLock) {
 			currentScene == 1
 			)
 		{
-
+			
 			// RakNet: Click without focus to get focus back
 			if (GetSceneManager()->getActiveCamera()->isVisible() == false)
 			{
@@ -720,7 +776,14 @@ if (isKeyLock) {
 				event.KeyInput.PressedDown == false)
 		{
 			if (auto* cam = device->getSceneManager()->getActiveCamera()) {
-				Respawn();
+				if (isServer) {
+					SetResetBot();
+					Respawn(initPos, initTarget);
+					botMoveTime = RakNet::GetTimeMS() + BOT_MOVE_TIME;
+				}
+				else {
+					Respawn(initPos, initTarget);
+				}
 				isKeyLock = false;
 				FlushMovementKeys(); //리셋 시에도 모든 이동키 해제
 			}
@@ -732,10 +795,11 @@ if (isKeyLock) {
 				return true; // 여기서 바로 빠져나가면 기존 방향으로 계속 이동하지 않음
 
 			if (event.EventType == EET_MOUSE_INPUT_EVENT) {
-				/*if(isServer == false) device->getSceneManager()->getActiveCamera()->OnEvent(event);*/
+				//if(isServer == false) device->getSceneManager()->getActiveCamera()->OnEvent(event);
 			}
 			else if (event.EventType == EET_KEY_INPUT_EVENT) {
-				if(event.KeyInput.Key == KEY_KEY_A || event.KeyInput.Key == KEY_KEY_D) device->getSceneManager()->getActiveCamera()->OnEvent(event);
+				device->getSceneManager()->getActiveCamera()->OnEvent(event);
+				//if(event.KeyInput.Key == KEY_KEY_A || event.KeyInput.Key == KEY_KEY_D) device->getSceneManager()->getActiveCamera()->OnEvent(event);
 				//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", GetSceneManager()->getActiveCamera()->getPosition().X, GetSceneManager()->getActiveCamera()->getPosition().Y, GetSceneManager()->getActiveCamera()->getPosition().Z, isKeyLock, wasKeyLock);
 			}
 			return true;
@@ -821,15 +885,18 @@ void CDemo::switchToNextScene()
 			keyMap[10].KeyCode = KEY_KEY_1;
 			camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //기본 플레이
 			SetTransformCamera(camera, gamePlatform);
-			//camera = sm->addCameraSceneNode(0, core::vector3df(200, 140, 100), core::vector3df(100, 130, 0)); //시점 고정
 
-			scene::ISceneNodeAnimatorList list = camera->getAnimators();
-			scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
-			while (ait != list.end())
+			const scene::ISceneNodeAnimatorList& animators = camera->getAnimators();
+			scene::ISceneNodeAnimatorList::ConstIterator it = animators.begin();
+			while (it != animators.end())
 			{
-				//scene::Fps tmp = *ait;
-				fpsCamAnim = *ait;
-				break;
+				if (scene::ESNAT_COLLISION_RESPONSE == (*it)->getType()) {
+					fpsCamResponse = static_cast<scene::ISceneNodeAnimatorCollisionResponse*>(*it);
+				}
+				else if (scene::ESNAT_CAMERA_FPS == (*it)->getType()) {
+					fpsCamAnim = static_cast<scene::ISceneNodeAnimatorCameraFPS*>(*it);
+				}
+				it++;
 			}
 
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
@@ -841,30 +908,14 @@ void CDemo::switchToNextScene()
 #else
 			//Last parameter is jump speed
 			//Tweaked so you can get up ladders
-			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f/*2.5f*/); //기본 플레이
-			if (isServer) 	SetTransformCamera(camera, gamePlatform);
-			else SetTransformCamera(camera, gamePlatform);
-
-			scene::ISceneNodeAnimatorList list = camera->getAnimators();
-			scene::ISceneNodeAnimatorList::Iterator ait = list.begin();
-			while (ait != list.end())
-			{
-				fpsCamAnim = *ait;
-				break;
+			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f);
+			if (isServer) {
+				SetResetBot();
+				Respawn(initPos, initTarget);
+				botMoveTime = RakNet::GetTimeMS() + BOT_MOVE_TIME;
 			}
+			else SetTransformCamera(camera, gamePlatform);
 			
-			//파일
-			//vector3df 중간이 캐릭터 높이
-			//if (platform == GamePlatform::PC) {
-			//	if (isServer) {
-			//	camera = sm->addCameraSceneNode(0, core::vector3df(100, 140, 0), core::vector3df(100, 140, 300));  //시점 고정
-			//	    //PC Server Bot
-			//	}
-			//	else {
-			//		camera = sm->addCameraSceneNode(0, core::vector3df(0, 140, 100), core::vector3df(100, 130, 0));  //시점 고정
-			//		//PC Client
-			//	}
-			//}
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
 				sm->createCollisionResponseAnimator(
 					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, quakeLevelMesh ? -10.f : 0.0f, 0), core::vector3df(0, 45, 0), 0.005f);
@@ -873,11 +924,23 @@ void CDemo::switchToNextScene()
 			camera->addAnimator(collider);
 			collider->drop();
 
+			const scene::ISceneNodeAnimatorList& animators = camera->getAnimators();
+			scene::ISceneNodeAnimatorList::ConstIterator it = animators.begin();
+			while (it != animators.end())
+			{
+				if (scene::ESNAT_COLLISION_RESPONSE == (*it)->getType()){
+					fpsCamResponse = static_cast<scene::ISceneNodeAnimatorCollisionResponse*>(*it);
+				}
+				else if (scene::ESNAT_CAMERA_FPS == (*it)->getType()) {
+					fpsCamAnim = static_cast<scene::ISceneNodeAnimatorCameraFPS*>(*it);
+				}
+				it++;
+			}
+
+			crosshairTex = device->getVideoDriver()->getTexture(mediaPath + "crossHair_white.png");
+
+
 #endif // __ANDROID__
-			//TODO: 데이터를 전부 로드를 하고 난 다음 연결요청
-			//(클라이언트 측에서) 연결을 허락 받았을 때
-			//PushMessage(RakNet::RakString("Connection request to ") + targetName + RakNet::RakString(" accepted."));
-			//systemAddress에 할당되는 Connection 객체를 만들고
 		}
 		break;
 	}
@@ -976,19 +1039,18 @@ void CDemo::loadSceneData()
 	driver->getTexture(mediaPath+ "irrlicht2_rt.jpg"),
 	driver->getTexture(mediaPath+ "irrlicht2_ft.jpg"),
 	driver->getTexture(mediaPath+ "irrlicht2_bk.jpg"));
-	
 
 	core::vector3df waypoint[2];
 	waypoint[0].set(-150,40,100);
-	waypoint[1].set(350,40,100);
+	waypoint[1].set(350, 40, 100);
 
-	if (model2)
-	{
-		anim = device->getSceneManager()->createFlyStraightAnimator(waypoint[0],
-			waypoint[1], 2000, true);
-		model2->addAnimator(anim);
-		anim->drop();
-	}
+	//if (model2)
+	//{
+	//	anim = device->getSceneManager()->createFlyStraightAnimator(waypoint[0],
+	//		waypoint[1], 2000, true);
+	//	model2->addAnimator(anim);
+	//	anim->drop();
+	//}
 
 	// create animation for portals;
 
@@ -1046,7 +1108,8 @@ void CDemo::loadSceneData()
 	// create camp fire
 
 	campFire = sm->addParticleSystemSceneNode(false);
-	campFire->setPosition(core::vector3df(100,120,600));
+	campFire->setPosition(core::vector3df(100, 120, 600));
+	//campFire->setPosition(core::vector3df(279.522980, 100.080017, -290.277802));
 	campFire->setScale(core::vector3df(2,2,2));
 
 
@@ -1125,12 +1188,10 @@ void CDemo::createLoadingScreen()
 	//inOutFader->setColor(backColor,	video::SColor ( 0, 230, 230, 230 ));
 
 	// loading text
-
 	const int lwidth = size.Width - 20;
 	const int lheight = 16;
 
 	core::rect<int> pos(10, size.Height-lheight-80, 10+lwidth, size.Height-80);
-
 	//device->getGUIEnvironment()->addImage(pos);
 	statusText = device->getGUIEnvironment()->addStaticText(L"Start", pos, true);
 	statusText->setOverrideColor(video::SColor(255,205,200,200));
@@ -1197,7 +1258,7 @@ void CDemo::PlayDeathSound(core::vector3df position)
 void CDemo::EnableInput(bool enabled)
 {
 	scene::ICameraSceneNode* camera = GetSceneManager()->getActiveCamera();
-	camera->setInputReceiverEnabled(enabled);
+	if(camera) camera->setInputReceiverEnabled(enabled);
 }
 // RakNet - change shoot from assuming the camera, to taking any starting location
 // This way the same function can be called from the network
@@ -1303,7 +1364,13 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 		core::dimension2d<f32>(BALL_DIAMETER - 10, BALL_DIAMETER - 10), start);
 
 	node->setMaterialFlag(video::EMF_LIGHTING, false);
-	node->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "fireball.bmp"));
+	if (gamePlatform == Holder) {
+		node->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "fireball_green.bmp"));
+	}
+	else if(gamePlatform == Shooter || gamePlatform == Server) {
+		node->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "fireball_blue.bmp"));
+	}
+	
 	node->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
 
 	f32 length = (f32)(end - start).getLength();
@@ -1551,10 +1618,11 @@ void CDemo::UpdateRakNet(void)
 
 			RakNet::RakNetGUID LifeUpdateGuid;
 			RakNet::RakNetGUID ShooterGuid;
+			core::vector3df pos;
+			core::vector3df target;
 			bool isDead;
 			bsIn.Read(ShooterGuid); // The player who shot
 			bsIn.Read(isDead);
-
 			if (isDead) {
 				//Shooter = 죽인 사람 / Holder = 죽은 사람
 				RakNet::RakNetGUID HolderGuid;
@@ -1579,7 +1647,9 @@ void CDemo::UpdateRakNet(void)
 			else {
 				//Shooter = 부활한 사람
 				LifeUpdateGuid = ShooterGuid;
-				Respawn();
+				bsIn.Read(pos);
+				bsIn.Read(target);
+
 				isKeyLock = false;              
 				EnableInput(!isKeyLock);
 			}
@@ -1590,6 +1660,10 @@ void CDemo::UpdateRakNet(void)
 				if (player->creatingSystemGUID == LifeUpdateGuid)
 				{
 					player->isDead = isDead;
+					if (!isDead&&player->isBot) {
+						player->isTeleport = true;
+						player->position = pos;
+					}
 				}
 			}
 
@@ -1759,22 +1833,18 @@ void CDemo::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform pla
 	switch (platform)
 	{
 	case GamePlatform::Holder: {
-		initPos = core::vector3df(499.329315, 391.089996 + 50, 82.463745);
-		initTarget = core::vector3df(496.170868, 402.124542, -587.731873);
+		initPos = core::vector3df(-586.961609, 217.020020, -285.148346);
+		initTarget = core::vector3df(99.891418, 183.134460, -289.131927);
 	}
-		  break;
+		break;
 	case GamePlatform::Shooter: {
-		initPos = core::vector3df(558.439941, 391.010010 + 50, -368.623077);
-		initTarget = core::vector3df(565.280701, 421.927612, 432.511810);
+		initPos = core::vector3df(-586.961609, 217.020020, -285.148346);
+		initTarget = core::vector3df(99.891418, 183.134460, -289.131927);
 	}
 		  break;
 	case GamePlatform::Server: {
 		initPos = core::vector3df(646.534058, 217.090012, 235.449814);
 		initTarget = core::vector3df(187.311462, 131.882629, -314.482239);
-
-		//Motivation 2
-		//initPos = core::vector3df(702.535706, 391.032776 + 50, 201.749161);
-		//initTarget = core::vector3df(159.187500, 340.216034, -448.925781);
 	}
 		  break;
 	default:
@@ -1785,6 +1855,49 @@ void CDemo::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform pla
 	camera->setTarget(initTarget);
 }
 
+void CDemo::SetResetBot() {
+	//Direction
+	//-1 : Left, 0 : Down , 1 : Right
+	dir = RandomInt(-1, 1);
+
+	//Spawn Postion
+	switch (dir)
+	{
+	case -1: {
+		initPos = core::vector3df(-118.683563, 224.552368, -493.077454);
+		initTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
+	}break;
+	case 0: {
+		initPos = RandomVector3(core::vector3df(-46.856121, 363.129883, -292.425385), core::vector3df(-46.856121, 363.129883 + 700, -292.425385));
+		initTarget = core::vector3df(-518.377686, 332.969666, -276.827545);
+	}
+		  break;
+	case 1: {
+		initPos = core::vector3df(-86.982430, 217.035385, -140.506424);
+		initTarget = core::vector3df(-87.819504, 224.415527, -413.191589);
+	}
+		  break;
+	default:
+		break;
+	}
+
+	//Speed
+	if (fpsCamAnim) {
+		fpsCamAnim->setMoveSpeed(RandomFloat(0.1f, 1.0f)); 
+	}
+
+	//Spawn Time
+	if (playerBotReplica)
+		playerBotReplica->deathTimeout = RakNet::GetTimeMS() + RandomInt(1000, 3000);
+	else
+		playerReplica->deathTimeout = RakNet::GetTimeMS() + RandomInt(1000, 3000);
+
+	//Gravity
+	float gravity = -10.0f;
+	if (dir == 0) gravity = RandomFloat(-100.f, -10.f);
+	
+	if (fpsCamResponse) fpsCamResponse->setGravity(core::vector3df(0, gravity, 0));
+}
 void CDemo::SetHolderPosText(core::vector3df pos) {
 	if (holderPosText == nullptr) return;
 	RakNet::RakString msg("Hold Pos : %.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z);
@@ -1821,37 +1934,40 @@ void CDemo::FlushMovementKeys()
 	}
 }
 
-void CDemo::Respawn()
+void CDemo::Respawn(core::vector3df& pos, core::vector3df& target)
 {
 	if (!(GetSceneManager()->getActiveCamera())) return;
 
-	GetSceneManager()->getActiveCamera()->setPosition(initPos);
-	GetSceneManager()->getActiveCamera()->setTarget(initTarget);
+	GetSceneManager()->getActiveCamera()->setPosition(pos);
+	GetSceneManager()->getActiveCamera()->setTarget(target);
+	
+	if(fpsCamAnim) fpsCamAnim->setReset(true);
+	if(fpsCamResponse) fpsCamResponse->setReset(true);
+	
+}
 
-	scene::ISceneNodeAnimatorList animators = GetSceneManager()->getActiveCamera()->getAnimators();
-	scene::ISceneNodeAnimatorList::ConstIterator it = animators.begin();
-	while (it != animators.end())
-	{
-		(*it)->getType();
-		if (scene::ESNAT_COLLISION_RESPONSE == (*it)->getType())
-		{
-			scene::ISceneNodeAnimatorCollisionResponse* collisionResponse =
-				static_cast<scene::ISceneNodeAnimatorCollisionResponse*>(*it);
+void CDemo::DrawCrosshairHUD()
+{
+	    video::IVideoDriver* driver = device->getVideoDriver();
+		core::dimension2d<u32> size = driver->getScreenSize();
+		const core::dimension2du orig = crosshairTex->getOriginalSize(); // 118×118
+		core::rect<s32> srcRect(0, 0, (s32)orig.Width, (s32)orig.Height); // <= 이걸 사용
 
-			if (collisionResponse) collisionResponse->setReset(true);
-			//collisionResponse->setTargetNode(cam);
+		s32 minPixel;
+		if (size.Width <= size.Height) minPixel = size.Width;
+		else minPixel = size.Height;
 
-		}
-		else if (scene::ESNAT_CAMERA_FPS == (*it)->getType())
-		{
-			// reset the camera's internal state too
-			scene::ISceneNodeAnimatorCameraFPS* fpsCam =
-				static_cast<scene::ISceneNodeAnimatorCameraFPS*>(*it);
+		// 원하는 스케일 픽셀(예: 64×64, 또는 화면 짧은 변의 10%)
+		const s32 target = (s32)(minPixel * 0.10f);
+		//const s32 target = 128;
+		const s32 posX = (size.Width - target) / 2;
+		const s32 posY = (size.Height - target) / 2;
+		core::rect<s32> dstRect(posX, posY, posX + target, posY + target);
 
-			if (fpsCam) fpsCam->setReset(true);
-		}
-		it++;
-	}
+		video::SColor color(50, 255, 255, 255);
+		video::SColor colors[4] = {color,color,color,color };
+
+		device->getVideoDriver()->draw2DImage(crosshairTex, dstRect, srcRect, nullptr, colors, true);
 }
 
 #ifdef USE_IRRKLANG

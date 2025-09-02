@@ -139,7 +139,7 @@
               "RelativeDocumentMoniker": "CDemo.cpp",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
               "RelativeToolTip": "CDemo.cpp",
-              "ViewState": "AgIAANwCAAAAAAAAAAAWwPACAAAwAAAAAAAAAA==",
+              "ViewState": "AgIAAMUBAAAAAAAAAAAAAN8BAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-06-23T06:11:16.76Z",
               "EditorCaption": ""
@@ -234,10 +234,6 @@
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000698|",
               "WhenOpened": "2025-06-23T06:11:05.096Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{68487888-204a-11d3-87eb-00c04f7971a5}"
             }
           ]
         }

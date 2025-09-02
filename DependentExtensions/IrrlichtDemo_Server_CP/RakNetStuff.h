@@ -29,7 +29,6 @@
 #include "MessageIdentifiers.h"
 #include <vector>
 
-
 using namespace std;
 
 class ReplicaManager3Irrlicht;
@@ -114,6 +113,7 @@ void DrawDebugFrame(irr::scene::ITriangleSelector* selector, RakNet::TimeMS draw
 static inline void PrintHoldPosOneLine(float x, float y, float z);
 static inline void PrintOneLineNewline(void);
 
+
 // Base RakNet custom classes for Replica Manager 3, setup peer to peer networking
 class BaseIrrlichtReplica : public RakNet::Replica3
 {
@@ -140,7 +140,6 @@ public:
 
 	// Set when the object is constructed
 	CDemo *demo;
-
 	// real is written on the owner peer, read on the remote peer
 	irr::core::vector3df position;
 	RakNet::TimeMS creationTime;
@@ -218,6 +217,7 @@ public:
 	//KDA
 	int killCnt;
 	int deathCnt;
+	bool isTeleport;
 };
 class PlayerBotReplica : public PlayerReplica
 {
@@ -235,7 +235,7 @@ public:
 	virtual void Deserialize(RakNet::DeserializeParameters* deserializeParameters);
 
 	void CreateBotModel();
-	irr::scene::IAnimatedMeshSceneNode* botModel; // bot 전용 Model 
+	irr::scene::IAnimatedMeshSceneNode* botModel; // bot 전용 Model
 };
 class BallReplica : public BaseIrrlichtReplica
 {
@@ -294,7 +294,7 @@ public:
 
 	virtual void PrintTimeGap(char* str) override;
 	virtual void SetIsLog(bool isLog) override { this->isLog = isLog; }
-
+	
 	CDemo *demo;
 };
 

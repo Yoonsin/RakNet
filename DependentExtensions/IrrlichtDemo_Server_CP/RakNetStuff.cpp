@@ -31,6 +31,7 @@
 #endif
 
 
+
 using namespace RakNet;
 using namespace std;
 
@@ -49,6 +50,7 @@ StatisticsHistoryPlugin* statisticsPlugin; // Used to track network statistics
 CollisionBoxQueueSceneNode* collisionBoxQueue;
 //int ping = -65555;
 int score = 0;
+
 class DebugBoxSceneNode : public scene::ISceneNode 
 {
 public:
@@ -291,11 +293,11 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo)
 	if (topology == CLIENT) {
 #if __ANDROID__
 		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.4", SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 #else
-		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		//ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 		
 #endif // __ANDROID__
@@ -635,6 +637,7 @@ PlayerReplica::PlayerReplica()
 	isDead = false;
 	wasDead = false;
 	isBot = false;
+	isTeleport = false;
 	playerList.Push(this,_FILE_AND_LINE_);
 	fq = new DataStructures::Queue<FrameState>();
 	killCnt = 0;
@@ -795,14 +798,21 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 {
 	if (topology == SERVER) {
 		//부활 확인
-		if (wasDead && !IsDead()) {
+		bool tmp = IsDead();
+		if (wasDead && !tmp) {
 			RakNet::BitStream bs;
 			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_LIFE);
 			bs.Write(creatingSystemGUID);
-			bs.Write(IsDead());
+			bs.Write(tmp);
+			bs.Write(demo->initPos);
+			bs.Write(demo->initTarget);
 			wasDead = false;
-
 			rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+
+			if (isBot)  {
+				demo->Respawn(demo->initPos, demo->initTarget);
+				demo->botMoveTime = RakNet::GetTimeMS() + BOT_MOVE_TIME;
+			}
 		}
 	}
 
@@ -832,40 +842,38 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 			fq->Pop();
 
 		//만약 이 플레이어가 Holder라면
-		if (gamePlatform == Holder) {
-			//현재 Shoooter가 Holder에게 총을 쐈을 때 
-			//Time Wrap가 적용되는 위치를 출력한다 (Shooter ~ Server 간 딜레이가 없다고 가정)
-			RakNet::TimeMS now = curTime - INTERP_TIME_MS;
-			core::vector3df printPos;
-			for (int frameIdx = 1; frameIdx < fq->Size(); frameIdx++)
-			{
-				if ((*fq)[frameIdx].timeStamp >= now) {
-					//now가 frameIdx-1 과 frameIdx 사이에 있으므로 보간
-					const FrameState& f0 = (*fq)[frameIdx - 1];
-					const FrameState& f1 = (*fq)[frameIdx];
-					float alpha = float(now - f0.timeStamp) / float(f1.timeStamp - f0.timeStamp);
+		//if (gamePlatform == Holder) {
+		//	//현재 Shoooter가 Holder에게 총을 쐈을 때 
+		//	//Time Wrap가 적용되는 위치를 출력한다 (Shooter ~ Server 간 딜레이가 없다고 가정)
+		//	RakNet::TimeMS now = curTime - INTERP_TIME_MS;
+		//	core::vector3df printPos;
+		//	for (int frameIdx = 1; frameIdx < fq->Size(); frameIdx++)
+		//	{
+		//		if ((*fq)[frameIdx].timeStamp >= now) {
+		//			//now가 frameIdx-1 과 frameIdx 사이에 있으므로 보간
+		//			const FrameState& f0 = (*fq)[frameIdx - 1];
+		//			const FrameState& f1 = (*fq)[frameIdx];
+		//			float alpha = float(now - f0.timeStamp) / float(f1.timeStamp - f0.timeStamp);
 
-					//Shot Position 보간
-					//= f0.shotPosition.getInterpolated(f1.shotPosition, alpha);
-					printPos = f0.collisionTransform.getTranslation().getInterpolated(f1.collisionTransform.getTranslation(), alpha);
-					break;
-				}
-			}
-			PrintHoldPosOneLine(printPos.X, printPos.Y, printPos.Z);
-		}
+		//			//Shot Position 보간
+		//			//= f0.shotPosition.getInterpolated(f1.shotPosition, alpha);
+		//			printPos = f0.collisionTransform.getTranslation().getInterpolated(f1.collisionTransform.getTranslation(), alpha);
+		//			break;
+		//		}
+		//	}
+		//	PrintHoldPosOneLine(printPos.X, printPos.Y, printPos.Z);
+		//}
 	}
 
 	// Is a locally created object?
 	// 이동 적용
 	if (creatingSystemGUID==rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
-	{
-		
+	{	
 		if (topology == SERVER) {
 			playerBotReplica->position = demo->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
 			playerBotReplica->rotationAroundYAxis = demo->GetSceneManager()->getActiveCamera()->getRotation().Y - 90.0f;
 			playerBotReplica->botModel->setPosition(playerBotReplica->position);
 			playerBotReplica->botModel->setRotation(core::vector3df(0, playerBotReplica->rotationAroundYAxis, 0));
-
 			/*if (playerBotReplica->position.X <= 530.00) demo->isKeyLock = true;*/
 		}
 		else {
@@ -875,7 +883,6 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 			//if (playerReplica->position.X <= 530.00) {
 			//	demo->isKeyLock = true;
 			//}
-			
 		}
 		
 		// Local player has no mesh to interpolate
@@ -884,7 +891,8 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 
 		// Ack, makes the screen messed up and the mouse move off the window
 		// Find another way to keep the dead player from moving
-	    demo->EnableInput((topology == SERVER) ? IsDead() == false : isDead == false);
+		// 서버 봇 적용하면 이동시 튕기는 문제 발생
+		if(topology != SERVER) demo->EnableInput((topology == SERVER) ? IsDead() == false : isDead == false);
 
 		//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", position.X, position.Y, position.Z, demo->isKeyLock, demo->wasKeyLock);
 		// DebugPrintf("Player target : %f, %f, %f\n", demo->GetSceneManager()->getActiveCamera()->getTarget().X, demo->GetSceneManager()->getActiveCamera()->getTarget().Y, demo->GetSceneManager()->getActiveCamera()->getTarget().Z);
@@ -896,9 +904,41 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 
 	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) return;
 
-
 	//Debug Frame
 	DrawDebugFrame(demo->GetSyndeyBoundingBox(),position, rotationAroundYAxis, demo->GetSceneManager(), creatingSystemGUID, 500);
+
+	//Set Animation
+	if ((topology == SERVER) ? IsDead() : isDead)
+	{
+		UpdateAnimation(scene::EMAT_DEATH_FALLBACK);
+		model->setLoopMode(false);
+	}
+	else if (curAnim != scene::EMAT_ATTACK)
+	{
+		if (isMoving)
+		{
+			UpdateAnimation(scene::EMAT_RUN);
+			model->setLoopMode(true);
+		}
+		else
+		{
+			UpdateAnimation(scene::EMAT_STAND);
+			model->setLoopMode(true);
+		}
+	}
+
+	//TODO
+	//서버에서 리스폰 -> 로컬에 텔포 딱 한번 명령 
+	if (isBot&&isTeleport)
+	{
+		model->setPosition(position);
+		model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
+		lastUpdate = curTime;
+		interpEndTime = curTime;
+		isTeleport = false;
+		DebugPrintf("reset!\n");
+		return;
+	}
 
 	// Update interpolation at Remote
 	RakNet::TimeMS elapsed = curTime-lastUpdate;
@@ -909,11 +949,13 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		elapsed=100;
 
 	lastUpdate=curTime;
+
 	irr::core::vector3df curPositionDelta = position-model->getPosition();
 	irr::core::vector3df interpThisTick = positionDeltaPerMS*(float) elapsed;
 	if (curTime < interpEndTime && interpThisTick.getLengthSQ() < curPositionDelta.getLengthSQ())
 	{
 		model->setPosition(model->getPosition()+positionDeltaPerMS*(float) elapsed);
+		//DebugPrintf("interPolation\n");
 	}
 	else
 	{
@@ -932,30 +974,13 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	}
 
 	//Print HolderPos
-	if (gamePlatform == Holder ) {
-		if (demo->gamePlatform == Shooter) {
+	if (gamePlatform == GamePlatform::Server) {
+		if (demo->gamePlatform == GamePlatform::Shooter || demo->gamePlatform == GamePlatform::Holder) {
 			//보간된 위치
 			demo->SetHolderPosText(model->getPosition());
-		}
-	}
-
-	//Set Animation
-	if ((topology == SERVER) ? IsDead(): isDead)
-	{
-		UpdateAnimation(scene::EMAT_DEATH_FALLBACK);
-		model->setLoopMode(false);		
-	}
-	else if (curAnim!=scene::EMAT_ATTACK)
-	{
-		if (isMoving)
-		{
-			UpdateAnimation(scene::EMAT_RUN);
-			model->setLoopMode(true);
-		}
-		else
-		{
-			UpdateAnimation(scene::EMAT_STAND);
-			model->setLoopMode(true);
+			if (isDead) return;
+			core::vector3df pos = model->getPosition();
+			if (isWithinRange(pos.Y, 167.0f, 10.0f) && isWithinRange(pos.Z, -288.0f, 10.0f)) demo->isShoot = true;
 		}
 	}
 }
@@ -1252,6 +1277,7 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 		scene::ISceneNode* node = nullptr;
 
 		if (player->IsDead()) continue;
+		if (player->isBot == false) continue; //현재는 봇 이외의 플레이어는 안맞도록 설정
 		selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), player->collisionTransform, sm, player->creatingSystemGUID);
 
 		if (selector == nullptr) continue;
@@ -1281,7 +1307,9 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 				if (distToWall < distToPlayer) continue;
 			}
 
-			player->deathTimeout = RakNet::GetTimeMS() + 3000;
+			if (player->isBot) demo->SetResetBot();
+			else player->deathTimeout = RakNet::GetTimeMS() + 3000;
+			
 			printf("HIT! : %d\n", ++score);
 			RakNet::RakString msg("%s Dead from : %s",
 				player->isBot ? "Bot" : "Player",
@@ -1299,6 +1327,17 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 			bs.Write(player->playerName);         //Holder Name
 			//TODO : 점수 득점도 포함하기
 
+			if (player->isBot) {
+				SEvent botKeyEvent;
+				botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
+				botKeyEvent.KeyInput.Key = KEY_KEY_W;
+				botKeyEvent.KeyInput.PressedDown = false;
+				demo->KeyIsDown[botKeyEvent.KeyInput.Key] = botKeyEvent.KeyInput.PressedDown;
+				if (demo->GetDevice()->getSceneManager()->getActiveCamera()) {
+					demo->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
+				}
+			}
+			
 			KillLog logEntry{ shooterName + RakNet::RakString(" -> ") + player->playerName + RakNet::RakString("\n"), RakNet::GetTimeMS() };
 			demo->killLogMessages.Push(logEntry, _FILE_AND_LINE_); // Record the kill log message
 
@@ -1458,6 +1497,7 @@ void DebugPrintf(const char* format, ...)
 #endif // _WIN32
 
 #endif // __ANDROID__	
+	
 }
 
 
