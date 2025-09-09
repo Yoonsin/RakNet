@@ -58,15 +58,48 @@ using namespace irr;
 
 const int CAMERA_COUNT = 7;
 const int BOT_MOVE_TIME = 5000;
+const int BULLET_COOL_TIME = 500;
+const int GAME_START_PENDING_TIME = 5000;
 const float CAMERA_HEIGHT=50.0f;
 const float SHOT_SPEED = 5.0f; //.6f;
 const float BALL_DIAMETER=20.0f;
+
 
 // RakNet
 #include "RakNetStuff.h"
 #include "DS_Multilist.h"
 #include "RakString.h"
 #include "RakNetTime.h"
+#include "Rand.h"
+
+#define RandomFloat(min, max) RandomFloatImpl(min, max)
+#define RandomInt(min, max)   RandomIntImpl(min, max)
+#define RandomVector3(min, max) RandomVector3Impl(min, max)
+extern RakNet::RakNetRandom gRand;
+
+inline void InitRandom(unsigned int t) {
+	// 시드를 시간 기반으로 주면 매번 다른 난수열
+	gRand.SeedMT(t);
+}
+
+inline float RandomFloatImpl(float min, float max) {
+	return min + gRand.FrandomMT() * (max - min);
+}
+
+inline int RandomIntImpl(int min, int max) {
+	return min + (int)(gRand.RandomMT() % (uint32_t)(max - min + 1));
+}
+
+inline irr::core::vector3df RandomVector3Impl(
+	const irr::core::vector3df& min,
+	const irr::core::vector3df& max)
+{
+	return irr::core::vector3df(
+		RandomFloatImpl(min.X, max.X),
+		RandomFloatImpl(min.Y, max.Y),
+		RandomFloatImpl(min.Z, max.Z)
+	);
+}
 
 struct KillLog {
 	RakNet::RakString message;
@@ -83,9 +116,18 @@ public:
 		ID_GAME_MESSAGE_BALL_REQUEST = ID_USER_PACKET_ENUM + 1,
 		ID_GAME_MESSAGE_PLAYER_LIFE = ID_USER_PACKET_ENUM + 2,
 		ID_GAME_MESSAGE_PLAYER_NAME = ID_USER_PACKET_ENUM + 3,
+		ID_GAME_MESSAGE_PLAYER_RESPAWN = ID_USER_PACKET_ENUM + 4,
+		ID_GAME_MESSAGE_GAME_MATCH = ID_USER_PACKET_ENUM + 5,
 	};
 
-	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base);
+	enum GameMatchState {
+		GAME_MATCH_NONE = 0,
+		GAME_MATCH_PENDING = 1,
+		GAME_MATCH_START = 2,
+		GAME_MATCH_END = 3,
+	};
+
+	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base, bool isBot, int winScore);
 	~CDemo();
 
 	void run();
@@ -98,8 +140,8 @@ public:
 	bool IsKeyDown(EKEY_CODE keyCode) const;
 	bool IsMovementKeyDown(void) const;
 	// RakNet: Decouple the origin of the shot from the camera, so the network code can use this same graphical effect
-	RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt);
-	RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint);
+	RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, GamePlatform platform);
+	RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint, GamePlatform platform);
 	const core::aabbox3df& GetSyndeyBoundingBox(void) const;
 	void PlayDeathSound(core::vector3df position);
 	void EnableInput(bool enabled);
@@ -121,7 +163,7 @@ public:
 	RakNet::SystemAddress serverSystemAddress;
 
 	bool isPlayersNameSet = false;
-	int serverBotCnt = 1;
+	int serverPlayerCnt = 1; //봇 + 플레이어 포함
 
 	DataStructures::Queue<KillLog> killLogMessages;
 
@@ -133,16 +175,22 @@ public:
 	bool wasKeyLock;
 	// We use this array to store the current state of each key
 	bool KeyIsDown[KEY_KEY_CODES_COUNT];
-	
+
 	RakNet::TimeMS botMoveTime = 2000;
 	RakNet::TimeMS preT = 0;
+	//pending & start record time
+	RakNet::TimeMS gameStartTime = 0;
 	int dir;
 	bool isShoot;
+	bool isBot;
+	int  winScore;
+	bool isGameStart;
+	bool isGameEnd; 
 
 	void FlushMovementKeys();
 	void Respawn(core::vector3df& pos, core::vector3df& target);
 	void SetResetBot();
-
+	void MoveBot();
 
 #ifdef __ANDROID__
 	android_app* state;
@@ -169,6 +217,7 @@ private:
 	//로그 시작
 	bool isLogged;
 	bool isServer;
+	//클라이언트 수
 	int logCount;
 	
 	irr::core::stringc mediaPath;

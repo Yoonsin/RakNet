@@ -492,11 +492,13 @@ void android_main(android_app* state) {
     video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
 	GamePlatform platform = GamePlatform::Holder;
     bool isLogged = false;
+    bool isBot = false;
     int logCount = 1;
+    int winScore = 10;
     
     const char* baseDir = "/storage/emulated/0/Download";
    
-    demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir);
+    demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir, isBot, winScore);
     demo->state = state;
     demo->run();
     delete demo;

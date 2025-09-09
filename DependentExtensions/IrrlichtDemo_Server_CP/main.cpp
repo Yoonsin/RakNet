@@ -33,8 +33,10 @@ int main(int argc, char* argv[])
 	core::stringw playerName;
 
 	bool isServer = false;
-	bool isLogged = false;
-	int logCount = 1;
+	bool isLogged = true;
+	bool isBot = false;
+	int logCount = 2;
+	int winScore = 3;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
@@ -55,17 +57,26 @@ int main(int argc, char* argv[])
 				logCount = atoi(token);  // 다음 인수를 정수로 변환하여 logCount에 저장
 			}
 		}
+		else if (strcmp(token, "-bot") == 0) {
+			isBot = true;
+		}
+		else if (strcmp(token, "-score") == 0) {
+			token = strtok(nullptr, " ");  // 다음 인수로 넘어가기
+			if (token != nullptr) {
+				winScore = atoi(token);  // 다음 인수를 정수로 변환하여 logCount에 저장
+			}
+		}
 		token = strtok(nullptr, " ");  // 더 이상 없으면 종료
 	}
 
 	const char* baseDir = "";
 
 	//#ifndef _DEBUG
-	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer))
+	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer,logCount,isBot))
 		//#endif
 	{
 		if (isServer) platform = GamePlatform::Server;
-		demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir);
+		demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir, isBot, winScore);
 		demo->run();
 		delete demo;
 		demo = nullptr;
@@ -84,9 +95,18 @@ int main(int argc, char* argv[])
 				i++;
 			}
 		}
+		else if (strcmp(argv[i], "-bot") == 0) {
+			isBot = true;
+		}
+		else if (strcmp(argv[i], "-score") == 0) {
+			if (i + 1 < argc) {
+				winScore = atoi(argv[i + 1]);  // 다음 인수를 정수로 변환하여 logCount에 저장
+				i++;
+			}
+		}
 	}
 
-	demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "");
+	demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "",isBot, winScore);
 	demo->run();
 	delete demo;
 	demo = nullptr;

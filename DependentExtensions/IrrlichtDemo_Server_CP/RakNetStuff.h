@@ -85,14 +85,15 @@ extern RakNet::FullyConnectedMesh2 *fullyConnectedMesh2; // Used to find out who
 extern PlayerReplica* playerReplica; // Network object that represents the player
 extern PlayerBotReplica* playerBotReplica; // Network object that represents the player
 extern CollisionBoxQueueSceneNode* collisionBoxQueue;
+extern DataStructures::List<RakNet::RakString> statBuf;
 
 // A NAT punchthrough and proxy server Jenkins Software is hosting for free, should usually be online
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_PORT 61111
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP "natpunch.slikesoft.com" //"natpunch.jenkinssoftware.com" 대체
 #define SERVER_PORT 20123
 
-void InstantiateRakNetClasses(bool isServer, bool isLogged, CDemo* demo);
-void DeinitializeRakNetClasses(bool isLogged, const char* baseDir);
+void InstantiateRakNetClasses(bool isServer, bool isLogged, bool isBot, CDemo* demo);
+void DeinitializeRakNetClasses(bool isLogged, bool isBot, const char* baseDir);
 void SaveStatisticsToCSV(const char* baseDir);
 
 //시간 변화량
@@ -112,7 +113,6 @@ void DrawDebugFrame(irr::scene::ITriangleSelector* selector, RakNet::TimeMS draw
 
 static inline void PrintHoldPosOneLine(float x, float y, float z);
 static inline void PrintOneLineNewline(void);
-
 
 // Base RakNet custom classes for Replica Manager 3, setup peer to peer networking
 class BaseIrrlichtReplica : public RakNet::Replica3
@@ -178,7 +178,7 @@ public:
 	// Interpolation variables, not networked
 	irr::core::vector3df positionDeltaPerMS;
 	float rotationDeltaPerMS;
-	RakNet::TimeMS interpEndTime, lastUpdate;
+	RakNet::TimeMS interpEndTime, lastUpdate, bulletCoolTime;
 
 	// Updated based on the keypresses, to control remote animation
 	bool isMoving;
@@ -204,6 +204,7 @@ public:
 	bool firstUpdate = true;
 	irr::core::vector3df replicatedCameraPos;
 	irr::core::vector3df replicatedCameraRot;
+	irr::core::vector3df lastPos;
 
 	DebugBoxSceneNode* debugBox;
 
@@ -217,7 +218,11 @@ public:
 	//KDA
 	int killCnt;
 	int deathCnt;
+	int shootCnt;
 	bool isTeleport;
+
+	irr::core::vector3df respawnPos;
+	irr::core::vector3df respawnTarget;
 };
 class PlayerBotReplica : public PlayerReplica
 {
@@ -231,11 +236,14 @@ public:
 	virtual RakNet::RM3ActionOnPopConnection QueryActionOnPopConnection(RakNet::Connection_RM3* droppedConnection) const;
 	virtual void PreDestruction(RakNet::Connection_RM3* sourceConnection) override;
 
+	virtual void SerializeConstruction(RakNet::BitStream* constructionBitstream, RakNet::Connection_RM3* destinationConnection);
+	virtual bool DeserializeConstruction(RakNet::BitStream* constructionBitstream, RakNet::Connection_RM3* sourceConnection);
 	virtual RakNet::RM3SerializationResult Serialize(RakNet::SerializeParameters* serializeParameters);
 	virtual void Deserialize(RakNet::DeserializeParameters* deserializeParameters);
 
 	void CreateBotModel();
 	irr::scene::IAnimatedMeshSceneNode* botModel; // bot 전용 Model
+	
 };
 class BallReplica : public BaseIrrlichtReplica
 {
@@ -270,7 +278,6 @@ public:
 	RakNet::TimeMS shotLifetime;
 
 	int bulletCount;
-	RakNet::RakString shooterName;
 };
 class Connection_RM3Irrlicht : public RakNet::Connection_RM3 {
 public:

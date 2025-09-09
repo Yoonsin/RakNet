@@ -19,7 +19,7 @@ message(STATUS "${X11_INCLUDE_DIR}")
 add_compile_definitions(IRRLICHT_EXPORTS=1)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    add_compile_options(-fno-exceptions -fno-rtti -fstrict-aliasing)
+    add_compile_options(-fno-exceptions -fstrict-aliasing)
 elseif(CMAKE_COMPILER_IS_GNUCC)
     add_compile_options(-Wall -pipe -fno-exceptions -fstrict-aliasing)
 endif()

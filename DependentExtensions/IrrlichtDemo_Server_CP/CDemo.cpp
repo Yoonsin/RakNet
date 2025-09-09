@@ -17,15 +17,6 @@
 #ifdef __ANDROID__
 #include "android_tools.h"
 #include <sys/auxv.h>
-#include <android/log.h>
-#define LOG_TAG "CDemo"
-#define _LOG(priority, fmt, ...) \
-  ((void)__android_log_print(priority, LOG_TAG, fmt, ##__VA_ARGS__))
-
-//#define LOGE(fmt, ...) _LOG(ANDROID_LOG_ERROR, fmt, ##__VA_ARGS__)
-#define LOGE(fmt, ...) _LOG(ANDROID_LOG_ERROR, fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) _LOG(ANDROID_LOG_WARN, fmt, ##__VA_ARGS__)
-#define LOGI(fmt, ...) _LOG(ANDROID_LOG_INFO, fmt, ##__VA_ARGS__)
 /* Irrlicht Extension stuff */
 #include <IExtendableSkin.h>
 #include <ScrollBarSkinExtension.h>
@@ -76,39 +67,12 @@ public:
 };
 #endif
 
-#define RandomFloat(min, max) RandomFloatImpl(min, max)
-#define RandomInt(min, max)   RandomIntImpl(min, max)
-#define RandomVector3(min, max) RandomVector3Impl(min, max)
 RakNet::RakNetRandom gRand;
+DataStructures::List<RakNet::RakString> statBuf;
 
-inline void InitRandom(unsigned int t) {
-	// 시드를 시간 기반으로 주면 매번 다른 난수열
-	gRand.SeedMT(t);
-}
-
-inline float RandomFloatImpl(float min, float max) {
-	return min + gRand.FrandomMT() * (max - min);
-}
-
-inline int RandomIntImpl(int min, int max) {
-	return min + (int)(gRand.RandomMT() % (uint32_t)(max - min + 1));
-}
-
-inline irr::core::vector3df RandomVector3Impl(
-	const irr::core::vector3df& min,
-	const irr::core::vector3df& max)
-{
-	return irr::core::vector3df(
-		RandomFloatImpl(min.X, max.X),
-		RandomFloatImpl(min.Y, max.Y),
-		RandomFloatImpl(min.Z, max.Z)
-	);
-}
-
-
-CDemo::CDemo(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw &_playerName, bool isS, GamePlatform plat, bool isLog, int logCnt, const char* base)
+CDemo::CDemo(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw& _playerName, bool isS, GamePlatform plat, bool isLog, int logCnt, const char* base, bool isBot, int winScore)
 : fullscreen(f), music(m), shadows(s), additive(a), vsync(v), aa(fsaa),
-driverType(d), device(0), playerName(_playerName), isServer(isS), gamePlatform(plat), isLogged(isLog), logCount(logCnt), baseDir(base),
+driverType(d), device(0), playerName(_playerName), isServer(isS), gamePlatform(plat), isLogged(isLog), logCount(logCnt), baseDir(base), isBot(isBot), winScore(winScore),
 #ifdef USE_IRRKLANG
 	irrKlang(0), ballSound(0), impactSound(0),
 #endif
@@ -139,6 +103,9 @@ driverType(d), device(0), playerName(_playerName), isServer(isS), gamePlatform(p
 	isKeyLock = false;
 	wasKeyLock = false;
 	isShoot = false;
+	isGameStart = false;
+	isGameEnd = false;
+	gameStartTime = 0;
 }
 
 
@@ -181,10 +148,10 @@ void CDemo::run()
 	char filePath[1024] = "/media";
 	char absPath[5000];
 	if (realpath(filePath, absPath)) {
-		LOGI("Absolute path: %s", absPath);
+		DebugPrintf("Absolute path: %s", absPath);
 	}
 	else {
-		LOGI("File not found: %s", filePath);
+		DebugPrintf("File not found: %s", filePath);
 	}
 
 #else
@@ -287,10 +254,10 @@ void CDemo::run()
 		device->getFileSystem()->addFileArchive(mediaPath + "map-20kdm2.pk3", true, true, io::EFAT_ZIP);
 #ifdef __ANDROID__
 		if (device->getFileSystem()->existFile(mediaPath + "map-20kdm2.pk3")) {
-			LOGI("맵 파일이 존재함!");
+			DebugPrintf("맵 파일이 존재함!");
 		}
 		else {
-			LOGI("맵 파일이 없음!");
+			DebugPrintf("맵 파일이 없음!");
 		}
 #else 
 		wchar_t tmp[255];
@@ -307,7 +274,7 @@ void CDemo::run()
 	//holderPosRect = core::rect<int>(10, 110, 2000, 300);
 	KillLogRect = core::rect<int>(lwidth - 550, 50, lwidth - 50, 700);
 #else
-	myNameRect = core::rect<int>(10, 0, 200, 30);
+	myNameRect = core::rect<int>(10, 0, 250, 30);
 	holderPosRect = core::rect<int>(10, 40, 250, 70);  //Font
 	//holderPosRect = core::rect<int>(0, 40, 640, 200);  //Big Font
 
@@ -331,8 +298,13 @@ void CDemo::run()
 	auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 	InitRandom(millis);
 
+	//if (isServer) {
+	//	//서버 봇은 1명이라고 가정..
+	//	//TODO : 나중에 서버 봇도 여러개 정할 수 있도록 하기
+	//}
+
 	// RakNet startup
-	InstantiateRakNetClasses(isServer, isLogged, this);
+	InstantiateRakNetClasses(isServer, isLogged, isBot,this);
 	CalculateSyndeyBoundingBox();
 
 	s32 now = 0;
@@ -364,40 +336,9 @@ void CDemo::run()
 				//irrKlang->setListenerPosition(cam->getAbsolutePosition(), cam->getTarget());
 			}
 #endif
-			RakNet::TimeMS t = RakNet::GetTimeMS();
-			//Bot movement for server
-			if (isServer && playerBotReplica) {
-				if (!playerBotReplica->IsDead() && !playerBotReplica->wasDead && device->getSceneManager()->getActiveCamera()) {
-					SEvent botKeyEvent;
-					botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
-					botKeyEvent.KeyInput.Key = KEY_KEY_W;
-					if (botMoveTime >= t){
-						if (dir != 0) {
-							botKeyEvent.KeyInput.PressedDown = KeyIsDown[botKeyEvent.KeyInput.Key] = true;
-							device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
-						}
-						//DebugPrintf("go / timeDiff : %d\n", t-preT);
-					}
-					else {
-						if (dir != 0) {
-							botKeyEvent.KeyInput.PressedDown = KeyIsDown[botKeyEvent.KeyInput.Key] = false;
-							device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
-						}
-						SetResetBot();
-						Respawn(initPos, initTarget);
-						botMoveTime = t + BOT_MOVE_TIME;
-
-						RakNet::BitStream bs;
-						bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_LIFE);
-						bs.Write(playerBotReplica->creatingSystemGUID);
-						bs.Write(false);
-						bs.Write(initPos);
-						bs.Write(initTarget);
-						rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
-					}
-				}
+			if (isGameStart) {
+				MoveBot();
 			}
-			preT = t;
 			
 			//Client Shoot in Range
 			if (isShoot) {
@@ -413,10 +354,6 @@ void CDemo::run()
 
 			createParticleImpacts();
 
-			if (isLogged && !isServer && isBulletRendering) {
-				isBulletRendering = false;
-				PrintStatistics(nullptr, ID_CLIENT_RENDERING_START, bulletCount-1);
-			}
 			driver->beginScene(timeForThisScene != -1, true, backColor);
 
 			smgr->drawAll();
@@ -485,6 +422,7 @@ void CDemo::run()
 		// RakNet per 
 		// update
 		UpdateRakNet();
+
 		//Statistics Timer
 		//if (isLogged && isServer) {
 		//	int logCnt = (isServer) ? logCount : 1;
@@ -512,7 +450,7 @@ void CDemo::run()
 	}
 
 	// RakNet shutdown
-	DeinitializeRakNetClasses(isLogged, baseDir);
+	DeinitializeRakNetClasses(isLogged, isBot,baseDir);
 	device->drop();
 }
 
@@ -626,9 +564,6 @@ bool CDemo::OnEvent(const SEvent& event)
 						GetSceneManager()->getActiveCamera()->setVisible(true);
 					}
 					else {
-						if (isLogged && !isServer) {
-							PrintStatistics(nullptr, ID_CLIENT_POLLING_END, bulletCount);
-						}
 						shoot();
 					}
 
@@ -745,9 +680,6 @@ if (isKeyLock) {
 			}
 			else
 			{
-				if (isLogged && !isServer) {
-					PrintStatistics(nullptr, ID_CLIENT_POLLING_END, bulletCount);
-				}
 				// shoot
 				shoot();
 			}
@@ -776,9 +708,9 @@ if (isKeyLock) {
 				event.KeyInput.PressedDown == false)
 		{
 			if (auto* cam = device->getSceneManager()->getActiveCamera()) {
-				if (isServer) {
+				if (isBot) {
 					SetResetBot();
-					Respawn(initPos, initTarget);
+					Respawn(playerBotReplica->respawnPos, playerBotReplica->respawnTarget);
 					botMoveTime = RakNet::GetTimeMS() + BOT_MOVE_TIME;
 				}
 				else {
@@ -795,7 +727,7 @@ if (isKeyLock) {
 				return true; // 여기서 바로 빠져나가면 기존 방향으로 계속 이동하지 않음
 
 			if (event.EventType == EET_MOUSE_INPUT_EVENT) {
-				//if(isServer == false) device->getSceneManager()->getActiveCamera()->OnEvent(event);
+				//device->getSceneManager()->getActiveCamera()->OnEvent(event);
 			}
 			else if (event.EventType == EET_KEY_INPUT_EVENT) {
 				device->getSceneManager()->getActiveCamera()->OnEvent(event);
@@ -883,8 +815,17 @@ void CDemo::switchToNextScene()
 			keyMap[9].KeyCode = KEY_KEY_0;
 			keyMap[10].Action = EKA_ROTATE_RIGHT;
 			keyMap[10].KeyCode = KEY_KEY_1;
-			camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //기본 플레이
+			//camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //기본 플레이
+			camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, false, 5.f); //기본 플레이
 			SetTransformCamera(camera, gamePlatform);
+
+			core::vector3df gravity = core::vector3df(0, /*-300.f*/quakeLevelMesh ? -10.f : 0.0f, 0);
+			scene::ISceneNodeAnimatorCollisionResponse* collider =
+				sm->createCollisionResponseAnimator(
+					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), gravity, core::vector3df(0, 45, 0), 0.005f);
+
+			camera->addAnimator(collider);
+			collider->drop();
 
 			const scene::ISceneNodeAnimatorList& animators = camera->getAnimators();
 			scene::ISceneNodeAnimatorList::ConstIterator it = animators.begin();
@@ -898,27 +839,16 @@ void CDemo::switchToNextScene()
 				}
 				it++;
 			}
-
-			scene::ISceneNodeAnimatorCollisionResponse* collider =
-				sm->createCollisionResponseAnimator(
-					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, -300.0f /*quakeLevelMesh ? -10.f : 0.0f*/, 0), core::vector3df(0, 45, 0), 0.005f);
-			camera->addAnimator(collider);
-			collider->drop();
-
 #else
 			//Last parameter is jump speed
 			//Tweaked so you can get up ladders
 			camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f);
-			if (isServer) {
-				SetResetBot();
-				Respawn(initPos, initTarget);
-				botMoveTime = RakNet::GetTimeMS() + BOT_MOVE_TIME;
-			}
-			else SetTransformCamera(camera, gamePlatform);
+			SetTransformCamera(camera, gamePlatform);
 			
+			core::vector3df gravity = core::vector3df(0, quakeLevelMesh ? -10.f : 0.0f, 0);
 			scene::ISceneNodeAnimatorCollisionResponse* collider =
 				sm->createCollisionResponseAnimator(
-					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), core::vector3df(0, quakeLevelMesh ? -10.f : 0.0f, 0), core::vector3df(0, 45, 0), 0.005f);
+					metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), gravity, core::vector3df(0, 45, 0), 0.005f);
 
 			//	waypoint[0].set(-150,40,100); waypoint[1].set(350, 40, 100);
 			camera->addAnimator(collider);
@@ -963,11 +893,11 @@ void CDemo::loadSceneData()
 
 #ifdef __ANDROID__
 	if (!quakeLevelMesh) {
-		LOGI("Error: Quake3 Level Mesh 로드 실패!");
+		DebugPrintf("Error: Quake3 Level Mesh 로드 실패!");
 	}
 	scene::IMesh* levelMesh = quakeLevelMesh->getMesh(scene::quake3::E_Q3_MESH_GEOMETRY);
 	if (!levelMesh) {
-		LOGI("Error: Quake Level Mesh Geometry가 NULL!");
+		DebugPrintf("Error: Quake Level Mesh Geometry가 NULL!");
 	}
 #endif // __ANDROID__
 
@@ -1262,7 +1192,7 @@ void CDemo::EnableInput(bool enabled)
 }
 // RakNet - change shoot from assuming the camera, to taking any starting location
 // This way the same function can be called from the network
-RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3df camAt)
+RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, GamePlatform platform)
 {
 	scene::ISceneManager* sm = device->getSceneManager();
 	scene::ICameraSceneNode* camera = sm->getActiveCamera();
@@ -1275,10 +1205,10 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 
 	bool wallHit = false;
 	core::vector3df wallHitPoint(0, 0, 0);
-	return shootFromOrigin(camPosition, camAt, start, end, wallHit, wallHitPoint);
+	return shootFromOrigin(camPosition, camAt, start, end, wallHit, wallHitPoint, platform);
 }
 
-RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3df camAt,core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint)
+RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3df camAt,core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint, GamePlatform platform)
 {
 	scene::ISceneManager* sm = device->getSceneManager();
 	scene::ICameraSceneNode* camera = sm->getActiveCamera();
@@ -1364,11 +1294,14 @@ RakNet::TimeMS CDemo::shootFromOrigin(core::vector3df camPosition, core::vector3
 		core::dimension2d<f32>(BALL_DIAMETER - 10, BALL_DIAMETER - 10), start);
 
 	node->setMaterialFlag(video::EMF_LIGHTING, false);
-	if (gamePlatform == Holder) {
+	if (platform == Holder) {
 		node->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "fireball_green.bmp"));
 	}
-	else if(gamePlatform == Shooter || gamePlatform == Server) {
+	else if(platform == Shooter) {
 		node->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "fireball_blue.bmp"));
+	}
+	else if (platform == Server) {
+		node->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "fireball.bmp"));
 	}
 	
 	node->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
@@ -1405,33 +1338,59 @@ void CDemo::shoot()
 	if (playerReplica==nullptr || playerReplica->IsDead())
 		return;
 
+	playerReplica->shootCnt++;
+	SetPlayerNameText();
+
 	scene::ISceneManager* sm = device->getSceneManager();
 	scene::ICameraSceneNode* camera = sm->getActiveCamera();
 	core::vector3df camPosition = camera->getPosition();
 	core::vector3df camAt = (camera->getTarget() - camPosition);
 	camAt.normalize();
 
-	//if (!isServer) {
-	//	if(isLogged) PrintStatistics(nullptr, ID_CLIENT_NETWORK_SEND,bulletCount);
-	//	
-	//	RakNet::BitStream bs;
-	//	bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_BALL_REQUEST);
-	//	bs.Write(camPosition); // 예: 시작 위치
-	//	bs.Write(camAt); // 예: 방향
-	//	bs.Write(bulletCount); // 예: 방향
-	//	bulletCount++;
-
-	//	rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
-	//}
-
 	BallReplica *br = new BallReplica;
 	br->demo=this;
 	br->position=camPosition;
 	br->shotDirection=camAt;
-	br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(camPosition, camAt);
-	br->shooterName = playerReplica->playerName;
+	br->shotLifetime=RakNet::GetTimeMS() + shootFromOrigin(camPosition, camAt, gamePlatform);
 
 	replicaManager3->Reference(br);
+}
+
+void CDemo::MoveBot()
+{
+	//Bot movement
+	RakNet::TimeMS t = RakNet::GetTimeMS();
+	if (isBot && playerBotReplica) {
+		if (!playerBotReplica->IsDead() && !playerBotReplica->wasDead && device->getSceneManager()->getActiveCamera()) {
+			SEvent botKeyEvent;
+			botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
+			botKeyEvent.KeyInput.Key = KEY_KEY_W;
+			if (botMoveTime >= t) {
+				if (dir != 0) {
+					botKeyEvent.KeyInput.PressedDown = KeyIsDown[botKeyEvent.KeyInput.Key] = true;
+					device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
+				}
+				//DebugPrintf("go / timeDiff : %d\n", t-preT);
+			}
+			else {
+				if (dir != 0) {
+					botKeyEvent.KeyInput.PressedDown = KeyIsDown[botKeyEvent.KeyInput.Key] = false;
+					device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
+				}
+				SetResetBot();
+				Respawn(playerBotReplica->respawnPos, playerBotReplica->respawnTarget);
+				botMoveTime = t + BOT_MOVE_TIME;
+
+				RakNet::BitStream bs;
+				bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_RESPAWN);
+				bs.Write(playerBotReplica->creatingSystemGUID);
+				bs.Write(playerBotReplica->respawnPos);
+				bs.Write(playerBotReplica->respawnTarget);
+				rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+			}
+		}
+	}
+	preT = t;
 }
 
 void CDemo::createParticleImpacts()
@@ -1556,8 +1515,12 @@ void CDemo::UpdateRakNet(void)
 
 			if (logCount == replicaManager3->GetConnectionCount())
 			{
-				//모든 플레이어가 접속하면 봇 생성
-				replicaManager3->Reference(playerBotReplica);
+				//모든 플레이어가 접속하면 서버 캐릭터 생성
+				if (isBot)replicaManager3->Reference(playerBotReplica);
+				else replicaManager3->Reference(playerReplica);
+
+				PushMessage(RakNet::RakString("All Player Connected. Game Pending..."));
+				gameStartTime = curTime + GAME_START_PENDING_TIME;
 			}
 		}
 		break;
@@ -1569,8 +1532,10 @@ void CDemo::UpdateRakNet(void)
 				RakNet::Connection_RM3* connection = replicaManager3->AllocConnection(serverSystemAddress, rakPeer->GetGuidFromSystemAddress(serverSystemAddress));
 				//replicaManager3에 추적될 수 있도록 할당
 				replicaManager3->PushConnection(connection);
+				
 				//객체 생성
-				replicaManager3->Reference(playerReplica);
+				if(isBot)replicaManager3->Reference(playerBotReplica);
+				else replicaManager3->Reference(playerReplica);
 			}
 			
 			//SwitchNextScene() 에서 연결하는 것으로 변경 -> 왜 이렇게 바꾸자고 했지?
@@ -1594,18 +1559,11 @@ void CDemo::UpdateRakNet(void)
 				bsIn.Read(target);
 				bsIn.Read(bulletCnt);
 
-				char ipStr[64];
-				if (isLogged) {
-					packet->systemAddress.ToString(false, ipStr);
-					PrintStatistics(ipStr, ID_SERVER_NETWORK_RECEIVE, bulletCnt);
-				}
-
 				BallReplica* br = new BallReplica;
 				br->demo = this;
 				br->position = pos;
 				br->shotDirection = target;
-				br->shotLifetime = RakNet::GetTimeMS() + shootFromOrigin(pos, target);
-				br->shooterName = playerReplica->playerName; // 플레이어 이름 설정
+				br->shotLifetime = RakNet::GetTimeMS() + shootFromOrigin(pos, target, gamePlatform); /*원래는 gamePlatform이 보낸 얘의 플랫폼이어야 함*/
 				br->bulletCount = bulletCnt;
 				replicaManager3->Reference(br);
 			}
@@ -1618,8 +1576,6 @@ void CDemo::UpdateRakNet(void)
 
 			RakNet::RakNetGUID LifeUpdateGuid;
 			RakNet::RakNetGUID ShooterGuid;
-			core::vector3df pos;
-			core::vector3df target;
 			bool isDead;
 			bsIn.Read(ShooterGuid); // The player who shot
 			bsIn.Read(isDead);
@@ -1647,26 +1603,46 @@ void CDemo::UpdateRakNet(void)
 			else {
 				//Shooter = 부활한 사람
 				LifeUpdateGuid = ShooterGuid;
-				bsIn.Read(pos);
-				bsIn.Read(target);
-
-				isKeyLock = false;              
+				isKeyLock = false;
 				EnableInput(!isKeyLock);
 			}
-			
+
 			for (int idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
 			{
 				PlayerReplica* player = PlayerReplica::playerList[idx];
 				if (player->creatingSystemGUID == LifeUpdateGuid)
 				{
 					player->isDead = isDead;
-					if (!isDead&&player->isBot) {
-						player->isTeleport = true;
-						player->position = pos;
+					if (isDead == false) {
+						player->bulletCoolTime = -1;
 					}
+					
+					if (isDead == false && LifeUpdateGuid == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS) && player->isBot && isServer == false) {
+						//나 서버 아님 + 봇 플레이어가 나임 => 부활했다면?
+						//리스폰 후 리스폰 요청
+						SEvent botKeyEvent;
+						botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
+						botKeyEvent.KeyInput.Key = KEY_KEY_W;
+						botKeyEvent.KeyInput.PressedDown = false;
+						KeyIsDown[botKeyEvent.KeyInput.Key] = botKeyEvent.KeyInput.PressedDown;
+						if (device->getSceneManager()->getActiveCamera()) {
+							device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
+						}
+						
+						SetResetBot();
+						Respawn(playerBotReplica->respawnPos, playerBotReplica->respawnTarget);
+						botMoveTime = RakNet::GetTimeMS() + BOT_MOVE_TIME;
+
+						RakNet::BitStream bs;
+						bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_RESPAWN);
+						bs.Write(playerBotReplica->creatingSystemGUID);
+						bs.Write(playerBotReplica->respawnPos);
+						bs.Write(playerBotReplica->respawnTarget);
+						rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+					}
+					break;
 				}
 			}
-
 		}
 		break;
 		case ID_GAME_MESSAGE_PLAYER_NAME:
@@ -1699,27 +1675,71 @@ void CDemo::UpdateRakNet(void)
 			PushMessage(RakNet::RakString("Client Name Update"));
 		}
 		break;
+		case ID_GAME_MESSAGE_PLAYER_RESPAWN:
+		{
+			RakNet::BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(1);
+
+			RakNet::RakNetGUID botGuid;
+			core::vector3df respawnPos;
+			core::vector3df respawnTarget;
+
+			//리스폰 요청 보낸 봇의 GUID
+			bsIn.Read(botGuid);
+			bsIn.Read(respawnPos);
+			bsIn.Read(respawnTarget);
+
+			if (isServer) {
+				//보낸 이를 제외한 모두에게 다시 브로드캐스팅
+				RakNet::BitStream bs;
+				bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_RESPAWN);
+				bs.Write(botGuid);
+				bs.Write(respawnPos);
+				bs.Write(respawnTarget);
+				rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, botGuid, true);
+			}
+
+			for (int idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
+			{
+				PlayerReplica* player = PlayerReplica::playerList[idx];
+				if (player->creatingSystemGUID == botGuid)
+				{
+					player->isTeleport = true;
+					player->position = respawnPos;
+					break;
+				}
+			}
+
+		}
+		break;
+		case ID_GAME_MESSAGE_GAME_MATCH:
+		{
+			RakNet::BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(1);
+
+			GameMatchState matchState;
+			bsIn.Read(matchState);
+
+			if (matchState == GameMatchState::GAME_MATCH_START) {
+				isGameStart = true;
+			}
+			else if (matchState == GameMatchState::GAME_MATCH_END) {
+				isGameEnd = true;
+			}
+		}
+		break;
 		}	
 	}
 
 	// Call the Update function for networked game objects added to BaseIrrlichtReplica once the game is ready
 	if (currentScene >= 1)
 	{
-		//RakNet::TimeMS curTime = RakNet::GetTimeMS();  // 현재 시간
-		// 0.5초마다 shoot 호출
-		//if (!isServer && curTime - lastShootTime >= shootInterval)
-		//{
-		//	shoot();  // 기존 shoot 함수
-		//	lastShootTime = curTime;
-		//}
-
-
 		//(서버 봇을 제외한) 모든 플레이어가 생성되면 서버 측에서 이름을 할당
 		//클라 측에서 이름을 할당하는게 더 편하나 현재 모바일에서 이름을 할당하기 어려운 문제가 있어서 서버 측에서 할당.
-		if (isServer && isPlayersNameSet == false && logCount == PlayerReplica::playerList.Size()-serverBotCnt){
+		if (isServer && isPlayersNameSet == false && logCount == PlayerReplica::playerList.Size()- serverPlayerCnt){
 			isPlayersNameSet = true;
 			int playerCnt = 1; int botCnt = 1;
-			RakNet::RakString botNames("My Name : ");
+			RakNet::RakString serverNames("My Name : ");
 			
 			RakNet::BitStream bs;
 			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_NAME);
@@ -1728,12 +1748,21 @@ void CDemo::UpdateRakNet(void)
 				PlayerReplica* player = PlayerReplica::playerList[i];
 				if (player->isBot) {
 					player->playerName = RakNet::RakString("bot%d", botCnt++);
-					botNames += player->playerName + RakNet::RakString(" ");
 				}
 				else {
 					player->playerName = RakNet::RakString("Player%d", playerCnt++); 
-					
 				}
+
+				if (player->gamePlatform == Server)
+					player->playerName += RakNet::RakString(" (S)");
+				else if (player->gamePlatform == Shooter)
+					player->playerName += RakNet::RakString(" (PC)");
+				else if (player->gamePlatform == Holder)
+					player->playerName += RakNet::RakString(" (M)");
+				
+				if (player->creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
+					serverNames += player->playerName + RakNet::RakString(" ");
+				
 				bs.Write(player->playerName);
 				bs.Write(player->creatingSystemGUID); 
 				//DebugPrintf("Player Name : %s / GUID : %s\n", player->playerName.C_String(), player->creatingSystemGUID.ToString());
@@ -1742,16 +1771,63 @@ void CDemo::UpdateRakNet(void)
 			rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 
 			//서버 측 이름은 여기서 할당
-			const char* charStr = botNames.C_String();  // 멀티바이트 문자열 얻기
+			const char* charStr = serverNames.C_String();  // 멀티바이트 문자열 얻기
 			wchar_t wcharStr[128];
 			mbstowcs(wcharStr, charStr, sizeof(wcharStr) / sizeof(wchar_t));
 			myNameText->setText(wcharStr);
 			PushMessage(RakNet::RakString("Bot Name Update"));
 		}
 
+		//게임 시작 확인
+		if (isServer && gameStartTime <= curTime && isGameStart == false && gameStartTime !=0) {
+			isGameStart = true;
+			PushMessage(RakNet::RakString("Game Start!"));
+
+			//모든 플레이어에게 게임 시작 알리기
+			RakNet::BitStream bs;
+			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_GAME_MATCH);
+			bs.Write(GameMatchState::GAME_MATCH_START);
+			rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+			gameStartTime = curTime; //게임 시작 시간 기록
+		}
+
+		//모든 네트워크 객체 업데이트
 		unsigned int idx;
-		for (idx = 0; idx < replicaManager3->GetReplicaCount(); idx++)
+		bool isTimeRecorded = false;
+		for (idx = 0; idx < replicaManager3->GetReplicaCount(); idx++) {
 			((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);
+			
+
+			//게임 끝내기
+			if (isServer && isGameEnd && isLogged) {
+				char buffer[200];
+				char timeBuf[50];
+				PlayerReplica* pr = dynamic_cast<PlayerReplica*>(replicaManager3->GetReplicaAtIndex(idx));
+				
+				if (pr != nullptr) {
+					//첫줄은 경과 시간 기록
+					if (!isTimeRecorded) {
+						isTimeRecorded = true;
+						snprintf(timeBuf, sizeof(timeBuf), "Game End! Total Time : %02u MS\n", (curTime - gameStartTime));
+						statBuf.Push(RakNet::RakString(timeBuf), _FILE_AND_LINE_); //Log
+					}
+
+					//name/k/d/shoot cnt
+					snprintf(buffer, sizeof(buffer), "%s/%d/%d/%d\n", pr->playerName.C_String(), pr->killCnt, pr->deathCnt,pr->shootCnt);
+					statBuf.Push(RakNet::RakString(buffer), _FILE_AND_LINE_); //Log
+				}
+			}
+		}
+
+		if (isGameEnd) {
+			if (isServer) {
+				RakNet::BitStream bs;
+				bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_GAME_MATCH);
+				bs.Write(GameMatchState::GAME_MATCH_END);
+				rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+			}
+			device->closeDevice();
+		}
 	}
 }
 
@@ -1760,7 +1836,15 @@ bool CDemo::IsMovementKeyDown(void) const {
 	if (isKeyLock) return false;
 
 #ifdef __ANDROID__
-	return (curTouchID.move != -1);
+	return (curTouchID.move != -1) | 
+		KeyIsDown[KEY_UP] |
+		KeyIsDown[KEY_DOWN] |
+		KeyIsDown[KEY_LEFT] |
+		KeyIsDown[KEY_RIGHT] |
+		KeyIsDown[KEY_KEY_W] |
+		KeyIsDown[KEY_KEY_S] |
+		KeyIsDown[KEY_KEY_A] |
+		KeyIsDown[KEY_KEY_D];
 #else
 	return KeyIsDown[KEY_UP] |
 		KeyIsDown[KEY_DOWN] |
@@ -1843,12 +1927,18 @@ void CDemo::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform pla
 	}
 		  break;
 	case GamePlatform::Server: {
-		initPos = core::vector3df(646.534058, 217.090012, 235.449814);
-		initTarget = core::vector3df(187.311462, 131.882629, -314.482239);
+		initPos = core::vector3df(-118.683563, 224.552368, -493.077454);
+		initTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
 	}
 		  break;
 	default:
 		break;
+	}
+
+	//봇이면 봇 지정위치로 (임시)
+	if (isBot) {
+		initPos = core::vector3df(-118.683563, 224.552368, -493.077454);
+		initTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
 	}
 
 	camera->setPosition(initPos);
@@ -1856,6 +1946,8 @@ void CDemo::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform pla
 }
 
 void CDemo::SetResetBot() {
+	if (!playerBotReplica) return;
+
 	//Direction
 	//-1 : Left, 0 : Down , 1 : Right
 	dir = RandomInt(-1, 1);
@@ -1864,17 +1956,17 @@ void CDemo::SetResetBot() {
 	switch (dir)
 	{
 	case -1: {
-		initPos = core::vector3df(-118.683563, 224.552368, -493.077454);
-		initTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
+		playerBotReplica->respawnPos = core::vector3df(-118.683563, 224.552368, -493.077454);
+		playerBotReplica->respawnTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
 	}break;
 	case 0: {
-		initPos = RandomVector3(core::vector3df(-46.856121, 363.129883, -292.425385), core::vector3df(-46.856121, 363.129883 + 700, -292.425385));
-		initTarget = core::vector3df(-518.377686, 332.969666, -276.827545);
+		playerBotReplica->respawnPos = RandomVector3(core::vector3df(-46.856121, 363.129883, -292.425385), core::vector3df(-46.856121, 363.129883 + 700, -292.425385));
+		playerBotReplica->respawnTarget = core::vector3df(-518.377686, 332.969666, -276.827545);
 	}
 		  break;
 	case 1: {
-		initPos = core::vector3df(-86.982430, 217.035385, -140.506424);
-		initTarget = core::vector3df(-87.819504, 224.415527, -413.191589);
+		playerBotReplica->respawnPos = core::vector3df(-86.982430, 217.035385, -140.506424);
+		playerBotReplica->respawnTarget = core::vector3df(-87.819504, 224.415527, -413.191589);
 	}
 		  break;
 	default:
@@ -1883,14 +1975,8 @@ void CDemo::SetResetBot() {
 
 	//Speed
 	if (fpsCamAnim) {
-		fpsCamAnim->setMoveSpeed(RandomFloat(0.1f, 1.0f)); 
+		fpsCamAnim->setMoveSpeed(RandomFloat(0.1f, 0.5f)); 
 	}
-
-	//Spawn Time
-	if (playerBotReplica)
-		playerBotReplica->deathTimeout = RakNet::GetTimeMS() + RandomInt(1000, 3000);
-	else
-		playerReplica->deathTimeout = RakNet::GetTimeMS() + RandomInt(1000, 3000);
 
 	//Gravity
 	float gravity = -10.0f;
@@ -1898,6 +1984,7 @@ void CDemo::SetResetBot() {
 	
 	if (fpsCamResponse) fpsCamResponse->setGravity(core::vector3df(0, gravity, 0));
 }
+
 void CDemo::SetHolderPosText(core::vector3df pos) {
 	if (holderPosText == nullptr) return;
 	RakNet::RakString msg("Hold Pos : %.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z);
@@ -1908,7 +1995,7 @@ void CDemo::SetHolderPosText(core::vector3df pos) {
 
 void CDemo::SetPlayerNameText() {
 	if (myNameText == nullptr) return;
-	RakNet::RakString msg("my Name : %s / K : %d / D : %d ", playerReplica->playerName.C_String(), playerReplica->killCnt, playerReplica->deathCnt);
+	RakNet::RakString msg("my Name : %s / K : %d / D : %d / S : %d", playerReplica->playerName.C_String(), playerReplica->killCnt, playerReplica->deathCnt, playerReplica->shootCnt);
 	wchar_t wcharStr[128];
 	mbstowcs(wcharStr, msg.C_String(), sizeof(wcharStr) / sizeof(wchar_t));
 	myNameText->setText(wcharStr);

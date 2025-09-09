@@ -2,6 +2,7 @@
 // This file is not documented.
 
 #include "CMainMenu.h"
+#include <cwchar>
 
 #ifdef __ANDROID__
 #include "android_tools.h"
@@ -90,7 +91,7 @@ private:
 
 CMainMenu::CMainMenu()
 : startButton(0), MenuDevice(0), selected(2), start(false),
-	shadows(false), additive(false), transparent(true), vsync(false), aa(false), isServer(false),
+	shadows(false), additive(false), transparent(true), vsync(false), aa(false), isServer(false), isBot(false),
 #ifdef _DEBUG
 	fullscreen(false), music(false)
 #else
@@ -102,7 +103,7 @@ CMainMenu::CMainMenu()
 
 bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 			bool& outAdditive, bool& outVSync, bool& outAA,
-			video::E_DRIVER_TYPE& outDriver, core::stringw &playerName, bool& outIsServer)
+			video::E_DRIVER_TYPE& outDriver, core::stringw &playerName, bool& outIsServer, int& outLogCount, bool& outIsBot)
 {
 	
 	video::E_DRIVER_TYPE driverType;
@@ -260,6 +261,7 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	// add checkbox
 
 	const s32 d = 50;
+	vsync = true;
 
 	guienv->addCheckBox(fullscreen, core::rect<int>(20, 85 + d, 130, 110 + d),
 		optTab, 3, L"Fullscreen");
@@ -268,16 +270,21 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	guienv->addCheckBox(shadows, core::rect<int>(20, 110 + d, 135, 135 + d),
 		optTab, 5, L"Realtime shadows");
 	guienv->addCheckBox(additive, core::rect<int>(20, 135 + d, 230, 160 + d),
-		optTab, 6, L"Old HW compatible blending");
+		optTab, 6, L"HW compat blend");
 	guienv->addCheckBox(vsync, core::rect<int>(20, 160 + d, 230, 185 + d),
-		optTab, 7, L"Vertical synchronisation");
+		optTab, 7, L"Vsync");
 	guienv->addCheckBox(aa, core::rect<int>(135, 110 + d, 245, 135 + d),
 		optTab, 8, L"Antialiasing");
 	guienv->addCheckBox(isServer, core::rect<int>(135, 160 + d, 245, 185 + d),
 		optTab, 9, L"Server");
+	guienv->addCheckBox(isBot, core::rect<int>(135, 135 + d, 245, 160 + d),
+		optTab, 10, L"Bot");
 
+	wchar_t buffer[20];
+	swprintf(buffer, 20, L"%d", outLogCount);
 	// RakNet: Add edit box
-	nameEditBox = guienv->addEditBox(L"Your name here", core::rect<int>(20, 185 + d, 230, 210 + d), true, optTab, 9);
+	logCountEditBox = guienv->addEditBox(buffer, core::rect<int>(20, 185 + d, 230, 210 + d), true, optTab, 11);
+	nameEditBox = guienv->addEditBox(L"Your name here", core::rect<int>(20, 185 + d+30, 230, 210 + d+30), true, optTab, 12);
 
 #endif //__ANDROID__
 	
@@ -446,9 +453,15 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 
 #ifdef __ANDROID__
 #else
-	//if(nameEditBox) playerName = nameEditBox->getText();
 #endif // __ANDROID__
-	//if(MenuDevice != nullptr) MenuDevice->drop();
+
+	playerName = core::stringw(name.c_str());
+	
+	wchar_t* end = nullptr;
+	errno = 0;
+	long v = std::wcstol(logCnt.c_str(), &end, 10);
+	bool ok = (end != logCnt.c_str()) && (errno != ERANGE);
+	outLogCount = ok ? static_cast<int>(v) : outLogCount;
 
 	outFullscreen = fullscreen;
 	outMusic = music;
@@ -457,6 +470,7 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	outVSync = vsync;
 	outAA = aa;
 	outIsServer = isServer;
+	outIsBot = isBot;
 
 	switch(selected)
 	{
@@ -601,6 +615,13 @@ bool CMainMenu::OnEvent(const SEvent& event)
 				sprintf(strDisplay, "start button click!!!");
 				MenuDevice->getLogger()->log(strDisplay);*/
 				
+				if (nameEditBox) {
+					name = nameEditBox->getText();
+				}
+
+				if (logCountEditBox) {
+					logCnt = logCountEditBox->getText();
+				}
 
 				MenuDevice->closeDevice();
 				MenuDevice->drop();
@@ -633,6 +654,10 @@ bool CMainMenu::OnEvent(const SEvent& event)
 		case 9:
 			if (event.GUIEvent.EventType == gui::EGET_CHECKBOX_CHANGED)
 				isServer = ((gui::IGUICheckBox*)event.GUIEvent.Caller)->isChecked();
+			break;
+		case 10:
+			if (event.GUIEvent.EventType == gui::EGET_CHECKBOX_CHANGED)
+				isBot = ((gui::IGUICheckBox*)event.GUIEvent.Caller)->isChecked();
 			break;
 		}
 	}

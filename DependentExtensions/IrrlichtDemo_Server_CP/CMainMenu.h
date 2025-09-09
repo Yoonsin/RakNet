@@ -10,6 +10,8 @@
 #endif
 
 #include <irrlicht.h>
+#include <string>
+
 #ifdef _WIN32__
 #include "WindowsIncludes.h" // Prevent 'fd_set' : 'struct' type redefinition
 #endif
@@ -26,7 +28,7 @@ public:
 	bool run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 		bool& outAdditive, bool &outVSync, bool& outAA,
 		video::E_DRIVER_TYPE& outDriver,
-		core::stringw &playerName,bool& isServer);
+		core::stringw &playerName,bool& isServer,int& logCount, bool&isBot );
 
 	virtual bool OnEvent(const SEvent& event);
 
@@ -51,6 +53,7 @@ private:
 	bool vsync;
 	bool aa;
 	bool isServer;
+	bool isBot;
 
 	scene::IAnimatedMesh* quakeLevel;
 	scene::ISceneNode* lightMapNode;
@@ -61,6 +64,9 @@ private:
 
 	// RakNet: Store the edit box pointer so we can get the text later
 	irr::gui::IGUIEditBox* nameEditBox;
+	irr::gui::IGUIEditBox* logCountEditBox;
+	std::wstring name;
+	std::wstring logCnt;
 
 #ifdef __ANDROID__
 	core::position2d<irr::s32> TouchStartPos;
