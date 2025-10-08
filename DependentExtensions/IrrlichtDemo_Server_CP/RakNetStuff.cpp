@@ -464,64 +464,64 @@ void SaveStatisticsToCSV(const char* baseDir)
 	RakNet::SystemAddress systems[256];
 	rakPeer->GetConnectionList(systems, &connectionCount);
 
-#ifdef __linux__
-	// 현재 시간
-	time_t now = time(nullptr);
-	struct tm* t = localtime(&now);
+//디버그 로그 파일 생성 X (09/29 Qdisc 수정중)
+//#ifdef __linux__
+//	// 현재 시간
+//	time_t now = time(nullptr);
+//	struct tm* t = localtime(&now);
+//
+//	// 타임스탬프 문자열 생성
+//	char timeStr[64];
+//	strftime(timeStr, sizeof(timeStr), "%Y%m%d_%H%M%S", t);
+//
+//#ifdef __ANDROID__
+//	// 하위 폴더명 (원하는 폴더명)
+//	const char* subDir = "/stats";
+//
+//	// 디렉토리 경로 생성
+//	char outputDir[512];
+//	snprintf(outputDir, sizeof(outputDir), "%s%s", baseDir, subDir);
+//#else
+//	// 절대 디렉토리
+//	const char* outputDir = "/home/parts/stats";
+//#endif // __ANDROID__
+//
+//	mkdir(outputDir, 0777);  // 이미 있으면 실패하지만 무시됨
+//	// 경로 + 파일명 조합
+//	char fullpath[512];
+//	snprintf(fullpath, sizeof(fullpath), "%s/full_stats_%s.csv", outputDir, timeStr);
+//
+//	// 파일 열기
+//	FILE* f = fopen(fullpath, "w");
+//	if (!f) {
+//		perror("파일 열기 실패");
+//		return;
+//	}
+//#else
+//	// 파일명 + 경로
+//	char filename[256];
+//	time_t now = time(nullptr);
+//	strftime(filename, sizeof(filename), "full_stats_%Y%m%d_%H%M%S.csv", localtime(&now));
+//
+//	FILE* f = fopen(filename, "w");
+//	if (!f) return;
+//#endif // __linux__
 
-	// 타임스탬프 문자열 생성
-	char timeStr[64];
-	strftime(timeStr, sizeof(timeStr), "%Y%m%d_%H%M%S", t);
+	////log format
+	//// ip / timeStemp / key / log property / value
+	////fprintf(f, "Ip, TimeStemp, Key, Log Property, Value\n");
 
-#ifdef __ANDROID__
-	// 하위 폴더명 (원하는 폴더명)
-	const char* subDir = "/stats";
+	////마지막 누적값 및 평균 저장
+	////PrintStatistics(true);
 
-	// 디렉토리 경로 생성
-	char outputDir[512];
-	snprintf(outputDir, sizeof(outputDir), "%s%s", baseDir, subDir);
-#else
-	// 절대 디렉토리
-	const char* outputDir = "/home/parts/stats";
-#endif // __ANDROID__
-
-	mkdir(outputDir, 0777);  // 이미 있으면 실패하지만 무시됨
-	//fuck you
-	// 경로 + 파일명 조합
-	char fullpath[512];
-	snprintf(fullpath, sizeof(fullpath), "%s/full_stats_%s.csv", outputDir, timeStr);
-
-	// 파일 열기
-	FILE* f = fopen(fullpath, "w");
-	if (!f) {
-		perror("파일 열기 실패");
-		return;
-	}
-#else
-	// 파일명 + 경로
-	char filename[256];
-	time_t now = time(nullptr);
-	strftime(filename, sizeof(filename), "full_stats_%Y%m%d_%H%M%S.csv", localtime(&now));
-
-	FILE* f = fopen(filename, "w");
-	if (!f) return;
-#endif // __linux__
-
-	//log format
-	// ip / timeStemp / key / log property / value
-	//fprintf(f, "Ip, TimeStemp, Key, Log Property, Value\n");
-
-	//마지막 누적값 및 평균 저장
-	//PrintStatistics(true);
-
-	
-	for (unsigned int i = 0; i < statBuf.Size(); i++)
-	{
-			fprintf(f, "%s", statBuf[i].C_String());
-	}
-	
-	fclose(f);
-	statBuf.Clear(false, _FILE_AND_LINE_);
+	//
+	//for (unsigned int i = 0; i < statBuf.Size(); i++)
+	//{
+	//		fprintf(f, "%s", statBuf[i].C_String());
+	//}
+	//
+	//fclose(f);
+	//statBuf.Clear(false, _FILE_AND_LINE_);
 	
 }
 
@@ -637,6 +637,7 @@ void PlayerReplica::SerializeConstruction(RakNet::BitStream *constructionBitstre
 	BaseIrrlichtReplica::SerializeConstruction(constructionBitstream, destinationConnection);
 	constructionBitstream->Write(rotationAroundYAxis);
 	constructionBitstream->Write(gamePlatform);
+	constructionBitstream->Write(demo->GetDevice()->getVideoDriver()->getFPS());
 }
 bool PlayerReplica::DeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *sourceConnection)
 {
@@ -644,6 +645,7 @@ bool PlayerReplica::DeserializeConstruction(RakNet::BitStream *constructionBitst
 		return false;
 	constructionBitstream->Read(rotationAroundYAxis);
 	constructionBitstream->Read(gamePlatform);
+	constructionBitstream->Read(fps);
 	//demo->PushMessage(RakNet::RakString("Deserialize Construction"));
 	return true;
 }
@@ -720,6 +722,9 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters *ser
 			serializeParameters->outputBitstream[0].Write(camAt);
 		}
 	}
+
+	//서버에서는 전달만2
+	serializeParameters->outputBitstream[0].Write((topology == SERVER) ? fps : demo->GetDevice()->getVideoDriver()->getFPS());
 	
 	//timeStamp
 	//serializeParameters->messageTimestamp = RakNet::GetTimeMS();
@@ -735,11 +740,13 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters *deserializeParame
 	deserializeParameters->serializationBitstream[0].Read(rotationAroundYAxis);
 	deserializeParameters->serializationBitstream[0].Read(isMoving);
 	deserializeParameters->serializationBitstream[0].Read(gamePlatform);
+
 	deserializeParameters->serializationBitstream[0].Read(isCreatedCamera);
 	if (isCreatedCamera) {
 		deserializeParameters->serializationBitstream[0].Read(shootPosition);
 		deserializeParameters->serializationBitstream[0].Read(shootDirection);
 	}
+	deserializeParameters->serializationBitstream[0].Read(fps);
 
 	RakNet::TimeMS curTime = RakNet::GetTimeMS();
 	// Is a locally created object?

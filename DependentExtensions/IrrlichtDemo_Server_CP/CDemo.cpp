@@ -5,6 +5,18 @@
 
 
 #include "CDemo.h"
+#if QOS_SUPPORTED
+#include <string>
+#include <unistd.h>
+#include <limits.h>
+#include <libgen.h>
+#include "shared_mem.h"
+using namespace std;
+
+CSharedMemory write_shm;
+CSemaphore sem;
+
+#endif
 
 // RakNet includes
 #include "GetTime.h"
@@ -1789,6 +1801,17 @@ void CDemo::UpdateRakNet(void)
 			bs.Write(GameMatchState::GAME_MATCH_START);
 			rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 			gameStartTime = curTime; //게임 시작 시간 기록
+
+#if QOS_SUPPORTED 
+			sem.setKey(888);
+			sem.setupSemaphore(0);
+			write_shm.setKey(777);
+			write_shm.setupSharedMemory(1200);
+			write_shm.attachSharedMemory();
+			
+			
+			WriteQoSInfo();
+#endif
 		}
 
 		//모든 네트워크 객체 업데이트
@@ -1825,9 +1848,14 @@ void CDemo::UpdateRakNet(void)
 				bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_GAME_MATCH);
 				bs.Write(GameMatchState::GAME_MATCH_END);
 				rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+
+#if QOS_SUPPORTED
+				//끝났음
+#endif
 			}
 			device->closeDevice();
 		}
+
 	}
 }
 
@@ -2056,6 +2084,37 @@ void CDemo::DrawCrosshairHUD()
 
 		device->getVideoDriver()->draw2DImage(crosshairTex, dstRect, srcRect, nullptr, colors, true);
 }
+
+#if QOS_SUPPORTED 
+void CDemo::WriteQoSInfo() {
+	//Port / UserListCnt / UserData (IP Address, Platform, RTT, FPS)
+	sem.waitSemaphore();
+	write_shm.clearSharedMemory();
+
+	const int PORT = SERVER_PORT;
+	string data = "";
+	data += std::to_string(PORT) + std::string("|");
+	data += std::to_string(PlayerReplica::playerList.Size() - 1) + std::string("*"); //서버 자신 제외
+
+	//port|userCnt*UserData*UserData*UserData...
+	//UserData = IP/Platform/RTT/FPS
+	//20123|1*192.168.1.3/PC/3/144
+	for (int idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
+	{
+		PlayerReplica* player = PlayerReplica::playerList[idx];
+		if (player->creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))continue;
+		data += rakPeer->GetSystemAddressFromGuid(player->creatingSystemGUID).ToString(false) + std::string("/");
+		data += player->gamePlatform == Shooter ? "PC" : (player->gamePlatform == Holder ? "M" : "S"); 
+		data += std::string("/");
+		data += std::to_string(rakPeer->GetAveragePing(player->creatingSystemGUID) / 2) + std::string("/");
+		data += std::to_string(player->fps);
+		if (idx != PlayerReplica::playerList.Size() - 1) data += std::string("*");
+	}
+	write_shm.copyToSharedMemory((char*)(data.c_str()));
+	sem.releaseSemaphore();
+}
+
+#endif
 
 #ifdef USE_IRRKLANG
 void CDemo::startIrrKlang()

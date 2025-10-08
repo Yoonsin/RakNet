@@ -30,6 +30,12 @@
 #include <windows.h>
 #endif
 
+#if defined(__linux__) && !defined(__ANDROID__)
+#define QOS_SUPPORTED 1
+#else
+#define QOS_SUPPORTED 0
+#endif
+
 using namespace irr;
 
 // audio support
@@ -191,6 +197,10 @@ public:
 	void Respawn(core::vector3df& pos, core::vector3df& target);
 	void SetResetBot();
 	void MoveBot();
+
+#if QOS_SUPPORTED 
+	void WriteQoSInfo();
+#endif
 
 #ifdef __ANDROID__
 	android_app* state;

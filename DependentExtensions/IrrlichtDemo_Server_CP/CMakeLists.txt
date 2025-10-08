@@ -37,6 +37,7 @@ file(GLOB IRR_SOURCES
     CMainMenu.cpp
     RakNetStuff.cpp
     main.cpp
+    shared_mem.cpp
 )
 
 # 실행 파일 만들기

@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 	bool isServer = false;
 	bool isLogged = true;
 	bool isBot = false;
-	int logCount = 2;
+	int logCount = 1;
 	int winScore = 3;
 
 #ifndef _IRR_WINDOWS_

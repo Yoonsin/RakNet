@@ -221,6 +221,8 @@ public:
 	int shootCnt;
 	bool isTeleport;
 
+	int fps;
+
 	irr::core::vector3df respawnPos;
 	irr::core::vector3df respawnTarget;
 };
