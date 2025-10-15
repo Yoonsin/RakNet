@@ -90,6 +90,8 @@ extern DataStructures::List<RakNet::RakString> statBuf;
 // A NAT punchthrough and proxy server Jenkins Software is hosting for free, should usually be online
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_PORT 61111
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP "natpunch.slikesoft.com" //"natpunch.jenkinssoftware.com" ¥Î√º
+#define SERVER_IP "192.168.1.2"
+#define SERVER_IP_LOCAL "127.0.1.1"
 #define SERVER_PORT 20123
 
 void InstantiateRakNetClasses(bool isServer, bool isLogged, bool isBot, CDemo* demo);

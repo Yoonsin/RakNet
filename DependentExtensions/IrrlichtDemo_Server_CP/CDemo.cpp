@@ -1808,8 +1808,7 @@ void CDemo::UpdateRakNet(void)
 			write_shm.setKey(777);
 			write_shm.setupSharedMemory(1200);
 			write_shm.attachSharedMemory();
-			
-			
+
 			WriteQoSInfo();
 #endif
 		}
@@ -2087,7 +2086,7 @@ void CDemo::DrawCrosshairHUD()
 
 #if QOS_SUPPORTED 
 void CDemo::WriteQoSInfo() {
-	//Port / UserListCnt / UserData (IP Address, Platform, RTT, FPS)
+	//Port / UserListCnt / UserData (IP Address, Platform, RTT, FPS ) 
 	sem.waitSemaphore();
 	write_shm.clearSharedMemory();
 
@@ -2110,8 +2109,21 @@ void CDemo::WriteQoSInfo() {
 		data += std::to_string(player->fps);
 		if (idx != PlayerReplica::playerList.Size() - 1) data += std::string("*");
 	}
+
+
 	write_shm.copyToSharedMemory((char*)(data.c_str()));
 	sem.releaseSemaphore();
+}
+
+unsigned long CDemo::get_nsecs()
+{
+	//unsigned long now = get_nsecs(); or uint64_t now = get_nsecs();
+	//alternative to bpf_ktime_get_ns (ref : https://stackoverflow.com/questions/60970877/xdp-bpf-is-there-an-user-space-alternative-to-bpf-ktime-get-ns)
+
+	struct timespec ts;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts.tv_sec * 1000000000UL + ts.tv_nsec;
 }
 
 #endif

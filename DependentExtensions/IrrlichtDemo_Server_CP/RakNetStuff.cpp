@@ -299,11 +299,11 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, bool isBot, CDemo* d
 	if (topology == CLIENT) {
 #if __ANDROID__
 		//ConnectionAttemptResult car = rakPeer->Connect("10.0.2.2", SERVER_PORT, 0, 0); // 안드로이드 에뮬레이터의 "127.0.0.1" 주소
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 #else
 		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
-		ConnectionAttemptResult car = rakPeer->Connect("192.168.1.2", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 		
 #endif // __ANDROID__
@@ -329,7 +329,7 @@ void DeinitializeRakNetClasses(bool isLogged, bool isBot, const char* baseDir)
 	replicaManager3->GetReplicasCreatedByMe(replicaListOut);
 	replicaManager3->BroadcastDestructionList(replicaListOut, RakNet::UNASSIGNED_SYSTEM_ADDRESS);
 	
-	if (isLogged) {
+	if (isLogged && topology == SERVER) {
 		SaveStatisticsToCSV(baseDir);
 	}
 
@@ -448,81 +448,39 @@ void SaveStatisticsToCSV(const char* baseDir)
 		return;
 	}
 
-#ifdef _WIN32
-	//디렉토리 경로 파악
-	char buffer[MAX_PATH];
-	DWORD length = GetCurrentDirectoryA(MAX_PATH, buffer);
-	if (length > 0) {
-		printf("현재 디렉토리: %s", buffer);
+#ifdef __linux__
+	// 현재 시간
+	time_t now = time(nullptr);
+	struct tm* t = localtime(&now);
+
+	// 타임스탬프 문자열 생성
+	char timeStr[64];
+	strftime(timeStr, sizeof(timeStr), "%m%d_%H%M", t);
+
+	// 절대 디렉토리
+	const char* outputDir = "/home/parts/stats";
+
+	mkdir(outputDir, 0777);  // 이미 있으면 실패하지만 무시됨
+	// 경로 + 파일명 조합
+	char fullpath[512];
+	snprintf(fullpath, sizeof(fullpath), "%s/kill_log_%s.csv", outputDir, timeStr);
+
+	// 파일 열기
+	FILE* f = fopen(fullpath, "w");
+	if (!f) {
+		perror("파일 열기 실패");
+		return;
 	}
-	else {
-		printf("디렉토리 경로를 가져올 수 없습니다.");
+
+	for (unsigned int i = 0; i < statBuf.Size(); i++)
+	{
+		fprintf(f, "%s", statBuf[i].C_String());
 	}
-#endif // _WIN32
-
-	unsigned short connectionCount = rakPeer->NumberOfConnections();
-	RakNet::SystemAddress systems[256];
-	rakPeer->GetConnectionList(systems, &connectionCount);
-
-//디버그 로그 파일 생성 X (09/29 Qdisc 수정중)
-//#ifdef __linux__
-//	// 현재 시간
-//	time_t now = time(nullptr);
-//	struct tm* t = localtime(&now);
-//
-//	// 타임스탬프 문자열 생성
-//	char timeStr[64];
-//	strftime(timeStr, sizeof(timeStr), "%Y%m%d_%H%M%S", t);
-//
-//#ifdef __ANDROID__
-//	// 하위 폴더명 (원하는 폴더명)
-//	const char* subDir = "/stats";
-//
-//	// 디렉토리 경로 생성
-//	char outputDir[512];
-//	snprintf(outputDir, sizeof(outputDir), "%s%s", baseDir, subDir);
-//#else
-//	// 절대 디렉토리
-//	const char* outputDir = "/home/parts/stats";
-//#endif // __ANDROID__
-//
-//	mkdir(outputDir, 0777);  // 이미 있으면 실패하지만 무시됨
-//	// 경로 + 파일명 조합
-//	char fullpath[512];
-//	snprintf(fullpath, sizeof(fullpath), "%s/full_stats_%s.csv", outputDir, timeStr);
-//
-//	// 파일 열기
-//	FILE* f = fopen(fullpath, "w");
-//	if (!f) {
-//		perror("파일 열기 실패");
-//		return;
-//	}
-//#else
-//	// 파일명 + 경로
-//	char filename[256];
-//	time_t now = time(nullptr);
-//	strftime(filename, sizeof(filename), "full_stats_%Y%m%d_%H%M%S.csv", localtime(&now));
-//
-//	FILE* f = fopen(filename, "w");
-//	if (!f) return;
-//#endif // __linux__
-
-	////log format
-	//// ip / timeStemp / key / log property / value
-	////fprintf(f, "Ip, TimeStemp, Key, Log Property, Value\n");
-
-	////마지막 누적값 및 평균 저장
-	////PrintStatistics(true);
-
-	//
-	//for (unsigned int i = 0; i < statBuf.Size(); i++)
-	//{
-	//		fprintf(f, "%s", statBuf[i].C_String());
-	//}
-	//
-	//fclose(f);
-	//statBuf.Clear(false, _FILE_AND_LINE_);
 	
+	fclose(f);
+	statBuf.Clear(false, _FILE_AND_LINE_);
+
+#endif // __linux__
 }
 
 long long GetCurrentTimeMS()
@@ -1348,6 +1306,27 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 				rakPeer->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(true));
 			demo->PushMessage(msg);
 			//OutputDebugStringA(msg.C_String());
+
+			//점수 득점
+			shooter->killCnt++;
+			holder->deathCnt++;
+			//목표 점수에 도달하면 게임 끝
+			if (shooter->killCnt == demo->winScore) {
+				demo->isGameEnd = true;
+			}
+
+#if QOS_SUPPORTED 
+			//점수 득점 정보 기록
+			//Agent 통계와 시간대 같이 맞추기 위해 demo->get_nsecs() 사용
+			HitInfo info = { rakPeer->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(false), rakPeer->GetSystemAddressFromGuid(holder->creatingSystemGUID).ToString(false), shooter->killCnt, demo->get_nsecs()};
+			if (info.holderAddr == SERVER_IP_LOCAL)
+				info.holderAddr = SERVER_IP;
+			else if (info.shooterAddr == SERVER_IP_LOCAL)
+				info.shooterAddr = SERVER_IP;
+
+			RakNet::RakString str("%s/%s/%d/%lu\n",info.shooterAddr, info.holderAddr, info.nowScore, info.timeStamp);
+			statBuf.Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
+#endif
 			
 			RakNet::BitStream bs;
 			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_LIFE);
@@ -1357,14 +1336,6 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 			bs.Write(holder->creatingSystemGUID); //Holder
 			bs.Write(shooter->playerName);        //Shooter Name
 			bs.Write(holder->playerName);         //Holder Name
-
-			//점수 득점
-			shooter->killCnt++;
-			holder->deathCnt++;
-			//목표 점수에 도달하면 게임 끝
-			if (shooter->killCnt == demo->winScore) {
-				demo->isGameEnd = true;
-			}
 
 			if (holder->isBot && holder->creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
 				SEvent botKeyEvent;

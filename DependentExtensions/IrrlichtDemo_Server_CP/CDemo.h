@@ -112,6 +112,15 @@ struct KillLog {
 	RakNet::TimeMS timeStamp;
 };
 
+#if QOS_SUPPORTED 
+struct HitInfo {
+	const char* shooterAddr;
+	const char* holderAddr;
+	int nowScore;
+	unsigned long timeStamp;
+};
+#endif
+
 inline bool isWithinRange(f32 value, f32 target, f32 range) { return (target - range <= value) && (value <= target + range); }
 
 class CDemo : public IEventReceiver
@@ -200,6 +209,7 @@ public:
 
 #if QOS_SUPPORTED 
 	void WriteQoSInfo();
+	unsigned long get_nsecs();
 #endif
 
 #ifdef __ANDROID__

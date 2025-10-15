@@ -24,7 +24,7 @@ class CShmReader :
         i = s.find(NULL_CHAR)
         if i != -1:
             s = s[:i]
-        if s :
+        if not s :
             return "empty", True
         elif s == self.pre_s:
             return "same", True
@@ -37,7 +37,10 @@ class CShmReader :
         self.memory.write(text)
 
     def clear(self):
-        self.memory.remove()
+        try:
+            self.memory.remove()
+        except sysv_ipc.InternalError:
+            pass
        
 
 class CSemaphore : 
@@ -60,7 +63,11 @@ class CSemaphore :
         self.semaphore.release()
     
     def clear(self):
-        self.semaphore.remove()
+        try:
+            self.semaphore.remove()
+        except sysv_ipc.InternalError:
+            pass
+
  
 if __name__ == '__main__':
     i = 0
