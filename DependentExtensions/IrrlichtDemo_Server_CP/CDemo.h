@@ -70,6 +70,10 @@ const float CAMERA_HEIGHT=50.0f;
 const float SHOT_SPEED = 5.0f; //.6f;
 const float BALL_DIAMETER=20.0f;
 
+#if QOS_SUPPORTED 
+const int QOS_WRITE_COOL_TIME = 500;
+#endif
+
 
 // RakNet
 #include "RakNetStuff.h"
@@ -210,6 +214,8 @@ public:
 #if QOS_SUPPORTED 
 	void WriteQoSInfo();
 	unsigned long get_nsecs();
+	bool isQosWritten = false;
+	RakNet::TimeMS QosWriteTime = 0;
 #endif
 
 #ifdef __ANDROID__

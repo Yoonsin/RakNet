@@ -19,6 +19,10 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:RakNetStuff.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:CDemo.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
@@ -27,24 +31,24 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:shared_mem.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:RakNetStuff.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\shared_mem.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:shared_mem.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:RakNetStuff.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\test.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:test.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\shared_mem.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:shared_mem.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
@@ -108,7 +112,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 5,
           "Children": [
             {
               "$type": "Bookmark",
@@ -132,15 +136,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "CDemo.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
-              "RelativeDocumentMoniker": "CDemo.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
-              "RelativeToolTip": "CDemo.cpp",
-              "ViewState": "AgIAAD8IAAAAAAAAAAAkwDwIAAAmAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-06-23T06:11:16.76Z",
+              "DocumentIndex": 0,
+              "Title": "net_monitor.py",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\net_monitor.py",
+              "RelativeDocumentMoniker": "net_monitor.py",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\net_monitor.py",
+              "RelativeToolTip": "net_monitor.py",
+              "ViewState": "AgIAAJEAAAAAAAAAAAAgwLIAAAAEAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHfSURBVDhPpZCxaxNhGMZ/9zVJaUuDUlq1FBWLZBFTCXo4BFyU1qGKi4OkIHhkzF/g0KF00M2lR9YUdDDQQVAcJILoQUd1UNRmkhoRm8RL777v7nOoCZd4AcEH3uF5nvd73vd74X\u002BgtTai3LIsHeWDEEJct217a1DvwbIs7bpubFUqFW3b9naxWLwWfSOipAvHcfqqi0KhkMtms3cty1rsaomeG4FpmoMSANVqlXQ6nQMWgacMC4hOBchduEj\u002ByjKjScGh8SS1Wq3nxQZEN3j1eY/Vrfe8rTeQvsf89ARLS1cz5XIZ/uUGXxptQiVRUhJIybudXaZn52a7vbEBpmkyNb/A69YM9W8tDEJOTI2hpI\u002BSkvOZH2f13sNAB\u002B07sV9wHIdH9Unquz9RvoeUPtL3UFISKkky\u002BAT7HwTi6FpsgGma3N9\u002Bg5I\u002BKaFZyU8wOpJChwHnjiuE9wKCXyC/zsQGOI7DeELjtiUPbgky6Wd/HA3KBelC4AIpNfQGl88cQ0mfI5PugRhKkM2DUk0INYwtPI/dAGAlf4rbl06T6DyBVgeCABJzYPhwcm0V8ICNvwJKpVIf37h3IxSyKVAuBMDIYQAMw1jvaxwGrYNl3Xq5o79vat3Y3Nedj4\u002B11je7/m\u002BXOuyzFtDhUgAAAABJRU5ErkJggg==",
+              "WhenOpened": "2025-10-05T06:15:38.541Z",
               "EditorCaption": ""
             },
             {
@@ -151,33 +155,31 @@
               "RelativeDocumentMoniker": "net_monitor.c",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\net_monitor.c",
               "RelativeToolTip": "net_monitor.c",
-              "ViewState": "AgIAAE4AAAAAAAAAAAAAAFkAAABIAAAAAAAAAA==",
+              "ViewState": "AgIAAG0AAAAAAAAAAAAgwKwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
-              "WhenOpened": "2025-10-08T06:50:14.944Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-08T06:50:14.944Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "net_monitor.py",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\net_monitor.py",
-              "RelativeDocumentMoniker": "net_monitor.py",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\net_monitor.py",
-              "RelativeToolTip": "net_monitor.py",
-              "ViewState": "AgIAAJkAAAAAAAAAAAAAAKgAAABBAAAAAAAAAA==",
-              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHfSURBVDhPpZCxaxNhGMZ/9zVJaUuDUlq1FBWLZBFTCXo4BFyU1qGKi4OkIHhkzF/g0KF00M2lR9YUdDDQQVAcJILoQUd1UNRmkhoRm8RL777v7nOoCZd4AcEH3uF5nvd73vd74X\u002BgtTai3LIsHeWDEEJct217a1DvwbIs7bpubFUqFW3b9naxWLwWfSOipAvHcfqqi0KhkMtms3cty1rsaomeG4FpmoMSANVqlXQ6nQMWgacMC4hOBchduEj\u002ByjKjScGh8SS1Wq3nxQZEN3j1eY/Vrfe8rTeQvsf89ARLS1cz5XIZ/uUGXxptQiVRUhJIybudXaZn52a7vbEBpmkyNb/A69YM9W8tDEJOTI2hpI\u002BSkvOZH2f13sNAB\u002B07sV9wHIdH9Unquz9RvoeUPtL3UFISKkky\u002BAT7HwTi6FpsgGma3N9\u002Bg5I\u002BKaFZyU8wOpJChwHnjiuE9wKCXyC/zsQGOI7DeELjtiUPbgky6Wd/HA3KBelC4AIpNfQGl88cQ0mfI5PugRhKkM2DUk0INYwtPI/dAGAlf4rbl06T6DyBVgeCABJzYPhwcm0V8ICNvwJKpVIf37h3IxSyKVAuBMDIYQAMw1jvaxwGrYNl3Xq5o79vat3Y3Nedj4\u002B11je7/m\u002BXOuyzFtDhUgAAAABJRU5ErkJggg==",
-              "WhenOpened": "2025-10-05T06:15:38.541Z",
-              "EditorCaption": ""
+              "DocumentIndex": 2,
+              "Title": "CDemo.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
+              "RelativeDocumentMoniker": "CDemo.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
+              "RelativeToolTip": "CDemo.cpp",
+              "ViewState": "AgIAABEIAAAAAAAAAAAqwD4IAABBAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-06-23T06:11:16.76Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "CDemo.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
               "RelativeDocumentMoniker": "CDemo.h",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.h",
               "RelativeToolTip": "CDemo.h",
-              "ViewState": "AgIAAFkAAAAAAAAAAAAjwHUAAAAHAAAAAAAAAA==",
+              "ViewState": "AgIAADUAAAAAAAAAAAAYwEkAAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
               "WhenOpened": "2025-06-23T06:35:56.781Z"
             },
@@ -189,37 +191,25 @@
               "RelativeDocumentMoniker": "RakNetStuff.cpp",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
               "RelativeToolTip": "RakNetStuff.cpp",
-              "ViewState": "AgIAABEFAAAAAAAAAAAjwC4FAABLAAAAAAAAAA==",
+              "ViewState": "AgIAAAQFAAAAAAAAAAAAAK0CAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-06-23T06:14:46.813Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "shared_mem.py",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\shared_mem.py",
               "RelativeDocumentMoniker": "shared_mem.py",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\shared_mem.py",
               "RelativeToolTip": "shared_mem.py",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAIAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAVAAAAAAAAAA==",
               "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHfSURBVDhPpZCxaxNhGMZ/9zVJaUuDUlq1FBWLZBFTCXo4BFyU1qGKi4OkIHhkzF/g0KF00M2lR9YUdDDQQVAcJILoQUd1UNRmkhoRm8RL777v7nOoCZd4AcEH3uF5nvd73vd74X\u002BgtTai3LIsHeWDEEJct217a1DvwbIs7bpubFUqFW3b9naxWLwWfSOipAvHcfqqi0KhkMtms3cty1rsaomeG4FpmoMSANVqlXQ6nQMWgacMC4hOBchduEj\u002ByjKjScGh8SS1Wq3nxQZEN3j1eY/Vrfe8rTeQvsf89ARLS1cz5XIZ/uUGXxptQiVRUhJIybudXaZn52a7vbEBpmkyNb/A69YM9W8tDEJOTI2hpI\u002BSkvOZH2f13sNAB\u002B07sV9wHIdH9Unquz9RvoeUPtL3UFISKkky\u002BAT7HwTi6FpsgGma3N9\u002Bg5I\u002BKaFZyU8wOpJChwHnjiuE9wKCXyC/zsQGOI7DeELjtiUPbgky6Wd/HA3KBelC4AIpNfQGl88cQ0mfI5PugRhKkM2DUk0INYwtPI/dAGAlf4rbl06T6DyBVgeCABJzYPhwcm0V8ICNvwJKpVIf37h3IxSyKVAuBMDIYQAMw1jvaxwGrYNl3Xq5o79vat3Y3Nedj4\u002B11je7/m\u002BXOuyzFtDhUgAAAABJRU5ErkJggg==",
               "WhenOpened": "2025-10-05T06:15:11.971Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "RakNetStuff.h",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
-              "RelativeDocumentMoniker": "RakNetStuff.h",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
-              "RelativeToolTip": "RakNetStuff.h",
-              "ViewState": "AgIAAEIAAAAAAAAAAAAjwF4AAAAZAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-06-23T06:34:37.011Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "shared_mem.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\shared_mem.cpp",
               "RelativeDocumentMoniker": "shared_mem.cpp",
@@ -231,19 +221,19 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 7,
               "Title": "CMakeLists.txt",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMakeLists.txt",
               "RelativeDocumentMoniker": "CMakeLists.txt",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMakeLists.txt",
               "RelativeToolTip": "CMakeLists.txt",
-              "ViewState": "AgIAABgAAAAAAAAAAAAEwCsAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAABYAAAAAAAAAAAAWwCsAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
               "WhenOpened": "2025-06-23T06:11:13.683Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 11,
               "Title": "shared_mem.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\shared_mem.h",
               "RelativeDocumentMoniker": "shared_mem.h",
@@ -255,7 +245,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 4,
               "Title": "main.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
               "RelativeDocumentMoniker": "main.cpp",
@@ -267,7 +257,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 12,
               "Title": "CMainMenu.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.h",
               "RelativeDocumentMoniker": "CMainMenu.h",
@@ -279,7 +269,31 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 9,
+              "Title": "RakNetStuff.h",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
+              "RelativeDocumentMoniker": "RakNetStuff.h",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.h",
+              "RelativeToolTip": "RakNetStuff.h",
+              "ViewState": "AgIAAEIAAAAAAAAAAAAjwF4AAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-06-23T06:34:37.011Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "test.py",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\test.py",
+              "RelativeDocumentMoniker": "test.py",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\test.py",
+              "RelativeToolTip": "test.py",
+              "ViewState": "AgIAABUAAAAAAAAAAAAAABYAAAANAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHfSURBVDhPpZCxaxNhGMZ/9zVJaUuDUlq1FBWLZBFTCXo4BFyU1qGKi4OkIHhkzF/g0KF00M2lR9YUdDDQQVAcJILoQUd1UNRmkhoRm8RL777v7nOoCZd4AcEH3uF5nvd73vd74X\u002BgtTai3LIsHeWDEEJct217a1DvwbIs7bpubFUqFW3b9naxWLwWfSOipAvHcfqqi0KhkMtms3cty1rsaomeG4FpmoMSANVqlXQ6nQMWgacMC4hOBchduEj\u002ByjKjScGh8SS1Wq3nxQZEN3j1eY/Vrfe8rTeQvsf89ARLS1cz5XIZ/uUGXxptQiVRUhJIybudXaZn52a7vbEBpmkyNb/A69YM9W8tDEJOTI2hpI\u002BSkvOZH2f13sNAB\u002B07sV9wHIdH9Unquz9RvoeUPtL3UFISKkky\u002BAT7HwTi6FpsgGma3N9\u002Bg5I\u002BKaFZyU8wOpJChwHnjiuE9wKCXyC/zsQGOI7DeELjtiUPbgky6Wd/HA3KBelC4AIpNfQGl88cQ0mfI5PugRhKkM2DUk0INYwtPI/dAGAlf4rbl06T6DyBVgeCABJzYPhwcm0V8ICNvwJKpVIf37h3IxSyKVAuBMDIYQAMw1jvaxwGrYNl3Xq5o79vat3Y3Nedj4\u002B11je7/m\u002BXOuyzFtDhUgAAAABJRU5ErkJggg==",
+              "WhenOpened": "2025-10-14T14:32:39.163Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
               "Title": "CMainMenu.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMainMenu.cpp",
               "RelativeDocumentMoniker": "CMainMenu.cpp",
@@ -291,7 +305,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 14,
               "Title": "NDKHelper.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\NDKHelper.h",
               "RelativeDocumentMoniker": "NDKHelper.h",
@@ -303,7 +317,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 18,
               "Title": "QoSAgent.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\QoSAgent.h",
               "RelativeDocumentMoniker": "QoSAgent.h",
@@ -314,7 +328,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 21,
               "Title": "ReplicaManager3.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
               "RelativeDocumentMoniker": "LinuxLib\\RakNet_Include\\ReplicaManager3.cpp",
@@ -326,7 +340,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 16,
               "Title": "QoSAgent.sh",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\QoSAgent.sh",
               "RelativeDocumentMoniker": "QoSAgent.sh",
@@ -337,7 +351,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 17,
               "Title": "UdpFlowMonitor.bt",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\UdpFlowMonitor.bt",
               "RelativeDocumentMoniker": "UdpFlowMonitor.bt",
@@ -349,7 +363,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 15,
               "Title": "sch_qjump.c",
               "DocumentMoniker": "C:\\Users\\Parts\\Downloads\\sch_qjump.c",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\Users\\Parts\\Downloads\\sch_qjump.c",
@@ -361,7 +375,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 23,
               "Title": "refwrap.h",
               "DocumentMoniker": "C:\\Users\\Parts\\AppData\\Local\\Microsoft\\Linux\\HeaderCache\\1.0\\-2116054852\\usr\\include\\c\u002B\u002B\\13\\bits\\refwrap.h",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\Users\\Parts\\AppData\\Local\\Microsoft\\Linux\\HeaderCache\\1.0\\-2116054852\\usr\\include\\c\u002B\u002B\\13\\bits\\refwrap.h",
@@ -373,7 +387,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 19,
               "Title": "CMakeSettings.json",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CMakeSettings.json",
               "RelativeDocumentMoniker": "CMakeSettings.json",
@@ -385,7 +399,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 20,
               "Title": "RakString.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\RakNet_Include\\RakString.h",
               "RelativeDocumentMoniker": "LinuxLib\\RakNet_Include\\RakString.h",
@@ -397,7 +411,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 22,
               "Title": "CMakeWorkspaceSettings.json",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\.vs\\CMakeWorkspaceSettings.json",
               "RelativeDocumentMoniker": ".vs\\CMakeWorkspaceSettings.json",
@@ -409,7 +423,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 24,
               "Title": "IrrlichtDemo.v8.vcproj",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcproj",
               "RelativeDocumentMoniker": "IrrlichtDemo.v8.vcproj",
@@ -421,7 +435,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 25,
               "Title": "IrrlichtDemo.v8.vcxproj",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\IrrlichtDemo.v8.vcxproj",
               "RelativeDocumentMoniker": "IrrlichtDemo.v8.vcxproj",

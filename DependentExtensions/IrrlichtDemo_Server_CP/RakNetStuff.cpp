@@ -1166,6 +1166,7 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 		demo->shootFromOrigin(position, shotDirection, platform);
 		return;
 	}
+	
 
 	unsigned int idx;
 	scene::ISceneManager* sm = demo->GetSceneManager();
@@ -1194,6 +1195,14 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 		if (player->creatingSystemGUID == creatingSystemGUID) {
 			shooter = player;
 			shooter->shootCnt++;
+			
+#if QOS_SUPPORTED 
+	//점수 득점 정보 기록
+	// //Agent 통계와 시간대 같이 맞추기 위해 demo->get_nsecs() 사용
+			HitInfo info = { rakPeer->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(false),  rakPeer->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(false) , shooter->killCnt, demo->get_nsecs() };
+			RakNet::RakString str("%s/%d/%lu\n", info.shooterAddr, info.nowScore, info.timeStamp);
+			statBuf.Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
+#endif
 		}
 
 		//ball position은 클라에서 camPosition으로 설정한 값
@@ -1293,11 +1302,10 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 				if (distToWall < distToPlayer) continue;
 			}
 
-			
 			if(holder->fq) holder->fq->Clear(_FILE_AND_LINE_);
-			
+
 			//Spawn Time
-			if (holder->isBot) holder->deathTimeout = RakNet::GetTimeMS() + RandomInt(1000, 3000);
+			if (holder->isBot) holder->deathTimeout = RakNet::GetTimeMS() + RandomInt(3000, 5000);
 			else holder->deathTimeout = RakNet::GetTimeMS() + 3000;
 			
 			printf("HIT! : %d\n", ++score);

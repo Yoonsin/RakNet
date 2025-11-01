@@ -7,7 +7,7 @@ import glob
 from bcc import BPF
 import sysv_ipc
 import pyroute2
-from pyroute2 import IPRoute
+from pyroute2 import IPRoute, NetNS, IPDB, NSPopen, protocols
 import time
 from ast import literal_eval
 from shared_mem import CSemaphore, CShmReader
@@ -22,37 +22,231 @@ import ctypes
 from datetime import datetime
 
 ETH_P_IP = 0x0800  # IPv4
-
+INGRESS = 0xffff0000  # parent/handle for ingress qdisc
+IFACE_TOTAL_RATE = "1gbit"
+bpf_class_id = 100
+bpf_class_map = {}
+bpf = BPF(src_file="net_monitor.c")
+packet_cnt = bpf.get_table('packet_cnt')    # retrieve packet_cnt map
+ip_to_class_map = bpf.get_table('ip_to_class_map')   # retrieve ip_to_class_map map
 def h(major, minor=0):
     # "1:"  -> 0x00010000,  "1:1" -> 0x00010001
     return (major << 16) | minor
 
-INGRESS = 0xffff0000  # parent/handle for ingress qdisc
+def ip_to_hex_string(ip_string: str) -> str:
+    """
+    Converts an IPv4 address string to its hexadecimal string representation.
+
+    Args:
+        ip_string: The IPv4 address string (e.g., "192.168.0.0").
+
+    Returns:
+        The hexadecimal representation as a string (e.g., "0xc0a80000"),
+        or an error message if the input is invalid.
+    """
+    try:
+        # 1. Convert the IP string to its 4-byte packed binary representation.
+        #    e.g., "192.168.0.0" -> b'\xc0\xa8\x00\x00'
+        packed_ip = socket.inet_aton(ip_string)
+
+        # 2. Unpack the 4 bytes into a single 32-bit unsigned integer.
+        #    The '!' ensures network byte order (big-endian).
+        #    b'\xc0\xa8\x00\x00' -> (3232235520,)
+        ip_integer = struct.unpack("!I", packed_ip)[0]
+
+        # 3. Format the integer as a hexadecimal string with a "0x" prefix.
+        #    3232235520 -> "0xc0a80000"
+        return f'0x{ip_integer:x}'
+
+    except OSError:
+        return "Error: Invalid IP address format."
+
+def ip_to_int(ip_addr):
+        return struct.unpack("!I", socket.inet_aton(ip_addr))[0]
+
+def handle_str_to_int(handle_str: str) -> int:
+    """
+    "1:100" -> 0x10064
+    """
+    try:
+        # 1. "1:100" ["1", "100"]
+        parts = handle_str.split(':')
+        
+        major = int(parts[0])
+        minor = int(parts[1])
+        
+        handle_int = (major << 16) | minor
+        
+        return handle_int
+
+    except (ValueError, IndexError):
+        print(f"error: '{handle_str}'isn't correct 'major:minor' format. ")
+        return 0
 
 #========================================================================#
-
 def help():
     print("execute: {0} <net_interface>".format(sys.argv[0]))
     print("e.g.: {0} eno1\n".format(sys.argv[0]))
+    print("  <qdisc_type> can be one of: default, prio, htb, bpf")
     exit(1)
 
+#========================================================================
+def setup_fq_codel(ipr, idx, **kwargs):
+    #""" FQ-CODsingaporeEL is the default, so no specific setup is needed. """
+    print("-> Using kernel default fq_codel qdisc. No setup needed.")
+    pass
+
+def teardown_fq_codel(ipr, idx, **kwargs):
+    # """ All qdiscs are removed by the main teardown, so no individual action is needed. """
+    pass
+
+def setup_prio(ipr, idx, **kwargs):
+    FLOW1_IP = kwargs.get('FLOW1_IP')
+    FLOW2_IP = kwargs.get('FLOW2_IP')
+    # """ PRIO Qdisc: Gives high priority to FLOW1_IP. """
+    default_priomap = [1, 2, 2, 2, 1, 2, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+
+    print("Setting up PRIO qdisc...")
+    ipr.tc("add", "prio", idx, "1:" , bands=3, priomap=default_priomap)
+    
+    ipr.tc("add", "fq_codel", idx, parent=0x10001, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+    ipr.tc("add", "fq_codel", idx, parent=0x10002, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+    ipr.tc("add", "fq_codel", idx, parent=0x10003, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+
+    ipr.tc("add-filter", "u32", idx, parent=0x10000, prio=1, protocol=protocols.ETH_P_IP, target=0x10001, keys=[f"{ip_to_hex_string(FLOW1_IP)}/0xffffffff+16"])
+    ipr.tc("add-filter", "u32", idx, parent=0x10000, prio=2, protocol=protocols.ETH_P_IP, target=0x10002, keys=[f"{ip_to_hex_string(FLOW2_IP)}/0xffffffff+16"])
+    ipr.tc("add-filter", "u32", idx,parent=0x10000,prio=3,protocol=protocols.ETH_P_ALL, target=0x10003, keys=["0x0/0x0+0"])
+    # 0xffffffff = 255.255.255.255 (/32)
+    # 12 = Source network field bit offset
+    # 16 = Destination network field bit offset
+
+    print("PRIO qdisc & u32 filter setup is complete.")
+
+def teardown_prio(ipr, idx, **kwargs):
+    #""" All qdiscs are removed by the main teardown, so no individual action is needed. """
+    pass
+
+def setup_htb(ipr, idx, **kwargs):
+    # """ HTB Qdisc: Assigns higher bandwidth to FLOW1_IP. """
+    FLOW1_IP = kwargs.get('FLOW1_IP')
+    FLOW2_IP = kwargs.get('FLOW2_IP')
+    print("Setting up HTB qdisc...")
+    ipr.tc("add", "htb", idx, 0x10000, default=0x10030)
+
+    ipr.tc("add-class", "htb", idx, 0x10001, parent=0x10000, rate="500mbit")
+    #egress data
+    ipr.tc("add-class", "htb", idx, 0x10010, parent=0x10001, rate="100mbit", burst=1024 * 6, prio=1)
+    ipr.tc("add-class", "htb", idx, 0x10020, parent=0x10001, rate="70kbit", burst=1024 * 6, prio=2)
+    ipr.tc("add-class", "htb", idx, 0x10030, parent=0x10001, rate="20kbit", burst=1024 * 6, prio=3)
+    
+    ipr.tc("add", "fq_codel", idx, parent=0x10010, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+    ipr.tc("add", "fq_codel", idx, parent=0x10020, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+    ipr.tc("add", "fq_codel", idx, parent=0x10030, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+    
+    # (option) flow 2 netem
+    # ipr.tc("add", "fq_codel", idx, parent=0x10010, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+    # ipr.tc("add", "netem", idx, parent=0x10020, handle=0x1100000, delay=1000000, jitter=0 )
+    # ipr.tc("add", "fq_codel", idx, parent=0x1100000, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+
+    ipr.tc("add-filter", "u32", idx, parent=0x10000, prio=1, protocol=protocols.ETH_P_IP, target=0x10010, keys=[f"{ip_to_hex_string(FLOW1_IP)}/0xffffffff+16"])
+    ipr.tc("add-filter", "u32", idx, parent=0x10000, prio=2, protocol=protocols.ETH_P_IP, target=0x10020, keys=[f"{ip_to_hex_string(FLOW2_IP)}/0xffffffff+16"])
+
+    print("HTB qdisc & u32 filter setup is complete.")
+
+def teardown_htb(ipr, idx, **kwargs):
+    #""" All qdiscs are removed by the main teardown, so no individual action is needed. """
+    pass
+
+def setup_bpf(ipr, idx, **kwargs):
+    #""" BPF Qdisc: Attaches an eBPF program as an egress filter. """
+    bpf = kwargs.get('bpf')
+    print("Setting up BPF filter...")
+    # Load the eBPF program and add the filter
+    
+    # htb root
+    ipr.tc("add", "clsact", idx, 0x10000)
+
+    ipr.tc("add", "htb", idx, 0x10001, parent=0x10000, default=0x10030)
+    ipr.tc("add-class", "htb", idx, 0x10002, parent=0x10001, rate=IFACE_TOTAL_RATE)
+    
+    # htb default class 
+    ipr.tc("add-class", "htb", idx, 0x10030, parent=0x10002, rate=IFACE_TOTAL_RATE, burst=1024 * 6, prio=3)
+    ipr.tc("add", "fq_codel", idx, parent=0x10030, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+
+    # ebpf egress filter
+    fn_egress_filter = bpf.load_func("handle_egress", BPF.SCHED_CLS)
+    ipr.tc("add-filter", "bpf", idx, fd=fn_egress_filter.fd, name=fn_egress_filter.name, parent=0x10000, prio=1, direct_action=True, class_id = 1)    
+    
+    print("BPF filter has been attached to fq_codel qdisc.")
+    print("Setting up bpf qdisc...")
+
+def start_bpf(ipr, idx, user_data):
+    #assign ip_list to delay
+    global bpf_class_id
+    for ip in user_data.keys():
+        class_id_num = bpf_class_id
+        class_handle_str = f"1:{class_id_num}"   # "1:100" 
+        netem_handle_str = f"{class_id_num}:"
+        class_handle_int = handle_str_to_int(class_handle_str)
+
+        ipr.tc("add-class", "htb", idx, class_handle_str, parent=0x10002, rate=IFACE_TOTAL_RATE, burst=1024 * 6, prio=1)
+        ipr.tc("add", "netem", idx, parent=class_handle_str, handle=netem_handle_str, delay=0, jitter=0 )
+        ipr.tc("add", "fq_codel", idx, parent=netem_handle_str, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
+
+        bpf_class_map[ip] = [class_id_num, class_handle_str]
+        bpf_class_id += 1
+
+        ip_int = ip_to_int(ip);
+        #TODO in python, modify bpf map
+        ip_to_class_map[ip_to_class_map.Key(ip_int)] =  ip_to_class_map.Leaf(class_handle_int)
+        print(f"[start_bpf] c_format : {ip_int} / py_format : {ip} / class_id : {class_handle_int} ")
+
+    #print("start gotta!")
+
+def change_bpf(ipr, idx, ip, delay_val, jitter_val = 0):
+    class_handle_str = bpf_class_map[ip][1]
+    #delay_val in us 
+    ipr.tc("change", "netem", idx, parent=class_handle_str, delay=(delay_val*1000), jitter=(jitter_val*1000))
+    #print("change gotta!")
+
+def teardown_bpf(ipr, idx, **kwargs):
+    #""" All qdiscs are removed by the main teardown, so no individual action is needed. """
+    pass
+
+#========================================================================
 
 INTERFACE = "eno1"
-if len(sys.argv) != 2:
+if len(sys.argv) != 3:
     help()
-elif len(sys.argv) == 2:
-    INTERFACE = sys.argv[1]
-    #TODO : qdisc list selection
+    
+INTERFACE = sys.argv[1]
+QDISC_CHOICE = sys.argv[2]
 
-#========================================================================#
+qdisc_map = {
+        "default": (setup_fq_codel, teardown_fq_codel),
+        "prio": (setup_prio, teardown_prio),
+        "htb": (setup_htb, teardown_htb),
+        "bpf": (setup_bpf, teardown_bpf),
+ }
+
+if QDISC_CHOICE not in qdisc_map:
+        print(f"Error: Invalid qdisc type '{QDISC_CHOICE}'")
+        help()
+
+# Select the setup/teardown functions to use
+setup_func, teardown_func = qdisc_map[QDISC_CHOICE]
+
+# --- Initial Setup ---
 OUTPUT_INTERVAL = 1 # seconds (float avilable)
 OUTPUT_DIR = "/home/parts/stats"
 timestamp_str = datetime.now().strftime("%m%d_%H%M")
 output_filename = f"net_monitor_log_{timestamp_str}.txt"
 OUTPUT_FILEPATH = os.path.join(OUTPUT_DIR, output_filename)
-
 log_buffer = []
 LOG_BUFFER_SIZE = 100 
+FLOW1_IP = "192.168.1.8" #(Mobile)
+FLOW2_IP = "192.168.1.3" #(PC)
+ipr = IPRoute()
 
 try:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -61,9 +255,7 @@ except OSError as e:
     print(f"Error creating directory {OUTPUT_DIR}: {e}")
     exit(1)
 
-#========================================================================
-
-ipr = IPRoute()
+# --- Resource Cleanup and TC/BPF Setup ---
 try:
     idx = ipr.link_lookup(ifname=INTERFACE)[0]
 except IndexError:
@@ -73,18 +265,27 @@ except IndexError:
 print("Cleaning up any leftover resources before starting...")
 
 #root egress
+#default qidsc is fq_codel
+#ref : https://github.com/svinota/pyroute2/blob/master/pyroute2/netlink/rtnl/tcmsg/sched_template.py
+#ref : https://github.com/svinota/pyroute2/issues/801 one by one
 try:
-    ipr.tc("del", "prio", idx, "1:")
-    print("-> Old root qdisc removed.")
-except Exception:
-    print("-> No old root qdisc (OK).")
+    ipr.tc('del', idx)
+    print("-> all qdisc delete.")
+except Exception as e:
+    print(f"-> No old root qdisc (OK). : {e}")
 
-#ingress 
 try:
-    ipr.tc("del", "ingress", idx, "ffff:")
-    print("-> Old ingress qdisc removed.")
-except Exception:
-    print("-> No old ingress qdisc (OK).")
+    ipr.tc('del', 'ingress', idx)
+    print("-> ingress qdisc delete.")
+except Exception as e:
+    print(f"-> No old ingress qdisc (OK). : {e}")
+
+try:
+    ipr.tc('del', 'clsact', idx)
+    print("-> clsact qdisc delete.")
+except Exception as e:
+    print(f"-> No old clsact qdisc (OK). : {e}")
+
 
 try:
     CShmReader(key=777, size=1200).clear()
@@ -97,60 +298,20 @@ try:
 except sysv_ipc.ExistentialError:
     print("-> No old semaphore to clean up.")
 
-#========================================================================
-
-def set_egress(name):
-    pass
-
-def shot_down_egress():
-    pass
-
-FLOW1_IP = "192.168.1.5" #(Mobile)
-FLOW2_IP = "192.168.1.3" #(PC)
-
-bpf = BPF(src_file="net_monitor.c")
-#egress
-# fn_egress_filter = bpf.load_func("handle_egress", BPF.SCHED_CLS)
-# ipr.tc("add", "sfq", idx, "1:")
-# ipr.tc("add-filter", "bpf", idx, ":1", fd=fn_egress_filter.fd,name=fn_egress_filter.name, parent="1:", action="ok", classid=1)
-default_priomap = [1, 2, 2, 2, 1, 2, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
-ipr.tc("add", "prio", idx, "1:" , bands=3, priomap=default_priomap)
-
-prot = socket.htons(ETH_P_IP)
-
-flow1_ip_hex = struct.unpack("!I", socket.inet_aton(FLOW1_IP))[0]
-flow2_ip_hex = struct.unpack("!I", socket.inet_aton(FLOW2_IP))[0]
-
-keys1 = [f'0x{flow1_ip_hex:x}/0xffffffff+16']
-keys2 = [f'0x{flow2_ip_hex:x}/0xffffffff+16']
-
-ipr.tc("add-filter", "u32", idx, 
-           parent="1:",
-           prio=10,
-           protocol=prot,
-           target="1:1", 
-           keys=keys1)         
-
-ipr.tc("add-filter", "u32", idx,
-           parent="1:",
-           prio=20,
-           protocol= prot,
-           target="1:2",
-           keys=keys2)         
-
-#ingress
+#ingress (common for all modes)
 #TODO : tcx_egress is more fast than tc_egress..?
 #TODO : jemini present this code - ip.tc( "add", "link", idx, "egress", fd=bpf_prog_fd, name=bpf_prog_name ) is True?
-fn_ingress_filter = bpf.load_func("handle_ingress", BPF.SCHED_CLS)
-ipr.tc("add", "ingress", idx, "ffff:")
-ipr.tc("add-filter", "bpf", idx, ":1", fd=fn_ingress_filter.fd,name=fn_ingress_filter.name, parent="ffff:", action="ok", classid=1)
+if QDISC_CHOICE != "bpf":
+    fn_ingress_filter = bpf.load_func("handle_ingress", BPF.SCHED_CLS)
+    ipr.tc("add", "ingress", idx, "ffff:")
+    ipr.tc("add-filter", "bpf", idx, ":1", fd=fn_ingress_filter.fd,name=fn_ingress_filter.name, parent="ffff:", action= "ok", classid=1)
 
 print("BPF & TC rules have been set up.")
 
 #========================================================================
 sem = CSemaphore(key=888)
 shm = CShmReader(key=777, size = 1200)
-packet_cnt = bpf.get_table('packet_cnt')    # retrieve packet_cnt map
+setup_func(ipr, idx, FLOW1_IP=FLOW1_IP, FLOW2_IP=FLOW2_IP, bpf=bpf)
 port = 0
 user_cnt = 0
 user_data = {}
@@ -158,6 +319,7 @@ strat_time_ns = time.monotonic_ns()
 server_ip = "192.168.1.2"
 NANO_TO_SEC = 1000000000
 NANO_TO_MSEC = 1000000
+is_game_start = False
 
 def decimal_to_human(input_value):
     try:
@@ -176,7 +338,7 @@ def read_app_info(data):
     user_cnt = tmp[1].split('*')[0]
     user_data = tmp[1].split('*')[1:]
     return port, user_cnt, user_data
-    #ip : key / value : platform, rtt, fps
+    #ip : key / value : platform, rtt, lastping,  fps
 
 def print_event(cpu, data, size):
     event = bpf["events"].event(data)
@@ -225,9 +387,9 @@ try:
                     throughput_bps = (v.bytes * NANO_TO_SEC) / elapsed
                 user = user_data[src if ingress_ok else dst]
                 flow_dir = "[ingress]" if ingress_ok else "[egress]"
-                #TODO : Create Instant Throughput 
-                result = f'{flow_dir} / source address : {src} / destination address : {dst} / total packets : {v.packets} / sum packets (bytes) : {v.bytes} / avg packets (byte) : {v.avgBytes} / last duration (ms): {v.duration/NANO_TO_MSEC} / Bps : {throughput_bps : .2f} \
-                platform : {user[0]} / RTT (ms) : {user[1]} / avg FPS : {user[2]} / capture time (ms) : {v.ts_last/NANO_TO_MSEC}'
+                
+                result = f'{flow_dir} / source address : {src} / destination address : {dst} / total packets : {v.packets} / sum packets (bytes) : {v.bytes} / avg packets (byte) : {v.avgBytes} / last duration (ms): {v.duration/NANO_TO_MSEC} / Bps (average, byte) : {throughput_bps : .2f} / Bps (instant,byte) : {v.throughput_instant : .2f} \
+                platform : {user[0]} / RTT (ms) : {user[1]} / RTT (ms,last) : {user[2]} / avg FPS : {user[3]} / capture time (ms) : {v.ts_last/NANO_TO_MSEC}'
                 #print(result)
 
                 log_buffer.append(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {result}\n")
@@ -240,10 +402,31 @@ try:
                     except IOError as e:
                         print(f"\n[ERROR] Could not write buffer to log file {OUTPUT_FILEPATH}: {e}")
 
+                if(is_game_start == False and QDISC_CHOICE == "bpf"):
+                    is_game_start = True
+                    start_bpf(ipr, idx, user_data)
+
+        for k,v in ip_to_class_map.items():
+            src = decimal_to_human(str(k.value & 0xFFFFFFFF))
+            class_id = v.value
+            print(f"[while] c_format : {k} / py_format : {src} / class_id : {v} " )
+
+        if user_data and QDISC_CHOICE == "bpf":
+            max_rtt_ip = max(user_data, key=lambda ip: int(user_data[ip][1]))
+            max_rtt = int(user_data[max_rtt_ip][1])
+            for ip in user_data:
+                if(ip == max_rtt_ip) :
+                    pass
+                else:
+                    cur_rtt = int(user_data[ip][1])
+                    delay_val = max_rtt - cur_rtt
+                    if(delay_val > 0):
+                        print(f"IP {ip} cur RTT: {cur_rtt}ms, max RTT: {max_rtt}ms, delay_val: {delay_val}ms")
+                        change_bpf(ipr, idx, ip, delay_val)
+                
         #packet_cnt.clear()
        
        
-        
 except KeyboardInterrupt:
     print("\nCtrl+C detected. Cleaning up resources...")
 
@@ -261,12 +444,23 @@ finally:
     # Clean up BPF and TC rules
     print("-> Shared memory and semaphore removed.")
     try:
-       ipr.tc("del", "prio", idx, "1:")
-       ipr.tc("del", "ingress", idx, "ffff:")
+       ipr.tc('del', idx)
        print("-> TC rules removed.")
     except Exception as e:
        print(f"-> Could not remove TC rules (may already be gone): {e}")
+
+    try:
+       ipr.tc('del', 'ingress', idx)
+       print("-> TC ingress rules removed.")
+    except Exception as e:
+       print(f"-> Could not remove TC ingress rules (may already be gone): {e}")
     
+    try:
+        ipr.tc('del', 'clsact', idx)
+        print("-> clsact qdisc delete.")
+    except Exception as e:
+        print(f"-> No old clsact qdisc (OK). : {e}")
+
     # Write any remaining logs in the buffer to file
     if log_buffer:
         print(f"Writing remaining {len(log_buffer)} logs to file...")

@@ -1810,6 +1810,8 @@ void CDemo::UpdateRakNet(void)
 			write_shm.attachSharedMemory();
 
 			WriteQoSInfo();
+			isQosWritten = true;
+			QosWriteTime = curTime + QOS_WRITE_COOL_TIME;
 #endif
 		}
 
@@ -1818,8 +1820,6 @@ void CDemo::UpdateRakNet(void)
 		bool isTimeRecorded = false;
 		for (idx = 0; idx < replicaManager3->GetReplicaCount(); idx++) {
 			((BaseIrrlichtReplica*)(replicaManager3->GetReplicaAtIndex(idx)))->Update(curTime);
-			
-
 			//게임 끝내기
 			if (isServer && isGameEnd && isLogged) {
 				char buffer[200];
@@ -1841,6 +1841,7 @@ void CDemo::UpdateRakNet(void)
 			}
 		}
 
+		//게임 끝내기
 		if (isGameEnd) {
 			if (isServer) {
 				RakNet::BitStream bs;
@@ -1850,11 +1851,20 @@ void CDemo::UpdateRakNet(void)
 
 #if QOS_SUPPORTED
 				//끝났음
+				isQosWritten = false;
 #endif
 			}
 			device->closeDevice();
 		}
 
+		//QoS 정보 기록
+#if QOS_SUPPORTED 
+		if (isServer && isQosWritten && QosWriteTime != 0 && QosWriteTime <= curTime) {
+			WriteQoSInfo();
+			QosWriteTime = curTime + QOS_WRITE_COOL_TIME;
+			
+		}
+#endif
 	}
 }
 
@@ -2096,20 +2106,24 @@ void CDemo::WriteQoSInfo() {
 	data += std::to_string(PlayerReplica::playerList.Size() - 1) + std::string("*"); //서버 자신 제외
 
 	//port|userCnt*UserData*UserData*UserData...
-	//UserData = IP/Platform/RTT/FPS
+	//UserData = IP/Platform/RTT(AveragePing)/ LastPing(LastPing)/2 /FPS
 	//20123|1*192.168.1.3/PC/3/144
 	for (int idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
 	{
 		PlayerReplica* player = PlayerReplica::playerList[idx];
 		if (player->creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))continue;
-		data += rakPeer->GetSystemAddressFromGuid(player->creatingSystemGUID).ToString(false) + std::string("/");
+		
+		RakNet::SystemAddress addr = rakPeer->GetSystemAddressFromGuid(player->creatingSystemGUID);
+		data += addr.ToString(false) + std::string("/");
 		data += player->gamePlatform == Shooter ? "PC" : (player->gamePlatform == Holder ? "M" : "S"); 
 		data += std::string("/");
-		data += std::to_string(rakPeer->GetAveragePing(player->creatingSystemGUID) / 2) + std::string("/");
+		data += std::to_string(rakPeer->GetAveragePing(player->creatingSystemGUID)) + std::string("/");
+		data += std::to_string(rakPeer->GetLastPing(player->creatingSystemGUID)) + std::string("/");
 		data += std::to_string(player->fps);
 		if (idx != PlayerReplica::playerList.Size() - 1) data += std::string("*");
-	}
 
+		rakPeer->Ping(addr); //RTT의 빠른 갱신을 위한 핑 요청
+	}
 
 	write_shm.copyToSharedMemory((char*)(data.c_str()));
 	sem.releaseSemaphore();
