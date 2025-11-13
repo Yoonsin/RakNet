@@ -19,11 +19,13 @@ import os
 import struct
 import ipaddress
 import ctypes
+import subprocess
 from datetime import datetime
 
 ETH_P_IP = 0x0800  # IPv4
 INGRESS = 0xffff0000  # parent/handle for ingress qdisc
 IFACE_TOTAL_RATE = "1gbit"
+TC_SCRR_PATH = "/home/parts/iproute2-scrr/tc/tc" #os.path.expanduser("~/iproute2/tc/tc")
 bpf_class_id = 100
 bpf_class_map = {}
 bpf = BPF(src_file="net_monitor.c")
@@ -83,11 +85,27 @@ def handle_str_to_int(handle_str: str) -> int:
         print(f"error: '{handle_str}'isn't correct 'major:minor' format. ")
         return 0
 
+def run_tc_command(tc_binary_path, args_str):
+    global INTERFACE 
+    cmd = ["sudo", tc_binary_path] + args_str.split()
+    
+    if "dev" not in args_str:
+        cmd.extend(["dev", INTERFACE])
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=5)
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing: {' '.join(cmd)}")
+        print(f"Stderr: {e.stderr}")
+        raise 
+    except subprocess.TimeoutExpired:
+        print(f"Timeout executing: {' '.join(cmd)}")
+        raise
+
 #========================================================================#
 def help():
     print("execute: {0} <net_interface>".format(sys.argv[0]))
     print("e.g.: {0} eno1\n".format(sys.argv[0]))
-    print("  <qdisc_type> can be one of: default, prio, htb, bpf")
+    print("  <qdisc_type> can be one of: default, prio, htb, bpf, scrr, hls")
     exit(1)
 
 #========================================================================
@@ -164,18 +182,17 @@ def setup_bpf(ipr, idx, **kwargs):
     # Load the eBPF program and add the filter
     
     # htb root
-    ipr.tc("add", "clsact", idx, 0x10000)
-
-    ipr.tc("add", "htb", idx, 0x10001, parent=0x10000, default=0x10030)
-    ipr.tc("add-class", "htb", idx, 0x10002, parent=0x10001, rate=IFACE_TOTAL_RATE)
+    ipr.tc("add", "htb", idx, 0x10000, default=0x10030)
+    ipr.tc("add-class", "htb", idx, 0x10001, parent=0x10000, rate=IFACE_TOTAL_RATE)
     
     # htb default class 
-    ipr.tc("add-class", "htb", idx, 0x10030, parent=0x10002, rate=IFACE_TOTAL_RATE, burst=1024 * 6, prio=3)
+    ipr.tc("add-class", "htb", idx, 0x10030, parent=0x10001, rate=IFACE_TOTAL_RATE, burst=1024 * 6, prio=3)
     ipr.tc("add", "fq_codel", idx, parent=0x10030, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
 
     # ebpf egress filter
     fn_egress_filter = bpf.load_func("handle_egress", BPF.SCHED_CLS)
-    ipr.tc("add-filter", "bpf", idx, fd=fn_egress_filter.fd, name=fn_egress_filter.name, parent=0x10000, prio=1, direct_action=True, class_id = 1)    
+    ipr.tc("add-filter", "bpf", idx, fd=fn_egress_filter.fd, name=fn_egress_filter.name, parent=0x10000, prio=1, direct_action=True)    
+    ipr.tc("add-filter", "bpf", idx, fd=fn_egress_filter.fd, name=fn_egress_filter.name, parent=0x10000, prio=1)    
     
     print("BPF filter has been attached to fq_codel qdisc.")
     print("Setting up bpf qdisc...")
@@ -184,22 +201,24 @@ def start_bpf(ipr, idx, user_data):
     #assign ip_list to delay
     global bpf_class_id
     for ip in user_data.keys():
-        class_id_num = bpf_class_id
-        class_handle_str = f"1:{class_id_num}"   # "1:100" 
-        netem_handle_str = f"{class_id_num}:"
-        class_handle_int = handle_str_to_int(class_handle_str)
+        class_id_num = bpf_class_id # 100
+        class_id_hex_str = f"{class_id_num:x}" # 100 -> "64", 256 -> "100"
+        class_id_str = str(class_id_num) 
+        minor_id_int = int(class_id_str, 16) # 0x100
+        class_handle_str = f"1:{class_id_str}"   # "1:100"
+        netem_handle_str = f"{class_id_str}:"   # "100:"
+        class_handle_int = minor_id_int # 0x100 (256)
 
-        ipr.tc("add-class", "htb", idx, class_handle_str, parent=0x10002, rate=IFACE_TOTAL_RATE, burst=1024 * 6, prio=1)
+        ipr.tc("add-class", "htb", idx, class_handle_str, parent=0x10001, rate=IFACE_TOTAL_RATE, burst=1024 * 6, prio=1)
         ipr.tc("add", "netem", idx, parent=class_handle_str, handle=netem_handle_str, delay=0, jitter=0 )
         ipr.tc("add", "fq_codel", idx, parent=netem_handle_str, fqc_limit = 10240, fqc_flows = 1024, fqc_quantum = 1514, fqc_ecn = 64)
 
         bpf_class_map[ip] = [class_id_num, class_handle_str]
-        bpf_class_id += 1
+        bpf_class_id += 1 # 101
 
         ip_int = ip_to_int(ip);
-        #TODO in python, modify bpf map
         ip_to_class_map[ip_to_class_map.Key(ip_int)] =  ip_to_class_map.Leaf(class_handle_int)
-        print(f"[start_bpf] c_format : {ip_int} / py_format : {ip} / class_id : {class_handle_int} ")
+        print(f"[start_bpf] c_format : {ip_int} / py_format : {ip} / class_id_minor : {hex(class_handle_int)} ")
 
     #print("start gotta!")
 
@@ -211,6 +230,83 @@ def change_bpf(ipr, idx, ip, delay_val, jitter_val = 0):
 
 def teardown_bpf(ipr, idx, **kwargs):
     #""" All qdiscs are removed by the main teardown, so no individual action is needed. """
+    pass
+
+def setup_scrr(ipr, idx, **kwargs):
+    print("-> Using kernel default scrr qdisc. No setup needed.")
+    print("Setting up SCRR qdisc using subprocess...")
+    try:
+        run_tc_command(TC_SCRR_PATH, f"qdisc replace dev {INTERFACE} root scrr")
+        print("SCRR qdisc setup is complete.")
+    except Exception as e:
+        print(f"Error setting up SCRR: {e}")
+        exit(1)
+
+    pass
+
+def teardown_scrr(ipr, idx, **kwargs):
+    # """ All qdiscs are removed by the main teardown, so no individual action is needed. """
+    print("Tearing down SCRR qdisc...")
+    try:
+        run_tc_command(TC_SCRR_PATH, f"qdisc del dev {INTERFACE} root")
+    except Exception as e:
+        print(f"-> Could not remove SCRR qdisc (may already be gone): {e}")
+    pass
+
+def setup_hls(ipr, idx, **kwargs):
+    """
+    - 1: (0x10000) (root)
+        - 1:1 (0x10001) (main class)
+            - 1:16 (0x10010) (prio 1) -> FLOW1_IP
+            - 1:32 (0x10020) (prio 2) -> FLOW2_IP
+            - 1:48 (0x10030) (prio 3) -> default
+    
+    - HTB prio 1 -> HLS weight 100
+    - HTB prio 2 -> HLS weight 50
+    - HTB prio 3 -> HLS weight 10
+    """
+    FLOW1_IP = kwargs.get('FLOW1_IP')
+    FLOW2_IP = kwargs.get('FLOW2_IP')
+    print("Setting up HLS qdisc (via subprocess)...")
+    
+    try:
+        run_tc_command(TC_SCRR_PATH, f"qdisc add root handle 1: hls default 48")
+        run_tc_command(TC_SCRR_PATH, f"class add parent 1: classid 1:1 hls weight 1000 max_packet_size 1500")
+
+        # (HTB prio 1 -> HLS weight 100)
+        run_tc_command(TC_SCRR_PATH, f"class add parent 1:1 classid 1:16 hls weight 100 max_packet_size 1500")
+        
+        # (HTB prio 2 -> HLS weight 50)
+        run_tc_command(TC_SCRR_PATH, f"class add parent 1:1 classid 1:32 hls weight 50 max_packet_size 1500")
+
+        # (HTB prio 3 -> HLS weight 10) (default)
+        run_tc_command(TC_SCRR_PATH, f"class add parent 1:1 classid 1:48 hls weight 10 max_packet_size 1500")
+        
+        run_tc_command(TC_SCRR_PATH, f"qdisc add parent 1:16 fq_codel limit 10240 flows 1024 quantum 1514 ecn drop_batch 64")
+        run_tc_command(TC_SCRR_PATH, f"qdisc add parent 1:32 fq_codel limit 10240 flows 1024 quantum 1514 ecn drop_batch 64")
+        run_tc_command(TC_SCRR_PATH, f"qdisc add parent 1:48 fq_codel limit 10240 flows 1024 quantum 1514 ecn drop_batch 64")
+
+        # FLOW1_IP -> 1:16
+        run_tc_command(TC_SCRR_PATH, f"filter add parent 1: prio 1 protocol ip u32 match ip dst {FLOW1_IP} flowid 1:16")
+        # FLOW2_IP -> 1:32
+        run_tc_command(TC_SCRR_PATH, f"filter add parent 1: prio 2 protocol ip u32 match ip dst {FLOW2_IP} flowid 1:32")
+
+        print("HLS qdisc & u32 filter setup is complete.")
+
+    except Exception as e:
+        print(f"Error setting up HLS: {e}")
+        try:
+            run_tc_command(TC_SCRR_PATH, f"qdisc del root")
+        except:
+            pass 
+        exit(1)
+
+def teardown_hls(ipr, idx, **kwargs):
+    print("Tearing down HLS qdisc...")
+    try:
+        run_tc_command(TC_SCRR_PATH, f"qdisc del dev {INTERFACE} root")
+    except Exception as e:
+        print(f"-> Could not remove HLS qdisc (may already be gone): {e}")
     pass
 
 #========================================================================
@@ -227,6 +323,8 @@ qdisc_map = {
         "prio": (setup_prio, teardown_prio),
         "htb": (setup_htb, teardown_htb),
         "bpf": (setup_bpf, teardown_bpf),
+        "scrr": (setup_scrr, teardown_scrr),
+        "hls": (setup_hls, teardown_hls)
  }
 
 if QDISC_CHOICE not in qdisc_map:
@@ -342,7 +440,7 @@ def read_app_info(data):
 
 def print_event(cpu, data, size):
     event = bpf["events"].event(data)
-    print("packet size %-16s " % (event.len))
+    print("class_id %-16s " % (event.len))
 
 #========================================================================
 
@@ -409,7 +507,7 @@ try:
         for k,v in ip_to_class_map.items():
             src = decimal_to_human(str(k.value & 0xFFFFFFFF))
             class_id = v.value
-            print(f"[while] c_format : {k} / py_format : {src} / class_id : {v} " )
+            print(f"[while] c_format : {k.value} / py_format : {src} / class_id : {class_id} " )
 
         if user_data and QDISC_CHOICE == "bpf":
             max_rtt_ip = max(user_data, key=lambda ip: int(user_data[ip][1]))
@@ -419,11 +517,12 @@ try:
                     pass
                 else:
                     cur_rtt = int(user_data[ip][1])
-                    delay_val = max_rtt - cur_rtt
-                    if(delay_val > 0):
-                        print(f"IP {ip} cur RTT: {cur_rtt}ms, max RTT: {max_rtt}ms, delay_val: {delay_val}ms")
-                        change_bpf(ipr, idx, ip, delay_val)
-                
+                    gab_val = max_rtt - cur_rtt
+                    #TODO : assign value
+                    threshold = 0  , jitter_val = 0
+                    if(gab_val > (0 + threshold)):
+                        print(f"IP {ip} cur RTT: {cur_rtt}ms, max RTT: {max_rtt}ms, gab_RTT: {gab_val}ms")
+                        change_bpf(ipr, idx, ip, max_rtt, jitter_val)
         #packet_cnt.clear()
        
        

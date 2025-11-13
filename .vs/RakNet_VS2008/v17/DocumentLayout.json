@@ -229,7 +229,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 14,
+          "SelectedChildIndex": 12,
           "Children": [
             {
               "$type": "Bookmark",
@@ -254,31 +254,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{68487888-204a-11d3-87eb-00c04f7971a5}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "main.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
-              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
-              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
-              "ViewState": "AgIAABQAAAAAAAAAAAAowCMAAAAOAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-07-25T04:43:23.084Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 12,
-              "Title": "CSceneNodeAnimatorCollisionResponse.cpp",
-              "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCollisionResponse.cpp",
-              "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCollisionResponse.cpp",
-              "ToolTip": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCollisionResponse.cpp",
-              "RelativeToolTip": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCollisionResponse.cpp",
-              "ViewState": "AgIAAMQAAAAAAAAAAAAgwMAAAAAsAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-09-03T08:04:02.194Z"
             },
             {
               "$type": "Document",
@@ -360,36 +335,22 @@
               "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\AndroidDemo.cpp",
               "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\AndroidDemo.cpp",
               "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\AndroidPackaging\\app\\src\\main\\cpp\\AndroidDemo.cpp",
-              "ViewState": "AgIAANoBAAAAAAAAAAAAAO4BAAAWAAAAAAAAAA==",
+              "ViewState": "AgIAAM4BAAAAAAAAAAAAAO4BAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-08-11T04:46:47.093Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "CDemo.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
-              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
-              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
-              "ViewState": "AgIAADAAAAAAAAAAAAAAAEcAAAAAAAAAAAAAAA==",
+              "DocumentIndex": 12,
+              "Title": "CSceneNodeAnimatorCollisionResponse.cpp",
+              "DocumentMoniker": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCollisionResponse.cpp",
+              "RelativeDocumentMoniker": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCollisionResponse.cpp",
+              "ToolTip": "C:\\GitHub\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCollisionResponse.cpp",
+              "RelativeToolTip": "..\\CommonLibraries\\Irrlicht\\source\\Irrlicht\\CSceneNodeAnimatorCollisionResponse.cpp",
+              "ViewState": "AgIAAMQAAAAAAAAAAAAgwMAAAAAsAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-07-25T04:43:11.745Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "RakNetStuff.cpp",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
-              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
-              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
-              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
-              "ViewState": "AgIAABoBAAAAAAAAAAAAAE4FAAATAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-07-25T04:34:18.903Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-03T08:04:02.194Z"
             },
             {
               "$type": "Document",
@@ -438,6 +399,42 @@
               "ViewState": "AgIAAAsAAAAAAAAAAAAawB4AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-08-05T09:19:13.009Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "main.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
+              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
+              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\main.cpp",
+              "ViewState": "AgIAABQAAAAAAAAAAAAowCMAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-07-25T04:43:23.084Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "CDemo.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
+              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
+              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\CDemo.cpp",
+              "ViewState": "AgIAADAAAAAAAAAAAAAAAEcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-07-25T04:43:11.745Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "RakNetStuff.cpp",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
+              "RelativeDocumentMoniker": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
+              "ToolTip": "C:\\GitHub\\RakNet\\DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
+              "RelativeToolTip": "DependentExtensions\\IrrlichtDemo_Server_CP\\RakNetStuff.cpp",
+              "ViewState": "AgIAABoBAAAAAAAAAAAAAE4FAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-07-25T04:34:18.903Z"
             },
             {
               "$type": "Document",

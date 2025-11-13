@@ -13,7 +13,7 @@
 #define IP_UDP 17
 #define IP_ICMP 1
 #define ETH_HLEN 14
-#define DEFAULT_CLASS_ID 0x10030
+#define DEFAULT_CLASS_ID 0x10030//0x10030
 
 struct data_t {
     u64 ts;
@@ -116,7 +116,6 @@ int handle_ingress(struct __sk_buff* skb) {
 
 int handle_egress(struct __sk_buff* skb) {
     
-	//TODO : Why return value 1 ( TC_ACT_RECLASSIFY ) only passes the packet?
     u8* cursor = 0;
     u32 saddr, daddr;
     long* count = 0;
@@ -127,10 +126,13 @@ int handle_egress(struct __sk_buff* skb) {
 
     u32 dst_ip = ip->dst;
     u32* class_id = ip_to_class_map.lookup(&dst_ip);
-    skb->tc_classid = (class_id) ? *class_id : DEFAULT_CLASS_ID;
+    u32 class_id_value = DEFAULT_CLASS_ID;
+
+    if (class_id)
+        class_id_value = TC_H_MAKE(1 << 16, (*class_id) & 0xFFFF);
 
     if (ip->ver != 4 || ip->nextp != IP_UDP)
-        return TC_ACT_OK;
+        return class_id_value;
 
 	//ONLY IPv4 + UDP stats
     saddr = ip->src;
@@ -139,8 +141,8 @@ int handle_egress(struct __sk_buff* skb) {
     struct statkey key = { ip->src, ip->dst };
     struct statvalue* val = packet_cnt.lookup(&key);
 
-    /*  struct data_t evt = {};
-      evt.len = skb->len;
+     /* struct data_t evt = {};
+      evt.len = skb->tc_classid;
       events.perf_submit(skb, &evt, sizeof(evt));*/
 
       //TODO : CPU Preemption issue Check (using skb->cb)
@@ -171,5 +173,5 @@ int handle_egress(struct __sk_buff* skb) {
         packet_cnt.update(&key, &initval);
     }
 
-    return TC_ACT_OK;
+    return class_id_value;
 }
