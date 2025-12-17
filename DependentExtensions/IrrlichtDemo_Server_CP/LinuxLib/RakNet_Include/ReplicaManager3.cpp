@@ -946,7 +946,7 @@ void ReplicaManager3::Update(void)
 					// lsr is per connection / per replica
 					while (index2 < connection->queryToSerializeReplicaList.Size())
 					{
-						connection->queryToSerializeReplicaList[index2]->replica->lsr=connection->queryToSerializeReplicaList[index2];
+						connection->queryToSerializeReplicaList[index2]->replica->lsr = connection->queryToSerializeReplicaList[index2];
 						index2++;
 					}
 

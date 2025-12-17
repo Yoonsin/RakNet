@@ -336,6 +336,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="RakNetScheduler.cpp" />
     <ClCompile Include="RakNetStuff.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -385,6 +386,7 @@
     </ClInclude>
     <ClInclude Include="CDemo.h" />
     <ClInclude Include="CMainMenu.h" />
+    <ClInclude Include="RakNetScheduler.h" />
     <ClInclude Include="RakNetStuff.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

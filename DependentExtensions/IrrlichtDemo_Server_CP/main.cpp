@@ -35,8 +35,9 @@ int main(int argc, char* argv[])
 	bool isServer = false;
 	bool isLogged = true;
 	bool isBot = false;
-	int logCount = 1;
+	int logCount = 2;
 	int winScore = 3;
+	int methodMask = 5;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
@@ -66,17 +67,23 @@ int main(int argc, char* argv[])
 				winScore = atoi(token);  // 다음 인수를 정수로 변환하여 logCount에 저장
 			}
 		}
+		else if (strcmp(token, "-method") == 0) {
+			token = strtok(nullptr, " ");  // 다음 인수로 넘어가기
+			if (token != nullptr) {
+				methodMask = atoi(token);  // 다음 인수를 정수로 변환하여 logCount에 저장
+			}
+		}
 		token = strtok(nullptr, " ");  // 더 이상 없으면 종료
 	}
 
-	const char* baseDir = "";
+	const char* baseDir = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/stats/";
 
 	//#ifndef _DEBUG
 	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer,logCount,isBot))
 		//#endif
 	{
 		if (isServer) platform = GamePlatform::Server;
-		demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir, isBot, winScore);
+		demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir, isBot, winScore, methodMask);
 		demo->run();
 		delete demo;
 		demo = nullptr;
@@ -104,9 +111,15 @@ int main(int argc, char* argv[])
 				i++;
 			}
 		}
+		else if (strcmp(argv[i], "-method") == 0) {
+			if (i + 1 < argc) {
+				methodMask = atoi(argv[i + 1]);  // 다음 인수를 정수로 변환하여 logCount에 저장
+				i++;
+			}
+		}
 	}
 
-	demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "",isBot, winScore);
+	demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "",isBot, winScore, methodMask);
 	demo->run();
 	delete demo;
 	demo = nullptr;

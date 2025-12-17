@@ -20,6 +20,7 @@ import struct
 import ipaddress
 import ctypes
 import subprocess
+import numpy as np
 from datetime import datetime
 
 ETH_P_IP = 0x0800  # IPv4
@@ -101,11 +102,35 @@ def run_tc_command(tc_binary_path, args_str):
         print(f"Timeout executing: {' '.join(cmd)}")
         raise
 
-#========================================================================#
+def decimal_to_human(input_value):
+    try:
+        decimal_ip = int(input_value)
+        ip_string = str(ipaddress.IPv4Address(decimal_ip))
+        return ip_string
+    except ValueError:
+        return "Invalid IP"
+
+def read_app_info(data):
+    #port|userCnt*UserData*UserData*UserData... 
+	#UserData = IP/Platform/RTT/FPS
+	#20123 | 1 * 192.168.1.3/PC/3/144 ... 
+    tmp = data.split('|')
+    port = tmp[0]
+    user_cnt = int(tmp[1])
+    method_mask = int(tmp[2].split('*')[0])
+    user_data = tmp[2].split('*')[1:]
+    return port, user_cnt, method_mask, user_data
+    #ip : key / value : platform, rtt, lastping,  fps
+
+def print_event(cpu, data, size):
+    event = bpf["events"].event(data)
+    print("class_id %-16s " % (event.len))
+
 def help():
     print("execute: {0} <net_interface>".format(sys.argv[0]))
     print("e.g.: {0} eno1\n".format(sys.argv[0]))
     print("  <qdisc_type> can be one of: default, prio, htb, bpf, scrr, hls")
+    print("  <flow_type> can be one of : egress, ingress, both")
     exit(1)
 
 #========================================================================
@@ -191,7 +216,7 @@ def setup_bpf(ipr, idx, **kwargs):
 
     # ebpf egress filter
     fn_egress_filter = bpf.load_func("handle_egress", BPF.SCHED_CLS)
-    ipr.tc("add-filter", "bpf", idx, fd=fn_egress_filter.fd, name=fn_egress_filter.name, parent=0x10000, prio=1, direct_action=True)    
+    #ipr.tc("add-filter", "bpf", idx, fd=fn_egress_filter.fd, name=fn_egress_filter.name, parent=0x10000, prio=1, direct_action=True)    
     ipr.tc("add-filter", "bpf", idx, fd=fn_egress_filter.fd, name=fn_egress_filter.name, parent=0x10000, prio=1)    
     
     print("BPF filter has been attached to fq_codel qdisc.")
@@ -312,11 +337,13 @@ def teardown_hls(ipr, idx, **kwargs):
 #========================================================================
 
 INTERFACE = "eno1"
-if len(sys.argv) != 3:
+FLOW = "ingress"
+if len(sys.argv) != 4:
     help()
     
 INTERFACE = sys.argv[1]
 QDISC_CHOICE = sys.argv[2]
+FLOW_CHOICE = sys.argv[3]
 
 qdisc_map = {
         "default": (setup_fq_codel, teardown_fq_codel),
@@ -327,8 +354,14 @@ qdisc_map = {
         "hls": (setup_hls, teardown_hls)
  }
 
+flow_list = {"ingress", "egress", "both"}
+
 if QDISC_CHOICE not in qdisc_map:
         print(f"Error: Invalid qdisc type '{QDISC_CHOICE}'")
+        help()
+
+if FLOW_CHOICE not in flow_list:
+        print(f"Error: Invalid Flow type '{FLOW_CHOICE}'")
         help()
 
 # Select the setup/teardown functions to use
@@ -399,14 +432,37 @@ except sysv_ipc.ExistentialError:
 #ingress (common for all modes)
 #TODO : tcx_egress is more fast than tc_egress..?
 #TODO : jemini present this code - ip.tc( "add", "link", idx, "egress", fd=bpf_prog_fd, name=bpf_prog_name ) is True?
-if QDISC_CHOICE != "bpf":
-    fn_ingress_filter = bpf.load_func("handle_ingress", BPF.SCHED_CLS)
-    ipr.tc("add", "ingress", idx, "ffff:")
-    ipr.tc("add-filter", "bpf", idx, ":1", fd=fn_ingress_filter.fd,name=fn_ingress_filter.name, parent="ffff:", action= "ok", classid=1)
+if FLOW_CHOICE in ["ingress", "both"]:
+    print(f"-> Attaching INGRESS filter (Flow: {FLOW_CHOICE})...")
+    try:
+        ipr.tc("add", "ingress", idx, "ffff:")
+    except Exception:
+        pass 
 
+    fn_ingress_filter = bpf.load_func("handle_ingress", BPF.SCHED_CLS)
+    ipr.tc("add-filter", "bpf", idx, ":1", fd=fn_ingress_filter.fd, name=fn_ingress_filter.name, parent="ffff:", action="ok", classid=1)
+
+if FLOW_CHOICE in ["egress", "both"]:
+    if QDISC_CHOICE != "bpf":
+        print(f"-> Attaching EGRESS filter (Flow: {FLOW_CHOICE}, QDisc: {QDISC_CHOICE})...")
+        try:
+            ipr.tc("add", "clsact", idx)
+        except Exception:
+            pass
+        fn_egress_filter = bpf.load_func("handle_egress", BPF.SCHED_CLS)
+        try:
+            ipr.tc("add-filter", "bpf", idx, ":1", fd=fn_egress_filter.fd, 
+                   name=fn_egress_filter.name, 
+                   parent="ffff:fff3", action="ok", classid=1)
+            print("-> EGRESS filter attached to clsact.")
+        except Exception as e:
+            print(f"-> Failed to attach egress filter: {e}")
+    else:
+        print("-> EGRESS filter already attached by setup_bpf().")
 print("BPF & TC rules have been set up.")
 
 #========================================================================
+
 sem = CSemaphore(key=888)
 shm = CShmReader(key=777, size = 1200)
 setup_func(ipr, idx, FLOW1_IP=FLOW1_IP, FLOW2_IP=FLOW2_IP, bpf=bpf)
@@ -419,28 +475,84 @@ NANO_TO_SEC = 1000000000
 NANO_TO_MSEC = 1000000
 is_game_start = False
 
-def decimal_to_human(input_value):
-    try:
-        decimal_ip = int(input_value)
-        ip_string = str(ipaddress.IPv4Address(decimal_ip))
-        return ip_string
-    except ValueError:
-        return "Invalid input"
+#=============================Method=====================================
+rtt_total_count = 0      
+rtt_total_mean = 0.0    
+rtt_total_m2 = 0.0      
 
-def read_app_info(data):
-    #port|userCnt*UserData*UserData*UserData... 
-	#UserData = IP/Platform/RTT/FPS
-	#20123 | 1 * 192.168.1.3/PC/3/144 ... 
-    tmp = data.split('|')
-    port = tmp[0]
-    user_cnt = tmp[1].split('*')[0]
-    user_data = tmp[1].split('*')[1:]
-    return port, user_cnt, user_data
-    #ip : key / value : platform, rtt, lastping,  fps
+rtt_cumulative_mean = 0.0
+rtt_cumulative_std_dev = 0.0
 
-def print_event(cpu, data, size):
-    event = bpf["events"].event(data)
-    print("class_id %-16s " % (event.len))
+congest_cnt = 1 # mobile device cnt
+method_mask = 0
+
+# (1 << 0) = 1 (001)
+# (1 << 1) = 2 (010)
+# (1 << 2) = 4 (100)
+METHOD_1 = 1;
+METHOD_2 = 2;
+METHOD_3 = 4;
+
+
+def engress_delay(ipr,idx):
+    global user_data
+    global congest_cnt 
+    
+    current_rtts = []
+    valid_ips = []
+    
+    for ip, data in user_data.items():
+        if len(data) > 1 and isinstance(data[1], str) and data[1].isdigit():
+            rtt_val = int(data[1])
+            if rtt_val > 0: 
+                current_rtts.append(rtt_val)
+                valid_ips.append(ip)
+
+    if not current_rtts:
+        return
+
+    batch_mean = np.mean(current_rtts)
+    batch_std = np.std(current_rtts)
+
+    raw_threshold = batch_mean - batch_std
+    
+    threshold = max(raw_threshold, 1.0) 
+
+    print(f"Stats: Mean={batch_mean:.2f}, Std={batch_std:.2f}, Threshold={threshold:.2f}")
+
+    for ip in valid_ips:
+        try:
+            data = user_data[ip]
+            current_rtt = int(data[1])
+            
+            delay_val = 0
+            
+            if current_rtt <= threshold:                
+                safe_rtt = max(current_rtt, 1)
+                calculated_delay = congest_cnt * (threshold / safe_rtt)
+                delay_val = int(calculated_delay)
+                delay_val = min(delay_val, 100) 
+
+            if delay_val > 0:
+                print(f"Apply Delay to {ip}: RTT={current_rtt}ms <= Thr={threshold:.1f} -> Add {delay_val}ms")
+            
+            change_bpf(ipr, idx, ip, delay_val)
+            
+        except (ValueError, IndexError) as e:
+            print(f"[ERROR] Processing IP {ip}: {e}")
+def ingress_delay(ipr,idx):
+    pass
+
+def congestion_control(ipr,idx,is_ingress):
+    global congest_cnt
+    global user_data
+    
+    if is_ingress == true:
+        pass
+    else:
+        pass
+
+    
 
 #========================================================================
 
@@ -460,12 +572,13 @@ try:
                 #print("[ERROR] %s", data)
             else:
                 print ("Data read from shared memory:", data)
-                port, user_cnt, pre_user_data = read_app_info(data)
+                port, user_cnt, method_mask, pre_user_data = read_app_info(data)
                 for item in pre_user_data:
                     parts = item.split('/')
                     ip = parts[0]
                     other = parts[1:]
                     user_data[ip] = other
+
                 #print(user_data)
         else:
             print("Semaphore not acquired, skipping shared memory read.")
@@ -507,22 +620,14 @@ try:
         for k,v in ip_to_class_map.items():
             src = decimal_to_human(str(k.value & 0xFFFFFFFF))
             class_id = v.value
-            print(f"[while] c_format : {k.value} / py_format : {src} / class_id : {class_id} " )
+            #print(f"[while] c_format : {k.value} / py_format : {src} / class_id : {class_id} " )
 
         if user_data and QDISC_CHOICE == "bpf":
-            max_rtt_ip = max(user_data, key=lambda ip: int(user_data[ip][1]))
-            max_rtt = int(user_data[max_rtt_ip][1])
-            for ip in user_data:
-                if(ip == max_rtt_ip) :
-                    pass
-                else:
-                    cur_rtt = int(user_data[ip][1])
-                    gab_val = max_rtt - cur_rtt
-                    #TODO : assign value
-                    threshold = 0  , jitter_val = 0
-                    if(gab_val > (0 + threshold)):
-                        print(f"IP {ip} cur RTT: {cur_rtt}ms, max RTT: {max_rtt}ms, gab_RTT: {gab_val}ms")
-                        change_bpf(ipr, idx, ip, max_rtt, jitter_val)
+            if (method_mask & METHOD_1):
+                engress_delay(ipr,idx)
+            if (method_mask & METHOD_3):
+                congestion_control(ipr, idx, False)
+          
         #packet_cnt.clear()
        
        

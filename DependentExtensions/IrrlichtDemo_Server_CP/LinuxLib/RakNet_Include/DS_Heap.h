@@ -57,6 +57,9 @@ namespace DataStructures
 		data_type& operator[] ( const unsigned int position ) const;
 		unsigned Size(void) const;
 
+		// 큐를 순회하며 특정 플레이어의 메시지 도착 여부를 확인하기 위해 필요함
+		const HeapNode& GetNode(const unsigned int position) const;
+
 	protected:
 		unsigned LeftChild(const unsigned i) const;
 		unsigned RightChild(const unsigned i) const;
@@ -260,6 +263,11 @@ namespace DataStructures
 	inline data_type& Heap<weight_type, data_type, isMaxHeap>::operator[] ( const unsigned int position ) const
 	{
 		return heap[position].data;
+	}
+	template <class weight_type, class data_type, bool isMaxHeap>
+	inline const typename Heap<weight_type, data_type, isMaxHeap>::HeapNode& Heap<weight_type, data_type, isMaxHeap>::GetNode(const unsigned int position) const
+	{
+		return heap[position];
 	}
 	template <class weight_type, class data_type, bool isMaxHeap>
 		unsigned Heap<weight_type, data_type, isMaxHeap>::Size(void) const

@@ -145,6 +145,7 @@
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClCompile>
     <ClCompile Include="CDemo.cpp" />
+    <ClCompile Include="RakNetScheduler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\miniupnpc-1.5\connecthostport.h">
@@ -184,6 +185,7 @@
     <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_tools.h">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClInclude>
+    <ClInclude Include="RakNetScheduler.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="readme.txt" />

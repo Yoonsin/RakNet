@@ -14,6 +14,7 @@
 #define __RAKNET_ADDITIONS_FOR_IRRLICHT_DEMO_H
 
 #include "RakPeerInterface.h"
+#include "RakPeer.h"
 #include "ReplicaManager3.h"
 #include "NatPunchthroughClient.h"
 #include "CloudClient.h"
@@ -27,9 +28,16 @@
 #include "vector3d.h"
 #include "IAnimatedMeshSceneNode.h"
 #include "MessageIdentifiers.h"
+#include "DS_Multilist.h"
+#include "DS_OrderedList.h"
+#include "DS_Heap.h"
+#include "DS_Map.h"
+#include "GetTime.h"
 #include <vector>
+#include <deque>
 
 using namespace std;
+using namespace irr;
 
 class ReplicaManager3Irrlicht;
 class CDemo;
@@ -59,6 +67,14 @@ enum PrintStatics {
 	ID_CLIENT_RENDERING_START = 5,
 };
 
+enum PriorityStatics {
+	PRIORITY_LOW = 0,
+	PRIORITY_MEDIUM = 1,
+	PRIORITY_HIGH = 2,
+	PRIORITY_CRITICAL = 3,
+	PRIORITY_MAX = 4
+};
+
 struct FrameState {
 	RakNet::TimeMS timeStamp;
 	irr::core::matrix4 collisionTransform;
@@ -74,6 +90,17 @@ struct CollDebugState {
 	RakNet::TimeMS drawTimeOut;
 };
 
+struct orderData {
+	int um_cnt;
+	int am_cnt;
+	int processTime;
+	RakNet::TimeMS reactionTime;
+	RakNet::TimeMS ingoingTime;
+	RakNet::TimeMS timeOut;
+	RakNet::RakNetGUID playerGUID;
+	bool isSequenced;
+};
+
 // All externs defined in the corresponding CPP file
 // Most of these classes has a manual entry, all of them have a demo
 extern RakNet::RakPeerInterface *rakPeer; // Basic communication
@@ -85,21 +112,21 @@ extern RakNet::FullyConnectedMesh2 *fullyConnectedMesh2; // Used to find out who
 extern PlayerReplica* playerReplica; // Network object that represents the player
 extern PlayerBotReplica* playerBotReplica; // Network object that represents the player
 extern CollisionBoxQueueSceneNode* collisionBoxQueue;
-extern DataStructures::List<RakNet::RakString> statBuf;
+extern DataStructures::List<DataStructures::List<RakNet::RakString>> statBufList;
 
 // A NAT punchthrough and proxy server Jenkins Software is hosting for free, should usually be online
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_PORT 61111
 #define DEFAULT_NAT_PUNCHTHROUGH_FACILITATOR_IP "natpunch.slikesoft.com" //"natpunch.jenkinssoftware.com" 대체
-#define SERVER_IP "192.168.1.2"
-#define SERVER_IP_LOCAL "127.0.1.1"
+#define SERVER_IP "192.168.1.2" 
+#define SERVER_IP_LOCAL "127.0.0.1"
 #define SERVER_PORT 20123
 
 void InstantiateRakNetClasses(bool isServer, bool isLogged, bool isBot, CDemo* demo);
-void DeinitializeRakNetClasses(bool isLogged, bool isBot, const char* baseDir);
-void SaveStatisticsToCSV(const char* baseDir);
+void DeinitializeRakNetClasses(bool isLogged, bool isBot, const char* baseDir, int evalMask);
+void SaveStatisticsToCSV(const char* baseDir, int methodNum);
 
 //시간 변화량
-void PrintStatistics(bool isExportFile);
+void PrintStatistics(bool isExportFile,int methodNum);
 
 //서버에서 온 패킷 시간 간격
 void PrintStatistics(char* ipStr, PrintStatics id,int num);
@@ -115,6 +142,9 @@ void DrawDebugFrame(irr::scene::ITriangleSelector* selector, RakNet::TimeMS draw
 
 static inline void PrintHoldPosOneLine(float x, float y, float z);
 static inline void PrintOneLineNewline(void);
+static const float INTERP_TIME_MS = 100.0f;
+
+irr::scene::ITriangleSelector* CreateSelectorFromTransformedBox(const core::aabbox3df& localBox, const core::matrix4& worldTransform, scene::ISceneManager* smgr, const RakNet::RakNetGUID& guid);
 
 // Base RakNet custom classes for Replica Manager 3, setup peer to peer networking
 class BaseIrrlichtReplica : public RakNet::Replica3
@@ -136,6 +166,9 @@ public:
 	virtual void SerializeDestruction(RakNet::BitStream *destructionBitstream, RakNet::Connection_RM3 *destinationConnection) {}
 	virtual bool DeserializeDestruction(RakNet::BitStream *destructionBitstream, RakNet::Connection_RM3 *sourceConnection) {return true;}
 	
+
+	virtual PriorityStatics GetPriorityStatics(void) const { return PRIORITY_MEDIUM; }
+
 	/// This function is not derived from Replica3, it's specific to this appss
 	/// Called from CDemo::UpdateRakNet
 	virtual void Update(RakNet::TimeMS curTime);
@@ -227,6 +260,15 @@ public:
 
 	irr::core::vector3df respawnPos;
 	irr::core::vector3df respawnTarget;
+
+	// In PlayerReplica class (server-side only)
+	float SRTT;       // Smoothed RTT (평균 RTT)
+	float RTTVAR;     // RTT Variation (RTT 변동폭)
+	RakNet::TimeMS Wj_RTO;   // 최종 계산된 Wait Timeout (RTO)
+	bool isRtoInitialized; // 초기화 플래그
+	int nextExpectedAmCnt; // AM 시퀀스 순서
+	int lastProcessedAmCnt = -1; // 마지막으로 처리된 AM 시퀀스
+	DataStructures::Map<int, orderData> outOfOrderAmBuffer; // (선택적) 순서가 어긋난 AM을 임시 보관할 버퍼
 };
 class PlayerBotReplica : public PlayerReplica
 {
@@ -247,7 +289,8 @@ public:
 
 	void CreateBotModel();
 	irr::scene::IAnimatedMeshSceneNode* botModel; // bot 전용 Model
-	
+
+	virtual PriorityStatics GetPriorityStatics(void) const { return PRIORITY_LOW;} //TODO : UM 마지막 - 이건 서버만 봇 가지고 봇이 1개일 때만을 가정했을 때임
 };
 class BallReplica : public BaseIrrlichtReplica
 {
@@ -287,8 +330,40 @@ class Connection_RM3Irrlicht : public RakNet::Connection_RM3 {
 public:
 	Connection_RM3Irrlicht(const RakNet::SystemAddress &_systemAddress, RakNet::RakNetGUID _guid, CDemo *_demo) : RakNet::Connection_RM3(_systemAddress, _guid) {demo=_demo;}
 	virtual ~Connection_RM3Irrlicht() {}
-
 	virtual RakNet::Replica3 *AllocReplica(RakNet::BitStream *allocationId, RakNet::ReplicaManager3 *replicaManager3);
+
+	virtual bool QuerySerializationList(DataStructures::List< RakNet::Replica3*>& replicasToSerialize) { 
+		(void)replicasToSerialize; 
+		
+		//우선순위에 따라 정렬
+		int index = PriorityStatics::PRIORITY_MAX - 1;
+		while(index >=0){
+			
+			int index2 = 0;
+			while (index2 < this->queryToSerializeReplicaList.Size())
+			{
+				RakNet::LastSerializationResult* lsr = this->queryToSerializeReplicaList[index2];
+				BaseIrrlichtReplica* rep = dynamic_cast<BaseIrrlichtReplica*>(lsr->replica);
+
+				if (rep == nullptr) {
+					index2++;
+					continue;
+				}
+
+				if (index == rep->GetPriorityStatics())
+					replicasToSerialize.Push(rep, _FILE_AND_LINE_);
+				index2++;
+			}
+			index--;
+		}
+			
+		int t = 0;
+		if (replicasToSerialize.Size() > 2)
+			t = 1;
+
+		if (replicasToSerialize.Size() > 0) return true;
+		else return false; 
+	}
 protected:
 	CDemo *demo;
 };
@@ -308,6 +383,5 @@ public:
 	
 	CDemo *demo;
 };
-
 
 #endif

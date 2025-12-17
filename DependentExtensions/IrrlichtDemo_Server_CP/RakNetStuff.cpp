@@ -35,8 +35,6 @@
 #endif // __ANDROID__
 
 
-
-
 using namespace RakNet;
 using namespace std;
 
@@ -54,7 +52,6 @@ PacketLogger* loggerPlugin;
 StatisticsHistoryPlugin* statisticsPlugin; // Used to track network statistics
 CollisionBoxQueueSceneNode* collisionBoxQueue;
 //int ping = -65555;
-int score = 0;
 
 class DebugBoxSceneNode : public scene::ISceneNode 
 {
@@ -221,10 +218,7 @@ scene::ITriangleSelector* CreateSelectorFromTransformedBox(
 
 DataStructures::List<PlayerReplica*> PlayerReplica::playerList;
 const int HISTORY_DURATION_MS = 1000;
-
-// Take this many milliseconds to move the visible position to the real position
-static const float INTERP_TIME_MS=100.0f;
-static const int INGOING_TIME_MS = 0;
+static const float INGOING_TIME_MS = 0.0f;
 
 void InstantiateRakNetClasses(bool isServer, bool isLogged, bool isBot, CDemo* demo)
 {
@@ -252,8 +246,8 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, bool isBot, CDemo* d
 	if (topology == SERVER) {
 		sr = rakPeer->Startup(MAX_PLAYERS + 1, &sd, 1);
 		rakPeer->SetMaximumIncomingConnections(MAX_PLAYERS);
-		// Fast disconnect for easier testing of host migration
-		//rakPeer->SetTimeoutTime(5000, UNASSIGNED_SYSTEM_ADDRESS);
+		if (demo->evalMask & METHOD_3)
+			//rakPeer->ApplyNetworkSimulator(0.1f, 100, 50);
 	}
 	else sr = rakPeer->Startup(1, &sd, 1);
 	rakPeer->SetOccasionalPing(true);
@@ -302,7 +296,7 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, bool isBot, CDemo* d
 		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 #else
-		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //로컬
+		//ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP_LOCAL, SERVER_PORT, 0, 0); //로컬
 		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
 		//ConnectionAttemptResult car = rakPeer->Connect("192.168.0.17", SERVER_PORT, 0, 0); //랜
 		
@@ -315,22 +309,36 @@ void InstantiateRakNetClasses(bool isServer, bool isLogged, bool isBot, CDemo* d
 	else if (topology == SERVER) {
 		/*if(isBot) replicaManager3->Reference(playerBotReplica);
 		else replicaManager3->Reference(playerReplica);*/
-		//statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
-		//statisticsPlugin->SetTrackConnections(true, 0, true);
-		//rakPeer->AttachPlugin(statisticsPlugin);
 
+		if (demo->evalMask & METHOD_3) {
+			statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
+			statisticsPlugin->SetTrackConnections(true, 0, true);
+			rakPeer->AttachPlugin(statisticsPlugin);
+		}
+		
 		//loggerPlugin = PacketLogger::GetInstance();
 		//rakPeer->AttachPlugin(loggerPlugin);
 	}
 }
-void DeinitializeRakNetClasses(bool isLogged, bool isBot, const char* baseDir)
+void DeinitializeRakNetClasses(bool isLogged, bool isBot, const char* baseDir, int evalMask)
 {
 	DataStructures::List<Replica3*> replicaListOut;
 	replicaManager3->GetReplicasCreatedByMe(replicaListOut);
 	replicaManager3->BroadcastDestructionList(replicaListOut, RakNet::UNASSIGNED_SYSTEM_ADDRESS);
 	
-	if (isLogged && topology == SERVER) {
-		SaveStatisticsToCSV(baseDir);
+	if (isLogged) {
+		if (topology == SERVER) {
+			SaveStatisticsToCSV(baseDir, 0);
+			
+			if (evalMask & METHOD_3) {
+				//Egress, Ingress
+				SaveStatisticsToCSV(baseDir, 3);
+			}
+		}
+		else if (topology == CLIENT ){
+			if (evalMask & METHOD_1)
+				SaveStatisticsToCSV(baseDir,1);	
+		}
 	}
 
 	rakPeer->SetOccasionalPing(false);
@@ -345,11 +353,17 @@ void DeinitializeRakNetClasses(bool isLogged, bool isBot, const char* baseDir)
 	delete cloudClient;
 	delete fullyConnectedMesh2;
 	// ReplicaManager3 deletes all referenced objects, including this one
-
+	
+	if (evalMask & METHOD_3) {
+		if (topology == SERVER) {
+			RakNet::StatisticsHistoryPlugin::DestroyInstance(statisticsPlugin);
+			//delete statisticsPlugin;
+		}
+	}
+		
 	if (isBot) {
 		playerBotReplica->PreDestruction(0);
 		delete playerBotReplica;
-		//delete statisticsPlugin;
 		//delete loggerPlugin;
 	}
 	else {
@@ -361,7 +375,7 @@ void DeinitializeRakNetClasses(bool isLogged, bool isBot, const char* baseDir)
 	PrintOneLineNewline();
 }
 
-void PrintStatistics(bool isExportFile)
+void PrintStatistics(bool isExportFile, int methodNum)
 {
 	unsigned short connectionCount = rakPeer->NumberOfConnections();
 	RakNet::SystemAddress systems[256];
@@ -376,27 +390,88 @@ void PrintStatistics(bool isExportFile)
 		RakNetGUID guid = rakPeer->GetGuidFromSystemAddress(addr);
 		uint64_t objectId = guid.g;
 
-		// 현재 등록된 통계 키 가져오기
-	/*	DataStructures::List<RakString> keys;
-		statisticsPlugin->statistics.GetUniqueKeyList(keys);*/
-
+		// 현재 시간 (밀리초)
 		Time curTime = RakNet::GetTime();
 
-		unsigned int ms = curTime % 1000;
-		unsigned int totalSeconds = curTime / 1000;
-		unsigned int seconds = totalSeconds % 60;
-		unsigned int minutes = (totalSeconds / 60) % 60;
-		unsigned int hours = (totalSeconds / 3600) % 24;  // 하루 기준
+		// [수정됨] Method 3: 상세 네트워크 통계 출력
+		if (methodNum == 3 && statisticsPlugin) {
 
-		char buffer[160];
-		snprintf(buffer, sizeof(buffer), "%02u:%02u:%02u:%03u,%s", hours, minutes, seconds, ms, ipStr);
+			// 통계 데이터를 담을 변수 초기화
+			double egressThroughput = 0.0; // RN_USER_MESSAGE_BYTES_SENT
+			double ingressThroughput = 0.0; // RN_USER_MESSAGE_BYTES_RECEIVED_PROCESSED
+			double rtt = 0.0;               // RN_lastPing
+			double packetLoss = 0.0;        // RN_packetlossLastSecond
+			double resendBytes = 0.0;        // RN_USER_MESSAGE_BYTES_RESENT
 
-		statBuf.Push(RakNet::RakString(buffer), _FILE_AND_LINE_); //Log		
+			StatisticsHistory::TimeAndValueQueue* queue = 0;
+
+			// 1. Egress Throughput (Server -> Client)
+			if (statisticsPlugin->statistics.GetHistoryForKey(objectId, "RN_USER_MESSAGE_BYTES_SENT", &queue, curTime) == StatisticsHistory::SH_OK) {
+				if (queue->values.Size() > 0) egressThroughput = queue->values.PeekTail().val;
+			}
+
+			// 2. Ingress Throughput (Client -> Server)
+			if (statisticsPlugin->statistics.GetHistoryForKey(objectId, "RN_USER_MESSAGE_BYTES_RECEIVED_PROCESSED", &queue, curTime) == StatisticsHistory::SH_OK) {
+				if (queue->values.Size() > 0) ingressThroughput = queue->values.PeekTail().val;
+			}
+
+			// 3. RTT (Round Trip Time)
+			if (statisticsPlugin->statistics.GetHistoryForKey(objectId, "RN_lastPing", &queue, curTime) == StatisticsHistory::SH_OK) {
+				if (queue->values.Size() > 0) rtt = queue->values.PeekTail().val;
+			}
+
+			// 4. Packet Loss (Rate)
+			if (statisticsPlugin->statistics.GetHistoryForKey(objectId, "RN_packetlossLastSecond", &queue, curTime) == StatisticsHistory::SH_OK) {
+				if (queue->values.Size() > 0) packetLoss = queue->values.PeekTail().val;
+			}
+
+			// 5.
+			if (statisticsPlugin->statistics.GetHistoryForKey(objectId, "RN_USER_MESSAGE_BYTES_RESENT", &queue, curTime) == StatisticsHistory::SH_OK) {
+				if (queue->values.Size() > 0) resendBytes = queue->values.PeekTail().val;
+
+				// [출력 포맷] 시간, IP, Egress(Byte/s), Ingress(Byte/s), RTT(ms), Loss(%)
+				// 필요한 경우 B/s를 *8 하여 bps로 변환하거나 KB/s로 나눌 수 있습니다.
+
+				unsigned int ms = curTime % 1000;
+				unsigned int totalSeconds = curTime / 1000;
+				unsigned int seconds = totalSeconds % 60;
+				unsigned int minutes = (totalSeconds / 60) % 60;
+				unsigned int hours = (totalSeconds / 3600) % 24;
+
+				char buffer[512];
+				snprintf(buffer, sizeof(buffer),
+					"%02u:%02u:%02u:%03u,%s,EgressThroughput:%.2f,IngressThroughput:%.2f,RTT:%.0f,Loss:%.2f,ResendIngressThroughput:%.2f%%\n",
+					hours, minutes, seconds, ms,
+					ipStr,
+					egressThroughput,
+					ingressThroughput,
+					rtt,
+					packetLoss * 100.0f,
+					resendBytes); // 0.0~1.0 이므로 백분율 변환
+
+				statBufList[methodNum].Push(RakNet::RakString(buffer), _FILE_AND_LINE_);
+			}
+			else
+			{
+				// 기존 로직 (Method 3이 아닐 때)
+				Time curTime = RakNet::GetTime();
+				unsigned int ms = curTime % 1000;
+				unsigned int totalSeconds = curTime / 1000;
+				unsigned int seconds = totalSeconds % 60;
+				unsigned int minutes = (totalSeconds / 60) % 60;
+				unsigned int hours = (totalSeconds / 3600) % 24;
+
+				char buffer[160];
+				snprintf(buffer, sizeof(buffer), "%02u:%02u:%02u:%03u,%s", hours, minutes, seconds, ms, ipStr);
+				statBufList[methodNum].Push(RakNet::RakString(buffer), _FILE_AND_LINE_);
+			}
+		}
 	}
 }
 
 void PrintStatistics(char* ipStr, PrintStatics id, int num)
 {
+	//클라 입력 - 서버 처리 - 클라 렌더링 까지 걸린 시간 출력
 	RakNet::TimeUS curTime = RakNet::GetTimeUS();  // us 단위
 	unsigned int us = curTime % 1000;
 	unsigned int ms = (curTime / 1000) % 1000;
@@ -439,48 +514,74 @@ void PrintStatistics(char* ipStr, PrintStatics id, int num)
 	else
 		snprintf(buffer, sizeof(buffer), "%s:%d/%02u:%02u:%02u:%03u.%03u\n", type, num, hours, minutes, seconds, ms, us);
 
-	statBuf.Push(RakNet::RakString(buffer), _FILE_AND_LINE_); //Log
+	statBufList[0].Push(RakNet::RakString(buffer), _FILE_AND_LINE_); //Log
 }
 
-void SaveStatisticsToCSV(const char* baseDir)
+void SaveStatisticsToCSV(const char* baseDir, int methodNum)
 {
-	if (statBuf.Size() == 0) {
+	if (statBufList[methodNum].Size() == 0) {
 		return;
 	}
 
+	if (topology == SERVER) {
 #ifdef __linux__
-	// 현재 시간
-	time_t now = time(nullptr);
-	struct tm* t = localtime(&now);
+		// 현재 시간
+		time_t now = time(nullptr);
+		struct tm* t = localtime(&now);
 
-	// 타임스탬프 문자열 생성
-	char timeStr[64];
-	strftime(timeStr, sizeof(timeStr), "%m%d_%H%M", t);
+		// 타임스탬프 문자열 생성
+		char timeStr[64];
+		strftime(timeStr, sizeof(timeStr), "%m%d_%H%M", t);
 
-	// 절대 디렉토리
-	const char* outputDir = "/home/parts/stats";
+		// 절대 디렉토리
+		const char* outputDir = "/home/parts/stats";
 
-	mkdir(outputDir, 0777);  // 이미 있으면 실패하지만 무시됨
-	// 경로 + 파일명 조합
-	char fullpath[512];
-	snprintf(fullpath, sizeof(fullpath), "%s/kill_log_%s.csv", outputDir, timeStr);
+		mkdir(outputDir, 0777);  // 이미 있으면 실패하지만 무시됨
+		// 경로 + 파일명 조합
+		char fullpath[512];
+		snprintf(fullpath, sizeof(fullpath), "%s/kill_log_%s.csv", outputDir, timeStr);
 
-	// 파일 열기
-	FILE* f = fopen(fullpath, "w");
-	if (!f) {
-		perror("파일 열기 실패");
-		return;
-	}
+		// 파일 열기
+		FILE* f = fopen(fullpath, "w");
+		if (!f) {
+			perror("파일 열기 실패");
+			return;
+		}
 
-	for (unsigned int i = 0; i < statBuf.Size(); i++)
-	{
-		fprintf(f, "%s", statBuf[i].C_String());
-	}
-	
-	fclose(f);
-	statBuf.Clear(false, _FILE_AND_LINE_);
+		for (unsigned int i = 0; i < statBufList[methodNum].Size(); i++)
+		{
+			fprintf(f, "%s", statBufList[methodNum][i].C_String());
+		}
+
+		fclose(f);
+		statBufList[methodNum].Clear(false, _FILE_AND_LINE_);
 
 #endif // __linux__
+	}
+	else {
+		// 클라이언트는 baseDir 사용
+		// 현재 시간
+		time_t now = time(nullptr);
+		struct tm* t = localtime(&now);
+		// 타임스탬프 문자열 생성
+		char timeStr[64];
+		strftime(timeStr, sizeof(timeStr), "%m%d_%H%M", t);
+		// 경로 + 파일명 조합
+		char fullpath[512];
+		snprintf(fullpath, sizeof(fullpath), "%s/[Method %d]stats_client_%s.csv", baseDir, methodNum, timeStr);
+		// 파일 열기
+		FILE* f = fopen(fullpath, "w");
+		if (!f) {
+			perror("파일 열기 실패");
+			return;
+		}
+		for (unsigned int i = 0; i < statBufList[methodNum].Size(); i++)
+		{
+			fprintf(f, "%s", statBufList[methodNum][i].C_String());
+		}
+		fclose(f);
+		statBufList[methodNum].Clear(false, _FILE_AND_LINE_);
+	}
 }
 
 long long GetCurrentTimeMS()
@@ -564,6 +665,7 @@ PlayerReplica::PlayerReplica()
 	killCnt = 0;
 	deathCnt = 0;
 	shootCnt = 0;
+	nextExpectedAmCnt = 1;
 }
 PlayerReplica::~PlayerReplica()
 {
@@ -741,7 +843,7 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 					//서버 봇이면 즉시 리스폰
 					demo->SetResetBot();
 					demo->Respawn(respawnPos, respawnTarget);
-					demo->botMoveTime = RakNet::GetTimeMS() + BOT_MOVE_TIME;
+					demo->botMoveTime = RakNet::GetTimeMS() + demo->BOT_MOVE_TIME;
 				}
 
 				//리스폰 요청 보내기
@@ -874,16 +976,21 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 
 	//원격에서 보는 봇 + 리스폰 명령 받았을 때 
 	//딱 한번 보간없이 강제 이동함
-	if (isBot&&isTeleport)
+	if (isBot)
 	{
-		model->setPosition(position);
-		model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
-		lastUpdate = curTime;
-		interpEndTime = curTime;
-		isTeleport = false;
-		bulletCoolTime = 0;
-		//DebugPrintf("reset!\n");
-		return;
+		//method 1 일 때는 봇 보간 끄기
+		if (isTeleport || (demo->evalMask & METHOD_1)) {
+			model->setPosition(position);
+			model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
+			lastUpdate = curTime;
+			interpEndTime = curTime;
+			isTeleport = false;
+			bulletCoolTime = 0;
+			//DebugPrintf("reset!\n");
+			return;
+		}
+		
+
 	}
 
 	// Update interpolation at Remote
@@ -920,38 +1027,22 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	}
 
 	//Print HolderPos
-	if (isBot) {
+	if (isBot && (demo->evalMask==0) ) {
 		
 		//보간된 위치
 		demo->SetHolderPosText(model->getPosition());
 		core::vector3df pos = model->getPosition();
 
-		//core::vector3df delta = model->getPosition() - lastPos;
-		//DebugPrintf("Delta X: %.3f, Delta Y: %.3f, Delta Z: %.3f\n",
-		//	delta.X, delta.Y, delta.Z);
-
-		//lastPos = model->getPosition();
-
-		if (isDead) {
-			//DebugPrintf("bot dead!!!!\n");
+		if (isDead || bulletCoolTime > RakNet::GetTimeMS() || bulletCoolTime == -1 || topology == SERVER) {
 			return;
 		}
-		if (bulletCoolTime > RakNet::GetTimeMS() || bulletCoolTime == -1) {
-			//DebugPrintf("cool Time!!!!\n");
-			return;
-		}
-		//서버에서는 총 쏘면 안됨
-		if (topology == SERVER) return; 
 		
-		//fps당 y,z 이동값을 봐야할듯
 		if (isWithinRange(pos.Y, 167.0f, 20.0f) && isWithinRange(pos.Z, -288.0f, 15.0f)) {
 			bulletCoolTime = RakNet::GetTimeMS() + BULLET_COOL_TIME;
 			demo->isShoot = true;
-			//DebugPrintf("isShoot!!!!\n");
+			
 		}
 	}
-
-	
 }
 void PlayerReplica::UpdateAnimation(irr::scene::EMD2_ANIMATION_TYPE anim)
 {
@@ -1046,6 +1137,14 @@ RM3SerializationResult PlayerBotReplica::Serialize(RakNet::SerializeParameters* 
 	serializeParameters->outputBitstream[0].Write(rotationAroundYAxis);
 	serializeParameters->outputBitstream[0].Write(isMoving);
 	serializeParameters->outputBitstream[0].Write(gamePlatform);
+
+	if (topology == SERVER) {
+		serializeParameters->outputBitstream[0].Write(++demo->um_cnt);
+		demo->umTimeMap.Set(demo->um_cnt, RakNet::GetTimeMS());
+	}
+	
+	//TODO : umTimeList size overflow check
+
 	//timeStamp
 	//serializeParameters->messageTimestamp = RakNet::GetTimeMS();
 	//return RM3SR_BROADCAST_IDENTICALLY; 
@@ -1060,6 +1159,12 @@ void PlayerBotReplica::Deserialize(RakNet::DeserializeParameters* deserializePar
 	deserializeParameters->serializationBitstream[0].Read(rotationAroundYAxis);
 	deserializeParameters->serializationBitstream[0].Read(isMoving);
 	deserializeParameters->serializationBitstream[0].Read(gamePlatform);
+	
+	if (topology != SERVER) {
+		deserializeParameters->serializationBitstream[0].Read(demo->um_cnt);
+		demo->reactionTime = RakNet::GetTimeMS();
+		demo->umReceptionTimes.Set(demo->um_cnt, RakNet::GetTimeMS());
+	}
 
 	// Is a locally created object?
 	if (creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
@@ -1122,24 +1227,117 @@ void BallReplica::SerializeConstruction(RakNet::BitStream *constructionBitstream
 	BaseIrrlichtReplica::SerializeConstruction(constructionBitstream, destinationConnection);
 	constructionBitstream->Write(shotDirection);
 	constructionBitstream->Write(bulletCount);
+
+	if ((demo->evalMask & METHOD_2) == 0) return;
+	if (topology == SERVER) return;
+
+	RakNet::TimeMS actionTime = RakNet::GetTimeMS();
+	// am_cnt는 한 번만
+	constructionBitstream->Write(++demo->am_cnt); 
+
+	// (간단한 버전) 맵의 모든 항목에 대해 (um_id, delta) 튜플을 전송
+	int tupleCount = demo->umReceptionTimes.Size();
+	constructionBitstream->Write(tupleCount);
+
+	for (unsigned int i = 0; i < demo->umReceptionTimes.Size(); ++i)
+	{
+		int um_id = demo->umReceptionTimes.GetKeyAtIndex(i);
+		RakNet::TimeMS receptionTime = demo->umReceptionTimes.Get(um_id);
+		RakNet::TimeMS delta = actionTime - receptionTime;
+		constructionBitstream->Write(um_id);
+		constructionBitstream->Write(delta);
+	}
+	
 	////TimeStamp
 	//constructionBitstream->Write(GetCurrentTimeMS());
 }
-bool BallReplica::DeserializeConstruction(RakNet::BitStream *constructionBitstream, RakNet::Connection_RM3 *sourceConnection)
+
+bool BallReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstream, RakNet::Connection_RM3* sourceConnection)
 {
 	if (!BaseIrrlichtReplica::DeserializeConstruction(constructionBitstream, sourceConnection))
 		return false;
 	constructionBitstream->Read(shotDirection);
 	constructionBitstream->Read(bulletCount);
-	//TimeStamp
-	//long long timeStampMS;
-	//constructionBitstream->Read(timeStampMS);
-
+	
+	
 	if (creatingSystemGUID != rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
 		RakNet::TimeMS estimatedElapsed = rakPeer->GetAveragePing(sourceConnection->GetSystemAddress()) / 2;
 		position = position + shotDirection * (float)estimatedElapsed * SHOT_SPEED;
 	}
+
+	if (topology != SERVER ||(demo->evalMask & METHOD_2) == 0) return true;
+
+	// 이 변수들은 루프 밖에서 한 번만 선언합니다.
+	int am_cnt; int tupleCount;
+	constructionBitstream->Read(am_cnt);
+	constructionBitstream->Read(tupleCount);
+
+	RakNet::RakNetGUID guid = creatingSystemGUID;
+	RakNet::TimeMS ingoingTime = RakNet::GetTimeMS();
+
+	for (int i = 0; i < tupleCount; ++i)
+	{
+		int um_cnt;
+		RakNet::TimeMS rt; // reactionTime
+		constructionBitstream->Read(um_cnt);
+		constructionBitstream->Read(rt);
+
+		// (i, delta) 튜플마다 큐에 삽입
+		uint64_t weight = ((uint64_t)um_cnt << 32) | (uint64_t)rt;
+		orderData data = { um_cnt, am_cnt, 0, rt, ingoingTime, 0, guid, false };
+
+		// --- AM 시퀀스(순서) 검사 로직 ---
+		// 이 AM을 보낸 플레이어를 찾음
+		PlayerReplica* senderPlayer = nullptr;
+		for (unsigned int p_idx = 0; p_idx < PlayerReplica::playerList.Size(); ++p_idx) {
+			if (PlayerReplica::playerList[p_idx]->creatingSystemGUID == data.playerGUID) {
+				senderPlayer = PlayerReplica::playerList[p_idx];
+				break;
+			}
+		}
+
+		if (senderPlayer)
+		{
+			if (data.am_cnt == senderPlayer->nextExpectedAmCnt)
+			{
+				// 1. 순서가 맞음
+				data.isSequenced = true;
+				senderPlayer->nextExpectedAmCnt++;
+				demo->orderPq.Push(weight, data, __FILE__, __LINE__); // 큐에 즉시 삽입
+
+				// 2. (선택적) 버퍼에 있던 다음 순서의 메시지들도 처리
+				while (senderPlayer->outOfOrderAmBuffer.Has(senderPlayer->nextExpectedAmCnt))
+				{
+					orderData bufferedData = senderPlayer->outOfOrderAmBuffer.Get(senderPlayer->nextExpectedAmCnt);
+					senderPlayer->outOfOrderAmBuffer.Delete(senderPlayer->nextExpectedAmCnt);
+
+					bufferedData.isSequenced = true;
+					uint64_t bufferedWeight = ((uint64_t)bufferedData.um_cnt << 32) | (uint64_t)bufferedData.reactionTime;
+					demo->orderPq.Push(bufferedWeight, bufferedData, __FILE__, __LINE__); // 버퍼 -> 큐로 이동
+
+					senderPlayer->nextExpectedAmCnt++;
+				}
+			}
+			else if (data.am_cnt > senderPlayer->nextExpectedAmCnt)
+			{
+				// 2. 순서가 어긋남 (미래의 패킷이 먼저 옴)
+				data.isSequenced = false;
+				// (선택적) 일단 버퍼에 보관. 큐에는 넣지 않음.
+				senderPlayer->outOfOrderAmBuffer.Set(data.am_cnt, data);
+			}
+			else
+			{
+				// 3. (data.am_cnt < senderPlayer->nextExpectedAmCnt)
+				// 이미 처리된 패킷 (늦게 온 중복 패킷). 무시.
+			}
+		}
+		// --- AM 시퀀스 검사 로직 끝 ---
+	}
+
+	// (TimeStamp 로직은 주석 처리됨)
+	//long long timeStampMS;
+	//constructionBitstream->Read(timeStampMS);
 
 	return true;
 }
@@ -1153,6 +1351,7 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 
 	// Shot visible effect and BallReplica classes are not linked, but they update the same way, such that
 	// they are in the same spot all the time
+	// effect
 	if (topology != SERVER) {
 		GamePlatform platform = GamePlatform::Server;
 		for (int idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
@@ -1167,202 +1366,11 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream *constructionBit
 		return;
 	}
 	
-
-	unsigned int idx;
-	scene::ISceneManager* sm = demo->GetSceneManager();
-	scene::ICameraSceneNode* camera = sm->getActiveCamera();
-
-	// Time Warp
-	// 쏜 사람 shootPosition, shootDirection 확인
-	// 나머지 사람 Transform 확인
-	core::vector3df start;
-	core::vector3df end; 
-	core::line3d<irr::f32> line;
-    core::triangle3df triangle;
-    core::vector3df hitPoint;
-    const scene::ISceneNode* hitNode;
-
-	RakNet::TimeMS now = RakNet::GetTimeMS() - (rakPeer->GetAveragePing(creatingSystemGUID) / 2) - INTERP_TIME_MS - INGOING_TIME_MS; //Rewind Time = Server Current Time - RTT/2 - Client View Interpolation Time - Ingoing Delay Time
-	bool wallHit = false;
-	core::vector3df wallHitPoint;
-	PlayerReplica* shooter = nullptr;
-	for (idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
-	{
-		auto* player = PlayerReplica::playerList[idx];
-		auto* q = player->fq;
-		bool didTimeWarp = false;
-
-		if (player->creatingSystemGUID == creatingSystemGUID) {
-			shooter = player;
-			shooter->shootCnt++;
-			
-#if QOS_SUPPORTED 
-	//점수 득점 정보 기록
-	// //Agent 통계와 시간대 같이 맞추기 위해 demo->get_nsecs() 사용
-			HitInfo info = { rakPeer->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(false),  rakPeer->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(false) , shooter->killCnt, demo->get_nsecs() };
-			RakNet::RakString str("%s/%d/%lu\n", info.shooterAddr, info.nowScore, info.timeStamp);
-			statBuf.Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
-#endif
-		}
-
-		//ball position은 클라에서 camPosition으로 설정한 값
-		//time warp에서는 위 값을 쓰지 않고 매번 playerReplica를 통해서 camPosition을 받아와 그 값을 쓴다
-		for (int frameIdx = 1; frameIdx < q->Size(); frameIdx++) {
-			if ((*q)[frameIdx].timeStamp >= now) {
-				//now가 frameIdx-1 과 frameIdx 사이에 있으므로 보간
-				const FrameState& f0 = (*q)[frameIdx - 1];
-				const FrameState& f1 = (*q)[frameIdx];
-				float alpha = float(now - f0.timeStamp) / float(f1.timeStamp - f0.timeStamp);
-
-				if (player->creatingSystemGUID == creatingSystemGUID) {
-					//Shot Position 보간
-					start = f0.shotPosition.getInterpolated(f1.shotPosition, alpha);
-					//Shot Direction 보간 및 정규화
-					core::vector3df interpolatedShotDir = f0.shotDirection.getInterpolated(f1.shotDirection, alpha);
-					interpolatedShotDir.normalize();
-					end = start + (interpolatedShotDir * camera->getFarValue());
-					line.setLine(start, end);
-
-					//벽 충돌 판정 및 비주얼 애니메이션
-					demo->shootFromOrigin(start,interpolatedShotDir,start,end,wallHit,wallHitPoint, player->gamePlatform);
-				}
-				else {
-					//Collision Transform 보간
-					for (int i = 0; i < 16; ++i)
-						player->collisionTransform.pointer()[i] = (f0.collisionTransform.pointer()[i]) * (1.0f - alpha) + (f1.collisionTransform.pointer()[i]) * alpha;
-				}
-				didTimeWarp = true;
-				break;
-			}
-		}
-
-		// fallback 처리: 보간 실패 시 가장 최신 값 사용
-		if (!didTimeWarp && q->Size() >= 1) {
-			const FrameState& lastFrame = q->PeekTail();
-			if (player->creatingSystemGUID == creatingSystemGUID) {
-				start = lastFrame.shotPosition;
-				core::vector3df dir = lastFrame.shotDirection;
-				dir.normalize();
-				end = start + dir * camera->getFarValue();
-				line.setLine(start, end);
-
-				//벽 충돌 판정 및 비주얼 애니메이션
-				demo->shootFromOrigin(lastFrame.shotPosition, lastFrame.shotDirection, start, end, wallHit, wallHitPoint, player->gamePlatform);
-			}
-			else {
-				player->collisionTransform = lastFrame.collisionTransform;
-			}
-		}
-	}
-
+	//method 2를 쓸 때는 충돌 검사 하지 않음
+	if (demo->evalMask & METHOD_2)
+		return;
 	
-	RakNet::TimeMS debugTime = RakNet::GetTimeMS();
-	PlayerReplica* holder = nullptr;
-	for (idx = 0; idx < PlayerReplica::playerList.Size(); ++idx)
-	{
-		auto* player = PlayerReplica::playerList[idx];
-		if (player->creatingSystemGUID == creatingSystemGUID) {
-			player->PlayAttackAnimation();
-			continue; // 총을 쏜 본인
-		}
-		holder = player;
-		
-		scene::ITriangleSelector* selector = nullptr;
-		scene::ISceneNode* node = nullptr;
-
-		if (holder->IsDead()) continue;
-		if (holder->isBot == false) continue; //현재는 봇 이외의 플레이어는 안맞도록 설정
-
-		selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), holder->collisionTransform, sm, holder->creatingSystemGUID);
-
-		if (selector == nullptr) continue;
-		//DrawDebugFrame(selector, 1000);
-
-
-		// 충돌 검사
-#ifdef __ANDROID__
-		scene::SCollisionHit hitResult;
-		bool hit = sm->getSceneCollisionManager()->getCollisionPoint(hitResult, line, selector);
-		hitPoint = hitResult.Intersection;
-		triangle = hitResult.Triangle;
-		hitNode = hitResult.Node;
-#else 
-		bool hit = sm->getSceneCollisionManager()->getCollisionPoint(line, selector, hitPoint, triangle, hitNode);
-#endif // __ANDROID__
-
-		selector->drop(); 
-
-		if (hit && hitNode && hitNode->getID() == static_cast<s32>(holder->creatingSystemGUID.g))
-		{
-			if (wallHit) {
-				//벽에 부딫히면 플레이어 맞음 처리하면 안됨
-				float distToPlayer = line.start.getDistanceFrom(hitPoint);
-				float distToWall = line.start.getDistanceFrom(wallHitPoint);
-				//DebugPrintf("distToPlayer : %f, distToWall : %f\n", distToPlayer, distToWall);
-				if (distToWall < distToPlayer) continue;
-			}
-
-			if(holder->fq) holder->fq->Clear(_FILE_AND_LINE_);
-
-			//Spawn Time
-			if (holder->isBot) holder->deathTimeout = RakNet::GetTimeMS() + RandomInt(3000, 5000);
-			else holder->deathTimeout = RakNet::GetTimeMS() + 3000;
-			
-			printf("HIT! : %d\n", ++score);
-			RakNet::RakString msg("%s Dead from : %s",
-				holder->isBot ? "Bot" : "Player",
-				rakPeer->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(true));
-			demo->PushMessage(msg);
-			//OutputDebugStringA(msg.C_String());
-
-			//점수 득점
-			shooter->killCnt++;
-			holder->deathCnt++;
-			//목표 점수에 도달하면 게임 끝
-			if (shooter->killCnt == demo->winScore) {
-				demo->isGameEnd = true;
-			}
-
-#if QOS_SUPPORTED 
-			//점수 득점 정보 기록
-			//Agent 통계와 시간대 같이 맞추기 위해 demo->get_nsecs() 사용
-			HitInfo info = { rakPeer->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(false), rakPeer->GetSystemAddressFromGuid(holder->creatingSystemGUID).ToString(false), shooter->killCnt, demo->get_nsecs()};
-			if (info.holderAddr == SERVER_IP_LOCAL)
-				info.holderAddr = SERVER_IP;
-			else if (info.shooterAddr == SERVER_IP_LOCAL)
-				info.shooterAddr = SERVER_IP;
-
-			RakNet::RakString str("%s/%s/%d/%lu\n",info.shooterAddr, info.holderAddr, info.nowScore, info.timeStamp);
-			statBuf.Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
-#endif
-			
-			RakNet::BitStream bs;
-			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_LIFE);
-			bs.Write((shooter->creatingSystemGUID));       //Shooter 
-			bs.Write(holder->IsDead());
-			holder->wasDead = true;
-			bs.Write(holder->creatingSystemGUID); //Holder
-			bs.Write(shooter->playerName);        //Shooter Name
-			bs.Write(holder->playerName);         //Holder Name
-
-			if (holder->isBot && holder->creatingSystemGUID == rakPeer->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
-				SEvent botKeyEvent;
-				botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
-				botKeyEvent.KeyInput.Key = KEY_KEY_W;
-				botKeyEvent.KeyInput.PressedDown = false;
-				demo->KeyIsDown[botKeyEvent.KeyInput.Key] = botKeyEvent.KeyInput.PressedDown;
-				if (demo->GetDevice()->getSceneManager()->getActiveCamera()) {
-					demo->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
-				}
-			}
-			
-			KillLog logEntry{ shooter->playerName + RakNet::RakString(" -> ") + holder->playerName + RakNet::RakString("\n"), RakNet::GetTimeMS() };
-			demo->killLogMessages.Push(logEntry, _FILE_AND_LINE_); // Record the kill log message
-
-			rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
-			break; // 더 검사하지 않음
-		}
-	}
+	demo->BulletHitDetected(creatingSystemGUID,0);
 
 	// Hit Scan Only
 	//core::vector3df start = position;
@@ -1497,7 +1505,7 @@ RakNet::Replica3 *Connection_RM3Irrlicht::AllocReplica(RakNet::BitStream *alloca
 }
 
 void ReplicaManager3Irrlicht::PrintTimeGap(char* str) {
-	statBuf.Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
+	statBufList[0].Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
 }
 
 void DebugPrintf(const char* format, ...)

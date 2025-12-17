@@ -63,12 +63,22 @@ using namespace irr;
 #endif
 
 const int CAMERA_COUNT = 7;
-const int BOT_MOVE_TIME = 5000;
+
 const int BULLET_COOL_TIME = 500;
 const int GAME_START_PENDING_TIME = 5000;
 const float CAMERA_HEIGHT=50.0f;
 const float SHOT_SPEED = 5.0f; //.6f;
 const float BALL_DIAMETER=20.0f;
+
+
+// 각 메소드를 나타내는 비트 플래그 정의
+// (1 << 0) = 1 (001)
+// (1 << 1) = 2 (010)
+// (1 << 2) = 4 (100)
+const int METHOD_1 = 1;
+const int METHOD_2 = 2;
+const int METHOD_3 = 4;
+
 
 #if QOS_SUPPORTED 
 const int QOS_WRITE_COOL_TIME = 500;
@@ -78,6 +88,9 @@ const int QOS_WRITE_COOL_TIME = 500;
 // RakNet
 #include "RakNetStuff.h"
 #include "DS_Multilist.h"
+#include "DS_OrderedList.h"
+#include "DS_Heap.h"
+#include "DS_Map.h"
 #include "RakString.h"
 #include "RakNetTime.h"
 #include "Rand.h"
@@ -116,6 +129,8 @@ struct KillLog {
 	RakNet::TimeMS timeStamp;
 };
 
+
+
 #if QOS_SUPPORTED 
 struct HitInfo {
 	const char* shooterAddr;
@@ -146,7 +161,8 @@ public:
 		GAME_MATCH_END = 3,
 	};
 
-	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base, bool isBot, int winScore);
+
+	CDemo(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base, bool isBot, int winScore,int mathodMask);
 	~CDemo();
 
 	void run();
@@ -205,11 +221,27 @@ public:
 	int  winScore;
 	bool isGameStart;
 	bool isGameEnd; 
+	
+	int evalMask;
+	//evaluation method 1 variables
+	bool eval1bool;
+	int eval1cnt;
+	RakNet::TimeMS eval3LogTime;
+	int BOT_MOVE_TIME;
+
+	int um_cnt;
+	int am_cnt;
+	int sumScore;
+	RakNet::TimeMS reactionTime = 0;
+	DataStructures::Heap<uint64_t, orderData, false> orderPq;
+	DataStructures::Map<int, RakNet::TimeMS> umTimeMap;
+	DataStructures::Map<int, RakNet::TimeMS> umReceptionTimes;
 
 	void FlushMovementKeys();
 	void Respawn(core::vector3df& pos, core::vector3df& target);
 	void SetResetBot();
 	void MoveBot();
+	void BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, float ingoingTimeMS);
 
 #if QOS_SUPPORTED 
 	void WriteQoSInfo();

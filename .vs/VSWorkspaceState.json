@@ -4,7 +4,9 @@
   "OutputFoldersPerTargetSystem": {
     "Local Machine": [
       "out\\build\\x64-Debug",
-      "out\\install\\x64-Debug"
+      "out\\install\\x64-Debug",
+      "DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib",
+      "DependentExtensions\\IrrlichtDemo_Server_CP\\LinuxLib\\install\\Linux-GCC-Debug"
     ],
     "192.168.0.20": [
       "out\\build\\x64-Debug",
@@ -22,5 +24,6 @@
   "ExpandedNodes": [
     ""
   ],
+  "SelectedNode": "\\C:\\GitHub\\RakNet\\CMakeLists.txt",
   "PreviewInSolutionExplorer": false
 }

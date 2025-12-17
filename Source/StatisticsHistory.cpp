@@ -742,6 +742,11 @@ void StatisticsHistoryPlugin::Update(void)
 				curTime, false);
 
 			statistics.AddValueByIndex(objectIndex,
+				"RN_USER_MESSAGE_BYTES_SENT",
+				(SHValueType)stats[idx].valueOverLastSecond[USER_MESSAGE_BYTES_SENT],
+				curTime, false);
+
+			statistics.AddValueByIndex(objectIndex,
 				"RN_USER_MESSAGE_BYTES_RESENT",
 				(SHValueType) stats[idx].valueOverLastSecond[USER_MESSAGE_BYTES_RESENT],
 				curTime, false);
@@ -775,6 +780,8 @@ void StatisticsHistoryPlugin::Update(void)
 				"RN_packetlossLastSecond",
 				(SHValueType) stats[idx].packetlossLastSecond,
 				curTime, false);
+
+		
 
 			//ignore도 추가할 필요 있음
 		}

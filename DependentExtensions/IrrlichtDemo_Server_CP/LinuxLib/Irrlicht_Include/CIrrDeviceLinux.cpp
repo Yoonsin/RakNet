@@ -131,7 +131,8 @@ CIrrDeviceLinux::~CIrrDeviceLinux()
 	if (StdHints)
 		XFree(StdHints);
 	// Disable cursor and free it later on
-	CursorControl->setVisible(false);
+	if(CursorControl)
+		CursorControl->setVisible(false);
 	if (display)
 	{
 		#ifdef _IRR_COMPILE_WITH_OPENGL_
