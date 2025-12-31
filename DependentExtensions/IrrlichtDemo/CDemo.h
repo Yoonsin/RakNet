@@ -83,7 +83,7 @@ private:
 	void loadSceneData();
 	void switchToNextScene();
 	void shoot();
-	void createParticleImpacts();
+	
 
 	bool fullscreen;
 	bool music;

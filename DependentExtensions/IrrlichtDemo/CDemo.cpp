@@ -903,28 +903,6 @@ void CDemo::createParticleImpacts()
 			scene::ISceneNodeAnimator* anim = sm->createDeleteAnimator(2000);
 			pas->addAnimator(anim);
 			anim->drop();
-
-			// play impact sound
-			#ifdef USE_IRRKLANG
-			if (irrKlang)
-			{
-				irrklang::ISound* sound = 
-					irrKlang->play3D(impactSound, Impacts[i].pos, false, false, true);
-
-				if (sound)
-				{
-					// adjust max value a bit to make to sound of an impact louder
-					sound->setMinDistance(400);
-					sound->drop();
-				}
-			}
-			#endif
-
-			#ifdef USE_SDL_MIXER
-			if (impactSound)
-				playSound(impactSound);
-			#endif
-
 			// delete entry
 			Impacts.erase(i);
 			i--;

@@ -131,7 +131,6 @@
     </ClCompile>
     <ClCompile Include="CMainMenu.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="RakNetStuff.cpp" />
     <ClCompile Include="AndroidPackaging\app\src\main\cpp\JniBindings.cpp">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClCompile>
@@ -144,8 +143,17 @@
     <ClCompile Include="AndroidPackaging\app\src\main\cpp\android_tools.cpp">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClCompile>
-    <ClCompile Include="CDemo.cpp" />
+    <ClCompile Include="CInGame.cpp" />
     <ClCompile Include="RakNetScheduler.cpp" />
+    <ClCompile Include="NetworkManager.cpp" />
+    <ClCompile Include="Replicas.cpp" />
+    <ClCompile Include="NetLogManager.cpp" />
+    <ClCompile Include="InputController.cpp" />
+    <ClCompile Include="HUDManager.cpp" />
+    <ClCompile Include="PacketHandler.cpp" />
+    <ClCompile Include="CollisionManager.cpp" />
+    <ClCompile Include="SceneManager.cpp" />
+    <ClCompile Include="MethodManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\miniupnpc-1.5\connecthostport.h">
@@ -175,9 +183,8 @@
     <ClInclude Include="..\miniupnpc-1.5\upnpreplyparse.h">
       <Filter>miniupnpc-1.5</Filter>
     </ClInclude>
-    <ClInclude Include="CDemo.h" />
+    <ClInclude Include="CInGame.h" />
     <ClInclude Include="CMainMenu.h" />
-    <ClInclude Include="RakNetStuff.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_native_app_glue.h">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
@@ -186,6 +193,16 @@
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClInclude>
     <ClInclude Include="RakNetScheduler.h" />
+    <ClInclude Include="NetworkManager.h" />
+    <ClInclude Include="Replicas.h" />
+    <ClInclude Include="NetLogManager.h" />
+    <ClInclude Include="InputController.h" />
+    <ClInclude Include="resource1.h" />
+    <ClInclude Include="HUDManager.h" />
+    <ClInclude Include="PacketHandler.h" />
+    <ClInclude Include="CollisionManager.h" />
+    <ClInclude Include="SceneManager.h" />
+    <ClInclude Include="MethodManager.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="readme.txt" />
@@ -287,5 +304,8 @@
     <None Include="AndroidPackaging\app\src\main\AndroidManifest.xml">
       <Filter>AndroidPackaging\app\src\main</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="IrrlichtDemo_Server_CP.rc" />
   </ItemGroup>
 </Project>

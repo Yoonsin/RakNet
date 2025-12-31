@@ -35,7 +35,6 @@ using namespace RakNet;
 
 STATIC_FACTORY_DEFINITIONS(PacketLogger,PacketLogger);
 
-
 PacketLogger::PacketLogger()
 {
 	printId=true;
