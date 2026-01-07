@@ -1,8 +1,13 @@
-#pragma once
 #include "CollisionManager.h"
-#include "CDemo.h"
+#include "CInGame.h"
+#include "SceneManager.h"
+#include "PacketHandler.h"
+#include "InputController.h"
 #include "GetTime.h"
 #include "irrlicht.h"
+#include "HUDManager.h"
+
+using namespace RakNet;
 using namespace irr;
 
 DebugBoxSceneNode::DebugBoxSceneNode(scene::ISceneNode* parent, scene::ISceneManager* mgr, s32 id) : scene::ISceneNode(parent, mgr, id)
@@ -14,12 +19,12 @@ DebugBoxSceneNode::DebugBoxSceneNode(scene::ISceneNode* parent, scene::ISceneMan
 }
 const core::aabbox3d<f32>& DebugBoxSceneNode::getBoundingBox() const
 {
-	return demo->GetSyndeyBoundingBox();
+	return SceneManager::Instance()->GetSyndeyBoundingBox();
 }
 void DebugBoxSceneNode::OnRegisterSceneNode()
 {
 	if (IsVisible)
-		demo->GetSceneManager()->registerNodeForRendering(this, scene::ESNRP_SOLID);
+		CInGame::Instance()->GetSceneManager()->registerNodeForRendering(this, scene::ESNRP_SOLID);
 }
 void DebugBoxSceneNode::SetSelector(scene::ITriangleSelector* selector) {
 	triangleSelector = selector;
@@ -37,7 +42,7 @@ void DebugBoxSceneNode::render()
 		m.Lighting = false;
 		driver->setMaterial(m);
 		driver->setTransform(video::ETS_WORLD, AbsoluteTransformation);
-		driver->draw3DBox(demo->GetSyndeyBoundingBox(), video::SColor(255, 0, 255, 255));
+		driver->draw3DBox(SceneManager::Instance()->GetSyndeyBoundingBox(), video::SColor(255, 0, 255, 255));
 	}
 
 	// TriangleSelector 기반 triangle 출력
@@ -56,10 +61,10 @@ CollisionBoxQueueSceneNode::CollisionBoxQueueSceneNode(scene::ISceneNode* parent
 
  }
 const core::aabbox3d<f32>& CollisionBoxQueueSceneNode::getBoundingBox() const {
-	 return demo->GetSyndeyBoundingBox();
+	 return SceneManager::Instance()->GetSyndeyBoundingBox();
  }
 void CollisionBoxQueueSceneNode::OnRegisterSceneNode() {
-	 if (IsVisible) demo->GetSceneManager()->registerNodeForRendering(this, scene::ESNRP_SOLID);
+	 if (IsVisible) CInGame::Instance()->GetSceneManager()->registerNodeForRendering(this, scene::ESNRP_SOLID);
  }
 void CollisionBoxQueueSceneNode::render() {
 	 video::IVideoDriver* driver = SceneManager->getVideoDriver();
@@ -188,10 +193,10 @@ CollisionManager::~CollisionManager() {
 }
 
 void CollisionManager::BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, float ingoingTimeMS) {
-	if (isServer == false) return;
+	if (NetworkManager::Instance()->IsServer() == false) return;
 
 	unsigned int idx;
-	scene::ISceneManager* sm = GetSceneManager();
+	scene::ISceneManager* sm = CInGame::Instance()->GetDevice()->getSceneManager();
 	scene::ICameraSceneNode* camera = sm->getActiveCamera();
 
 	// Time Warp
@@ -220,7 +225,7 @@ void CollisionManager::BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, 
 
 #if QOS_SUPPORTED 
 			//점수 득점 정보 기록
-			// //Agent 통계와 시간대 같이 맞추기 위해 demo->get_nsecs() 사용
+			// //Agent 통계와 시간대 같이 맞추기 위해 CInGame::Instance()->get_nsecs() 사용
 			HitInfo info = { NetworkManager::Instance()->GetPeer()->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(false),  NetworkManager::Instance()->GetPeer()->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(false) , shooter->killCnt, get_nsecs() };
 			RakNet::RakString str("%s/%d/%lu\n", info.shooterAddr, info.nowScore, info.timeStamp);
 			statBufList[0].Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log
@@ -247,7 +252,7 @@ void CollisionManager::BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, 
 					line.setLine(start, end);
 
 					//벽 충돌 판정 및 비주얼 애니메이션
-					shootFromOrigin(start, interpolatedShotDir, start, end, wallHit, wallHitPoint, player->gamePlatform);
+					SceneManager::Instance()->shootFromOrigin(start, interpolatedShotDir, start, end, wallHit, wallHitPoint, player->gamePlatform);
 				}
 				else {
 					//Other Player
@@ -271,7 +276,7 @@ void CollisionManager::BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, 
 				line.setLine(start, end);
 
 				//벽 충돌 판정 및 비주얼 애니메이션
-				shootFromOrigin(lastFrame.shotPosition, lastFrame.shotDirection, start, end, wallHit, wallHitPoint, player->gamePlatform);
+				SceneManager::Instance()->shootFromOrigin(lastFrame.shotPosition, lastFrame.shotDirection, start, end, wallHit, wallHitPoint, player->gamePlatform);
 			}
 			else {
 				player->collisionTransform = lastFrame.collisionTransform;
@@ -297,7 +302,7 @@ void CollisionManager::BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, 
 		if (holder->IsDead()) continue;
 		if (holder->isBot == false) continue; //현재는 봇 이외의 플레이어는 안맞도록 설정
 
-		selector = CreateSelectorFromTransformedBox(GetSyndeyBoundingBox(), holder->collisionTransform, sm, holder->creatingSystemGUID);
+		selector = CreateSelectorFromTransformedBox(SceneManager::Instance()->GetSyndeyBoundingBox(), holder->collisionTransform, sm, holder->creatingSystemGUID);
 
 		if (selector == nullptr) continue;
 		//DrawDebugFrame(selector, 1000);
@@ -332,24 +337,23 @@ void CollisionManager::BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, 
 			if (holder->isBot) holder->deathTimeout = RakNet::GetTimeMS() + RandomInt(3000, 5000);
 			else holder->deathTimeout = RakNet::GetTimeMS() + 3000;
 
-			printf("HIT! : %d\n", ++sumScore);
 			RakNet::RakString msg("%s Dead from : %s",
 				holder->isBot ? "Bot" : "Player",
 				NetworkManager::Instance()->GetPeer()->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(true));
-			PushMessage(msg);
+			HUDManager::Instance()->PushMessage(msg);
 			//OutputDebugStringA(msg.C_String());
 
 			//점수 득점
 			shooter->killCnt++;
 			holder->deathCnt++;
 			//목표 점수에 도달하면 게임 끝
-			if (shooter->killCnt == winScore) {
-				isGameEnd = true;
+			if (shooter->killCnt == CInGame::Instance()->winScore) {
+				CInGame::Instance()->isGameEnd = true;
 			}
 
 #if QOS_SUPPORTED 
 			//점수 득점 정보 기록
-			//Agent 통계와 시간대 같이 맞추기 위해 demo->get_nsecs() 사용
+			//Agent 통계와 시간대 같이 맞추기 위해 CInGame::Instance()->get_nsecs() 사용
 			HitInfo info = { NetworkManager::Instance()->GetPeer()->GetSystemAddressFromGuid(shooter->creatingSystemGUID).ToString(false), NetworkManager::Instance()->GetPeer()->GetSystemAddressFromGuid(holder->creatingSystemGUID).ToString(false), shooter->killCnt, get_nsecs() };
 			if (info.holderAddr == SERVER_IP_LOCAL)
 				info.holderAddr = SERVER_IP;
@@ -361,7 +365,7 @@ void CollisionManager::BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, 
 #endif
 
 			RakNet::BitStream bs;
-			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_LIFE);
+			bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_LIFE);
 			bs.Write((shooter->creatingSystemGUID));       //Shooter 
 			bs.Write(holder->IsDead());
 			holder->wasDead = true;
@@ -374,15 +378,14 @@ void CollisionManager::BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, 
 				botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
 				botKeyEvent.KeyInput.Key = KEY_KEY_W;
 				botKeyEvent.KeyInput.PressedDown = false;
-				KeyIsDown[botKeyEvent.KeyInput.Key] = botKeyEvent.KeyInput.PressedDown;
-				if (GetDevice()->getSceneManager()->getActiveCamera()) {
-					GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
+				InputController::Instance()->SetKeyDown(botKeyEvent.KeyInput.Key, botKeyEvent.KeyInput.PressedDown);
+				if (CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()) {
+					CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
 				}
 			}
 
 			KillLog logEntry{ shooter->playerName + RakNet::RakString(" -> ") + holder->playerName + RakNet::RakString("\n"), RakNet::GetTimeMS() };
-			killLogMessages.Push(logEntry, _FILE_AND_LINE_); // Record the kill log message
-
+			HUDManager::Instance()->killLogMessages.Push(logEntry, _FILE_AND_LINE_); // Record the kill log message
 			NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 			break; // 더 검사하지 않음
 		}

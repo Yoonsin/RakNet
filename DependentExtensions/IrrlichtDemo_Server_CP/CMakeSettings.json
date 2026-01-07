@@ -16,7 +16,7 @@
       "generator": "Ninja",
       "configurationType": "Debug",
       "cmakeExecutable": "cmake",
-      "remoteCopySourcesExclusionList": [ ".vs", ".git", "out", "AndroidPackaging" ],
+      "remoteCopySourcesExclusionList": [ ".vs", ".git", "out", "AndroidPackaging", ".pdb" ],
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",

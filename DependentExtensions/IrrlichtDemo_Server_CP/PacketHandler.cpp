@@ -1,8 +1,21 @@
+#include "RakPeerInterface.h"
+#include "RakPeer.h"
+#include "BitStream.h"
+#include "ReplicaManager3.h"
 #include "PacketHandler.h"
 #include "NetworkManager.h"
-#include "getTime.h"
+#include "HUDManager.h"
+#include "SceneManager.h"
+#include "InputController.h"
+#include "CInGame.h"
+#include "GetTime.h"
+#include "MethodManager.h"
+#include "NetLogManager.h"
 #include "MessageIdentifiers.h"
+#include "set"
 
+using namespace RakNet;
+using namespace irr;
 
 PacketHandler* PacketHandler::instance = nullptr;
 PacketHandler* PacketHandler::Instance() {
@@ -37,31 +50,31 @@ void PacketHandler::OnHandlePacket() {
 		{
 		case ID_NEW_INCOMING_CONNECTION:
 		{
-			PushMessage(RakNet::RakString("Sending player list to new connection"));
+			HUDManager::Instance()->PushMessage(RakNet::RakString("Sending player list to new connection"));
 			RakNet::Connection_RM3* connection = NetworkManager::Instance()->GetReplicaManager()->AllocConnection(packet->systemAddress, NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(packet->systemAddress));
 			NetworkManager::Instance()->GetReplicaManager()->PushConnection(connection);
 
-			if (logCount == NetworkManager::Instance()->GetReplicaManager()->GetConnectionCount())
+			if (NetworkManager::Instance()->GetMaxClientCnt() == NetworkManager::Instance()->GetReplicaManager()->GetConnectionCount())
 			{
-				if (isBot) NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerBotReplica());
+				if (CInGame::Instance()->isBot) NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerBotReplica());
 				else NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerReplica());
 
-				PushMessage(RakNet::RakString("All Player Connected. Game Pending..."));
-				gameStartTime = curTime + GAME_START_PENDING_TIME;
+				HUDManager::Instance()->PushMessage(RakNet::RakString("All Player Connected. Game Pending..."));
+				CInGame::Instance()->gameStartTime = curTime + GAME_START_PENDING_TIME;
 			}
 		}
 		break;
 		case ID_CONNECTION_REQUEST_ACCEPTED:
 		{
-			isConnected = true;
-			serverSystemAddress = packet->systemAddress;
-			if (isConnected) {
-				RakNet::Connection_RM3* connection = NetworkManager::Instance()->GetReplicaManager()->AllocConnection(serverSystemAddress, NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(serverSystemAddress));
+			CInGame::Instance()->isConnected = true;
+			CInGame::Instance()->serverSystemAddress = packet->systemAddress;
+			if (CInGame::Instance()->isConnected) {
+				RakNet::Connection_RM3* connection = NetworkManager::Instance()->GetReplicaManager()->AllocConnection(CInGame::Instance()->serverSystemAddress, NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(CInGame::Instance()->serverSystemAddress));
 				//NetworkManager::Instance()->GetReplicaManager()에 추적될 수 있도록 할당
 				NetworkManager::Instance()->GetReplicaManager()->PushConnection(connection);
 
 				//객체 생성
-				if (isBot)NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerBotReplica());
+				if (CInGame::Instance()->isBot)NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerBotReplica());
 				else NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerReplica());
 			}
 
@@ -69,74 +82,9 @@ void PacketHandler::OnHandlePacket() {
 			//그렇게 변경하면 수신 딜레이 적용시 timeout으로 연결 수립이 안됩니다..
 		}
 		break;
-		case ID_TIMESTAMP:
-		{
-			RakNet::BitStream bsIn(packet->data, packet->length, false);
-			bsIn.IgnoreBytes(1);
-			RakNet::Time time;
-			bsIn.Read(time);
-			RakNet::MessageID messageId;
-			bsIn.Read(messageId);
-
-			switch (messageId)
-			{
-			case CDemo::ID_GAME_MESSAGE_PLAYER_RESPAWN:
-			{
-				RakNet::BitStream bsIn(packet->data, packet->length, false);
-				bsIn.IgnoreBytes(1);
-
-				RakNet::RakNetGUID botGuid;
-				core::vector3df respawnPos;
-				core::vector3df respawnTarget;
-				bool eval1;
-
-				//리스폰 요청 보낸 봇의 GUID
-				bsIn.Read(botGuid);
-				bsIn.Read(respawnPos);
-				bsIn.Read(respawnTarget);
-				bsIn.Read(eval1);
-
-				if (isServer) {
-					//보낸 이를 제외한 모두에게 다시 브로드캐스팅
-					RakNet::BitStream bs;
-					bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_RESPAWN);
-					bs.Write(botGuid);
-					bs.Write(respawnPos);
-					bs.Write(respawnTarget);
-					bs.Write(false);
-
-					NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, botGuid, true);
-				}
-				else {
-					if (eval1) {
-						/*char strDisplay[100];
-						sprintf(strDisplay, "Time difference is %" PRINTF_64_BIT_MODIFIER "u\n", RakNet::GetTime() - time);
-						PushMessage(strDisplay);
-						*/
-						RakNet::Time t = RakNet::GetTime() - time;
-						statBufList[1].Push(RakNet::RakString::ToString(t) + RakNet::RakString("\n"), _FILE_AND_LINE_);
-					}
-				}
-
-				for (int idx = 0; idx < NetworkManager::Instance()->GetPlayerList().Size(); ++idx)
-				{
-					PlayerReplica* player = NetworkManager::Instance()->GetPlayerList()[idx];
-					if (player->creatingSystemGUID == botGuid)
-					{
-						player->isTeleport = true;
-						player->position = respawnPos;
-						break;
-					}
-				}
-			}
-			break;
-			}
-
-		}
-		break;
 		case ID_GAME_MESSAGE_BALL_REQUEST:
 		{
-			if (isServer) {
+			if (NetworkManager::Instance()->IsServer()) {
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
 				bsIn.IgnoreBytes(1);
 
@@ -147,11 +95,10 @@ void PacketHandler::OnHandlePacket() {
 				bsIn.Read(bulletCnt);
 
 				BallReplica* br = new BallReplica;
-				br->demo = this;
 				br->position = pos;
 				br->shotDirection = target;
 				// 원래는 gamePlatform이 보낸 이의 플랫폼이어야 함 (여기서는 Shooter로 가정될 수 있음)
-				br->shotLifetime = RakNet::GetTimeMS() + shootFromOrigin(pos, target, gamePlatform);
+				br->shotLifetime = RakNet::GetTimeMS() + SceneManager::Instance()->shootFromOrigin(pos, target, CInGame::Instance()->gamePlatform);
 				br->bulletCount = bulletCnt;
 				NetworkManager::Instance()->GetReplicaManager()->Reference(br);
 			}
@@ -178,21 +125,21 @@ void PacketHandler::OnHandlePacket() {
 
 				//DebugPrintf("Shooter Name : %s / Holder Name : %s\n", shooterName, holderName);
 				KillLog logEntry{ shooterName + RakNet::RakString(" -> ") + holderName + RakNet::RakString("\n"), RakNet::GetTimeMS() };
-				killLogMessages.Push(logEntry, _FILE_AND_LINE_); // Record the kill log message
+				HUDManager::Instance()->killLogMessages.Push(logEntry, _FILE_AND_LINE_); // Record the kill log message
 				LifeUpdateGuid = HolderGuid;
 
 				if (shooterName == NetworkManager::Instance()->GetPlayerReplica()->playerName) NetworkManager::Instance()->GetPlayerReplica()->killCnt++;
 				else if (holderName == NetworkManager::Instance()->GetPlayerReplica()->playerName) NetworkManager::Instance()->GetPlayerReplica()->deathCnt++;
-				SetPlayerNameText();
+				HUDManager::Instance()->SetPlayerNameText();
 
-				isKeyLock = true;              // onEvent 등에서 키 처리 차단 (이미 사용중인 플래그)
-				EnableInput(!isKeyLock);
+				InputController::Instance()->isKeyLock = true;   // onEvent 등에서 키 처리 차단 (이미 사용중인 플래그)
+				InputController::Instance()->EnableInput(!InputController::Instance()->isKeyLock);
 			}
 			else {
 				//Shooter = 부활한 사람
 				LifeUpdateGuid = ShooterGuid;
-				isKeyLock = false;
-				EnableInput(!isKeyLock);
+				InputController::Instance()->isKeyLock = false;   // onEvent 등에서 키 처리 차단 (이미 사용중인 플래그)
+				InputController::Instance()->EnableInput(!InputController::Instance()->isKeyLock);
 			}
 
 			for (int idx = 0; idx < NetworkManager::Instance()->GetPlayerList().Size(); ++idx)
@@ -205,24 +152,24 @@ void PacketHandler::OnHandlePacket() {
 						player->bulletCoolTime = -1;
 					}
 
-					if (isDead == false && LifeUpdateGuid == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS) && player->isBot && isServer == false) {
+					if (isDead == false && LifeUpdateGuid == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS) && player->isBot && (NetworkManager::Instance()->IsServer()  == false)) {
 						//나 서버 아님 + 봇 플레이어가 나임 => 부활했다면?
 						//리스폰 후 리스폰 요청
 						SEvent botKeyEvent;
 						botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
 						botKeyEvent.KeyInput.Key = KEY_KEY_W;
 						botKeyEvent.KeyInput.PressedDown = false;
-						KeyIsDown[botKeyEvent.KeyInput.Key] = botKeyEvent.KeyInput.PressedDown;
-						if (device->getSceneManager()->getActiveCamera()) {
-							device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
+						InputController::Instance()->SetKeyDown(botKeyEvent.KeyInput.Key, botKeyEvent.KeyInput.PressedDown);
+						if (CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()) {
+							CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
 						}
 
-						SetResetBot();
-						Respawn(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos, NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
-						botMoveTime = RakNet::GetTimeMS() + BOT_MOVE_TIME;
+						CInGame::Instance()->SetResetBot();
+						CInGame::Instance()->Respawn(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos, NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
+						CInGame::Instance()->botMoveTime = RakNet::GetTimeMS() + CInGame::Instance()->BOT_MOVE_TIME;
 
 						RakNet::BitStream bs;
-						bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_RESPAWN);
+						bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_RESPAWN);
 						bs.Write(NetworkManager::Instance()->GetPlayerBotReplica()->creatingSystemGUID);
 						bs.Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos);
 						bs.Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
@@ -254,14 +201,14 @@ void PacketHandler::OnHandlePacket() {
 						//만약 현재 플랫폼이 Android (Holder) 이고, 다른 플랫폼이 PC (Shooter)인 경우 (그 반대도 포함)
 						//Android의 위치를 GUI에 띄울 수 있도록 한다
 						if (NetworkManager::Instance()->GetPlayerReplica()->gamePlatform == Holder && NetworkManager::Instance()->GetPlayerList()[i]->gamePlatform == Shooter)
-							SetHolderPosText(NetworkManager::Instance()->GetPlayerReplica()->position);
+							HUDManager::Instance()->SetHolderPosText(NetworkManager::Instance()->GetPlayerReplica()->position);
 						else if (NetworkManager::Instance()->GetPlayerReplica()->gamePlatform == Shooter && NetworkManager::Instance()->GetPlayerList()[i]->gamePlatform == Holder)
-							SetHolderPosText(NetworkManager::Instance()->GetPlayerList()[i]->model->getPosition());
+							HUDManager::Instance()->SetHolderPosText(NetworkManager::Instance()->GetPlayerList()[i]->model->getPosition());
 					}
 				}
 			}
-			SetPlayerNameText();
-			PushMessage(RakNet::RakString("Client Name Update"));
+			HUDManager::Instance()->SetPlayerNameText();
+			HUDManager::Instance()->PushMessage(RakNet::RakString("Client Name Update"));
 		}
 		break;
 		case ID_GAME_MESSAGE_PLAYER_RESPAWN:
@@ -280,15 +227,24 @@ void PacketHandler::OnHandlePacket() {
 			bsIn.Read(respawnTarget);
 			bsIn.Read(eval1);
 
-			if (isServer) {
+			if (NetworkManager::Instance()->IsServer()) {
 				//보낸 이를 제외한 모두에게 다시 브로드캐스팅
 				RakNet::BitStream bs;
-				bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_RESPAWN);
+				bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_RESPAWN);
 				bs.Write(botGuid);
 				bs.Write(respawnPos);
 				bs.Write(respawnTarget);
 				bs.Write(false);
+
 				NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, botGuid, true);
+			}
+			else {
+				if (eval1) {
+				    //클라이언트가 받았을 때 서버에게 ACK 전송
+					RakNet::BitStream bs;
+					bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_ACK);
+					NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+				}
 			}
 
 			for (int idx = 0; idx < NetworkManager::Instance()->GetPlayerList().Size(); ++idx)
@@ -298,10 +254,41 @@ void PacketHandler::OnHandlePacket() {
 				{
 					player->isTeleport = true;
 					player->position = respawnPos;
+					//봇이고 현재 방법 1을 쓰는거라면 Replica Update 문에서 위치를 변경해주는게 아니라 여기서 바로 위치 변경
+					if (player->isBot && MethodManager::Instance()->IsMethodActive(METHOD_1)) {
+						player->model->setPosition(player->position);
+						player->model->setRotation(core::vector3df(0, player->rotationAroundYAxis, 0));
+					}
 					break;
 				}
 			}
+		}
+		break;
+		case ID_GAME_MESSAGE_PLAYER_ACK:
+		{
+			RakNet::BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(1);
 
+			if (NetworkManager::Instance()->IsServer()) {
+				// 1. DS_Map에서 보낸 시간 꺼내오기
+				RakNet::TimeMS sentTime = MethodManager::Instance()->GetAndRemoveSendTime(packet->systemAddress);
+
+				// 2. 기록이 있다면 RTT 계산 (현재시간 - 보낸시간)
+				if (sentTime != 0) {
+					RakNet::TimeMS currentTime = RakNet::GetTimeMS();
+					RakNet::TimeMS appRTT = currentTime - sentTime;
+
+					// [수정] NetLogManager를 통해 파일 로그 버퍼에 저장 // 현재 활성화된 메소드가 무엇인지 확인하여 인덱스로 전달 (예: METHOD_1 -> 1)
+					int currentMethodIndex = 0;
+					if (MethodManager::Instance()->IsMethodActive(METHOD_1)) currentMethodIndex = 1;
+					// else if (MethodManager::Instance()->IsMethodActive(METHOD_2)) currentMethodIndex = 2; // 필요시 확장
+
+					// 1. 메모리에 로그 기록 (나중에 파일로 저장됨)
+					NetLogManager::Instance()->LogRTT(currentMethodIndex, packet->systemAddress, appRTT);
+					// 2. 콘솔에도 바로 확인용 출력
+					NetLogManager::Instance()->PrintDebug("[APP_RTT] %s : %d ms\n", packet->systemAddress.ToString(), appRTT);
+				}
+			}
 		}
 		break;
 		case ID_GAME_MESSAGE_GAME_MATCH:
@@ -311,46 +298,44 @@ void PacketHandler::OnHandlePacket() {
 			GameMatchState matchState;
 			bsIn.Read(matchState);
 
-			if (matchState == GameMatchState::GAME_MATCH_START) isGameStart = true;
-			else if (matchState == GameMatchState::GAME_MATCH_END) isGameEnd = true;
+			if (matchState == GameMatchState::GAME_MATCH_START) CInGame::Instance()->isGameStart = true;
+			else if (matchState == GameMatchState::GAME_MATCH_END) CInGame::Instance()->isGameEnd = true;
 		}
 		break;
 		}
 	}
 }
-void PacketHandler::SendRespawnPacket() {
-	RakNet::BitStream bs;
-	if (MethodManager::Instance()->IsMethodActive(1)) {
-		MethodManager::Instance()->UpdateMethod(1);
-		if (MethodManager::Instance()->eval1cnt > 100) {
-			isGameEnd = true;
+void PacketHandler::MakeRespawnPacket(RakNet::BitStream* bs) {
+	if (bs == nullptr) return;
+
+	if (MethodManager::Instance()->IsMethodActive(METHOD_1)) {
+		MethodManager::Instance()->UpdateMethod(METHOD_1);
+		if (MethodManager::Instance()->eval1cnt > 500) {
+			CInGame::Instance()->isGameEnd = true;
 			return;
 		}
-
-		bs.Write((RakNet::MessageID)ID_TIMESTAMP);
-		bs.Write(RakNet::GetTime());
 	}
 
-	bs.Write((RakNet::MessageID)CInGame::ID_GAME_MESSAGE_PLAYER_RESPAWN);
-	bs.Write(NetworkManager::Instance()->GetPlayerBotReplica()->creatingSystemGUID);
-	bs.Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos);
-	bs.Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
-	bs.Write(MethodManager::Instance()->eval1bool);
-
-	NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+	bs->Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_RESPAWN);
+	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->creatingSystemGUID);
+	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos);
+	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
+	bs->Write(MethodManager::Instance()->method1bool);
 }
+
 void PacketHandler::OnUpdateReplica() {
-	if (currentScene >= 1)
+	if (SceneManager::Instance()->currentScene >= 1)
 	{
 		//(서버 봇을 제외한) 모든 플레이어가 생성되면 서버 측에서 이름을 할당
 		//클라 측에서 이름을 할당하는게 더 편하나 현재 모바일에서 이름을 할당하기 어려운 문제가 있어서 서버 측에서 할당.
-		if (isServer && isPlayersNameSet == false && logCount == NetworkManager::Instance()->GetPlayerList().Size() - serverPlayerCnt) {
-			isPlayersNameSet = true;
+		
+		if (NetworkManager::Instance()->IsServer() && CInGame::Instance()->isPlayersNameSet == false && NetworkManager::Instance()->GetMaxClientCnt() == NetworkManager::Instance()->GetPlayerList().Size() - CInGame::Instance()->serverPlayerCnt) {
+			CInGame::Instance()->isPlayersNameSet = true;
 			int playerCnt = 1; int botCnt = 1;
 			RakNet::RakString serverNames("My Name : ");
 
 			RakNet::BitStream bs;
-			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_NAME);
+			bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_NAME);
 			bs.Write(NetworkManager::Instance()->GetPlayerList().Size());
 			for (int i = 0; i < NetworkManager::Instance()->GetPlayerList().Size(); i++) {
 				PlayerReplica* player = NetworkManager::Instance()->GetPlayerList()[i];
@@ -374,21 +359,22 @@ void PacketHandler::OnUpdateReplica() {
 			const char* charStr = serverNames.C_String();
 			wchar_t wcharStr[128];
 			mbstowcs(wcharStr, charStr, sizeof(wcharStr) / sizeof(wchar_t));
-			myNameText->setText(wcharStr);
-			PushMessage(RakNet::RakString("Bot Name Update"));
+			HUDManager::Instance()->myNameText->setText(wcharStr);
+			HUDManager::Instance()->PushMessage(RakNet::RakString("Bot Name Update"));
 		}
 
+		RakNet::TimeMS curTime = RakNet::GetTimeMS();
 		//게임 시작 확인
-		if (isServer && gameStartTime <= curTime && isGameStart == false && gameStartTime != 0) {
-			isGameStart = true;
-			PushMessage(RakNet::RakString("Game Start!"));
+		if (NetworkManager::Instance()->IsServer() && CInGame::Instance()->gameStartTime <= curTime && CInGame::Instance()->isGameStart == false && CInGame::Instance()->gameStartTime != 0) {
+			CInGame::Instance()->isGameStart = true;
+			HUDManager::Instance()->PushMessage(RakNet::RakString("Game Start!"));
 
 			//모든 플레이어에게 게임 시작 알리기
 			RakNet::BitStream bs;
-			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_GAME_MATCH);
+			bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_GAME_MATCH);
 			bs.Write(GameMatchState::GAME_MATCH_START);
 			NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
-			gameStartTime = curTime; //게임 시작 시간 기록
+			CInGame::Instance()->gameStartTime = curTime; //게임 시작 시간 기록
 
 #if QOS_SUPPORTED 
 			sem.setKey(888); sem.setupSemaphore(0);
@@ -397,31 +383,20 @@ void PacketHandler::OnUpdateReplica() {
 #endif
 		}
 
-		// 객체 업데이트 및 게임 종료 통계 저장
+		// 객체 업데이트
 		bool isTimeRecorded = false;
 		for (unsigned int idx = 0; idx < NetworkManager::Instance()->GetReplicaManager()->GetReplicaCount(); idx++) {
 			((BaseIrrlichtReplica*)(NetworkManager::Instance()->GetReplicaManager()->GetReplicaAtIndex(idx)))->Update(curTime);
 
-			if (isServer && isGameEnd && isLogged && (evalMask == 0)) {
+			if (NetworkManager::Instance()->IsServer() && CInGame::Instance()->isGameEnd && NetLogManager::Instance()->IsLogging() && MethodManager::Instance()->isMethodZero()) {
 				PlayerReplica* pr = dynamic_cast<PlayerReplica*>(NetworkManager::Instance()->GetReplicaManager()->GetReplicaAtIndex(idx));
-				if (pr != nullptr) {
-					char buffer[200];
-					if (!isTimeRecorded) {
-						isTimeRecorded = true;
-						char timeBuf[50];
-						snprintf(timeBuf, sizeof(timeBuf), "Game End! Total Time : %02u MS\n", (curTime - gameStartTime));
-						statBufList[0].Push(RakNet::RakString(timeBuf), _FILE_AND_LINE_);
-					}
-					snprintf(buffer, sizeof(buffer), "%s/%d/%d/%d\n", pr->playerName.C_String(), pr->killCnt, pr->deathCnt, pr->shootCnt);
-					statBufList[0].Push(RakNet::RakString(buffer), _FILE_AND_LINE_);
-				}
 			}
 		}
 
 		// -----------------------------------------------------------
 		// 3. [FoS] 패킷 오더링 큐 검사 및 처리 (METHOD_2)
 		// -----------------------------------------------------------
-		if (isServer && (evalMask & METHOD_2))
+		if (NetworkManager::Instance()->IsServer() && MethodManager::Instance()->IsMethodActive(METHOD_2))
 		{
 			// [Step A] 모든 플레이어의 RTO(Wj) 갱신
 			for (unsigned int idx = 0; idx < NetworkManager::Instance()->GetPlayerList().Size(); idx++)
@@ -451,11 +426,11 @@ void PacketHandler::OnUpdateReplica() {
 			}
 
 			// [Step B] 큐 처리 루프
-			while (orderPq.Size() >= 1)
+			while (MethodManager::Instance()->orderPq.Size() >= 1)
 			{
 				// 큐의 헤드 메시지 확인 (아직 Pop 하지 않음)
-				const orderData& M_k = orderPq.Peek(0);
-				RakNet::TimeMS U_i = umTimeMap[M_k.um_cnt];
+				const orderData& M_k = MethodManager::Instance()->orderPq.Peek(0);
+				RakNet::TimeMS U_i = MethodManager::Instance()->umTimeMap[M_k.um_cnt];
 				RakNet::TimeMS delta_k = M_k.reactionTime;
 
 				// max(Wj) 계산 최적화
@@ -464,9 +439,9 @@ void PacketHandler::OnUpdateReplica() {
 				std::set<RakNet::RakNetGUID> submittedPlayers;
 
 				// 큐 전체를 순회하며 현재 um_cnt와 같은 메시지를 보낸 플레이어 식별
-				for (unsigned int q_idx = 0; q_idx < orderPq.Size(); ++q_idx) {
+				for (unsigned int q_idx = 0; q_idx < MethodManager::Instance()->orderPq.Size(); ++q_idx) {
 					// DS_Heap.h에 추가한 GetNode() 사용
-					const auto& node = orderPq.GetNode(q_idx);
+					const auto& node = MethodManager::Instance()->orderPq.GetNode(q_idx);
 					if (node.data.um_cnt == M_k.um_cnt) {
 						submittedPlayers.insert(node.data.playerGUID);
 					}
@@ -503,7 +478,7 @@ void PacketHandler::OnUpdateReplica() {
 				if (curTime >= calculated_processTime)
 				{
 					// 처리 시간 도달 -> 큐에서 제거 후 로직 실행
-					orderData top = orderPq.Pop(0);
+					orderData top = MethodManager::Instance()->orderPq.Pop(0);
 
 					// [추가] 여기서 중복 체크를 하는 것이 가장 깔끔합니다.
 					PlayerReplica* sender = nullptr;
@@ -524,7 +499,7 @@ void PacketHandler::OnUpdateReplica() {
 						sender->lastProcessedAmCnt = top.am_cnt; // 최신 번호 갱신
 					}
 					top.ingoingTime = curTime - top.ingoingTime; // 실제 처리까지 걸린 지연 시간
-					BulletHitDetected(top.playerGUID, top.ingoingTime);
+					CollisionManager::Instance()->BulletHitDetected(top.playerGUID, top.ingoingTime);
 				}
 				else
 				{
@@ -537,19 +512,18 @@ void PacketHandler::OnUpdateReplica() {
 		// -----------------------------------------------------------
 		// 4. 게임 종료 및 QoS 처리
 		// -----------------------------------------------------------
-		if (isGameEnd) {
-			if (isServer) {
+		if (CInGame::Instance()->isGameEnd) {
+			if (NetworkManager::Instance()->IsServer()) {
 				RakNet::BitStream bs;
-				bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_GAME_MATCH);
+				bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_GAME_MATCH);
 				bs.Write(GameMatchState::GAME_MATCH_END);
 				NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 #if QOS_SUPPORTED
 				isQosWritten = false;
 #endif
 			}
-			device->closeDevice();
+			CInGame::Instance()->GetDevice()->closeDevice();
 		}
-
 #if QOS_SUPPORTED 
 		if (isServer && isQosWritten && QosWriteTime != 0 && QosWriteTime <= curTime) {
 			WriteQoSInfo();

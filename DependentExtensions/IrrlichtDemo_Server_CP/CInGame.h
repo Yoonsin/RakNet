@@ -1,6 +1,4 @@
-// This is a Demo of the Irrlicht Engine (c) 2006 by N.Gebhardt.
-// This file is not documented.
-
+#pragma once
 #ifndef __C_DEMO_H_INCLUDED__
 #define __C_DEMO_H_INCLUDED__
 
@@ -9,7 +7,6 @@
 #define IRRLICHT_MEDIA_PATH  "media/"
 #include <android/native_activity.h>
 #include "android_native_app_glue.h"
-android_app* state;
 #else
 #ifdef _WIN32
 #define QOS_SUPPORTED 0
@@ -19,7 +16,7 @@ android_app* state;
 #else
 #if defined(__linux__)
 #define IRRLICHT_MEDIA_PATH  "../../../src/IrrlichtMedia/"
-#define QOS_SUPPORTED 1
+#define QOS_SUPPORTED 0
 const int QOS_WRITE_COOL_TIME = 500;
 #else
 #define QOS_SUPPORTED 0
@@ -92,12 +89,18 @@ public:
 	CInGame();
 	CInGame(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base, bool isBot, int winScore,int mathodMask);
 	~CInGame();
-	void run();
-	void update();
+	void Run();
+	void Activate();
+	void Update();
+	void ShutDown();
 	IrrlichtDevice * GetDevice(void) const {return device;}
 	scene::ISceneManager* GetSceneManager(void) const {return device->getSceneManager();}
 	GamePlatform GetGamePlatform() const { return gamePlatform; }
 	void SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform platform);
+	void Respawn(core::vector3df& pos, core::vector3df& target);
+	void SetResetBot();
+	void MoveBot();
+	void shoot();
 
 	bool isBulletRendering;
 	bool isConnected = false;
@@ -119,13 +122,11 @@ public:
 	bool isGameStart;
 	bool isGameEnd; 
 	int BOT_MOVE_TIME;
-	const char* baseDir;
+	irr::core::stringc mediaPath;
 
-	void Respawn(core::vector3df& pos, core::vector3df& target);
-	void SetResetBot();
-	void MoveBot();
-	void shoot();
-
+#ifdef __ANDROID__
+	android_app* state;
+#endif
 #if QOS_SUPPORTED 
 	void WriteQoSInfo();
 	unsigned long get_nsecs();
@@ -138,12 +139,8 @@ private:
 	video::E_DRIVER_TYPE driverType;
 	core::stringw playerName;
 	IrrlichtDevice *device;
-	irr::core::stringc mediaPath;
 	int bulletCount;
-
-	// CDemo.h 안에 다음 멤버 변수 추가
 	RakNet::TimeMS lastShootTime = 0;
-	const RakNet::TimeMS shootInterval = 500; // 0.5초 (500ms)
+	const RakNet::TimeMS shootInterval = 500;
 };
-
 #endif

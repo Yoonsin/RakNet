@@ -1,4 +1,10 @@
 #include "HUDManager.h"
+#include "SceneManager.h"
+#include "CInGame.h"
+#include "GetTime.h"
+
+using namespace RakNet;
+using namespace irr;
 
 HUDManager* HUDManager::instance = nullptr;
 
@@ -14,26 +20,30 @@ void HUDManager::DestroyInstance() {
     }
 }
 
-HUDManager::HUDManager() : guienv(nullptr), font(nullptr), statusText(nullptr) {}
+HUDManager::HUDManager() : driver(nullptr), guienv(nullptr), font(nullptr) {}
 HUDManager::~HUDManager() {
     // Irrlicht GUI 요소는 guienv->clear()나 drop()으로 정리되므로 
     // 여기서 특별히 delete할 것은 보통 없습니다.
 }
 void HUDManager::Initialize() {
-	//statusText(0),  killLogText(0), myNameText(0), holderPosText(0),
+	joy_stick = jump_button = fire_button = exit_button = statusText = killLogText = myNameText = holderPosText =  nullptr;
 }
+
 void HUDManager::Activate() {
-    this->guienv = env;
+	guienv = CInGame::Instance()->GetDevice()->getGUIEnvironment();
+	driver = CInGame::Instance()->GetDevice()->getVideoDriver();
 
 	core::rect<int> myNameRect;
 	core::rect<int> KillLogRect;
 	core::rect<int> holderPosRect;
-	const int lwidth = device->getVideoDriver()->getScreenSize().Width - 20;
+	core::dimension2d<u32> size = driver->getScreenSize();
+	const int lwidth = driver->getScreenSize().Width - 20; const int lheight = 16;
 #ifdef __ANDROID__
 	myNameRect = core::rect<int>(10, 50, 1000, 100);
 	holderPosRect = core::rect<int>(10, 110, 1000, 160);
 	//holderPosRect = core::rect<int>(10, 110, 2000, 300);
 	KillLogRect = core::rect<int>(lwidth - 550, 50, lwidth - 50, 700);
+	InitMobileHUD();
 #else
 	myNameRect = core::rect<int>(10, 0, 250, 30);
 	holderPosRect = core::rect<int>(10, 40, 250, 70);  //Font
@@ -41,25 +51,29 @@ void HUDManager::Activate() {
 
 	KillLogRect = core::rect<int>(lwidth - 100, 0, lwidth, 150);
 #endif // __ANDROID__
+	core::rect<int> pos(10, size.Height - lheight - 80, 10 + lwidth, size.Height - 80);
+	//device->getGUIEnvironment()->addImage(pos);
+	statusText = guienv->addStaticText(L"Start", pos, true);
+	statusText->setOverrideColor(video::SColor(255, 205, 200, 200));
 
-	myNameText = device->getGUIEnvironment()->addStaticText(L"My Name : ", myNameRect);
+	myNameText = guienv->addStaticText(L"My Name : ", myNameRect);
 	myNameText->setOverrideColor(video::SColor(255, 255, 255, 255));
 	myNameText->setBackgroundColor(video::SColor(255, 0, 0, 0));
 
 	wchar_t* killText = L"";
-	killLogText = device->getGUIEnvironment()->addStaticText(killText, KillLogRect);
+	killLogText = guienv->addStaticText(killText, KillLogRect);
 	killLogText->setOverrideColor(video::SColor(255, 255, 255, 255));
 	killLogText->setBackgroundColor(video::SColor(255, 0, 0, 0));
 
-	holderPosText = device->getGUIEnvironment()->addStaticText(L"Holder Position : ", holderPosRect);
+	holderPosText = guienv->addStaticText(L"Holder Position : ", holderPosRect);
 	holderPosText->setOverrideColor(video::SColor(255, 255, 255, 255));
 	holderPosText->setBackgroundColor(video::SColor(255, 0, 0, 0));
 
-	crosshairTex = device->getVideoDriver()->getTexture(mediaPath + "crossHair_white.png");
+	crosshairTex = driver->getTexture(CInGame::Instance()->mediaPath + "crossHair_white.png");
 }
 
 void HUDManager::Update() {
-	if (crosshairTex) DrawCrosshairHUD();
+	if (crosshairTex) DrawCrosshair();
 
 	static s32 lastfps = 0;
 	s32 nowfps = driver->getFPS();
@@ -72,7 +86,7 @@ void HUDManager::Update() {
 	);
 	if (nowfps != lastfps)
 	{
-		device->setWindowCaption(tmp);
+		CInGame::Instance()->GetDevice()->setWindowCaption(tmp);
 		lastfps = nowfps;
 	}
 
@@ -105,7 +119,6 @@ void HUDManager::SetHolderPosText(const core::vector3df& pos) {
 }
 
 void HUDManager::DrawCrosshair() {
-    video::IVideoDriver* driver = device->getVideoDriver();
     core::dimension2d<u32> size = driver->getScreenSize();
     const core::dimension2du orig = crosshairTex->getOriginalSize(); // 118×118
     core::rect<s32> srcRect(0, 0, (s32)orig.Width, (s32)orig.Height); // <= 이걸 사용
@@ -124,18 +137,15 @@ void HUDManager::DrawCrosshair() {
     video::SColor color(50, 255, 255, 255);
     video::SColor colors[4] = { color,color,color,color };
 
-    device->getVideoDriver()->draw2DImage(crosshairTex, dstRect, srcRect, nullptr, colors, true);
+    driver->draw2DImage(crosshairTex, dstRect, srcRect, nullptr, colors, true);
 }
 
-void HUDManager::PushMessage(const core::stringw& message) {
-    outputMessages.Push(rs, _FILE_AND_LINE_);
-    if (whenOutputMessageStarted == 0)
-    {
-        whenOutputMessageStarted = RakNet::GetTimeMS();
-    }
+void HUDManager::PushMessage(const RakString& message) {
+    outputMessages.Push(message, _FILE_AND_LINE_);
+    if (whenOutputMessageStarted == 0) whenOutputMessageStarted = RakNet::GetTimeMS();
 }
 
-const char* CDemo::GetCurrentMessage(void)
+const char* HUDManager::GetCurrentMessage(void)
 {
 	if (outputMessages.GetSize() == 0)
 		return "";
@@ -154,7 +164,7 @@ const char* CDemo::GetCurrentMessage(void)
 	return outputMessages.Peek().C_String();
 }
 
-RakNet::RakString CDemo::GetCurrentKillLogMessage(void)
+RakNet::RakString HUDManager::GetCurrentKillLogMessage(void)
 {
 	int ItemCnt = killLogMessages.Size();
 	RakNet::RakString result = RakNet::RakString("");
@@ -190,4 +200,32 @@ void HUDManager::SetPlayerNameText() {
 	wchar_t wcharStr[128];
 	mbstowcs(wcharStr, msg.C_String(), sizeof(wcharStr) / sizeof(wchar_t));
 	myNameText->setText(wcharStr);
+}
+
+void HUDManager::InitMobileHUD() {
+#ifdef __ANDROID__
+	// set game UI
+
+	core::dimension2d<u32> size = CInGame::Instance()->GetDevice()->getVideoDriver()->getScreenSize();
+	int offset = 50;
+	int offset2 = 150;
+	core::rect<int> jumpPos(size.Width - 150 - offset - offset2, size.Height - 300 - offset, size.Width - offset2, size.Height - 150);
+	CInGame::Instance()->GetDevice()->getGUIEnvironment()->addButton(jumpPos, 0, AppSkin::GUI_JUMP, L"RESET"); //디버그 용으로 점프 -> 리셋으로 수정
+
+	core::rect<int> firePos(size.Width - 150 - offset - offset2, size.Height - 550 - offset, size.Width - offset2, size.Height - 400);
+	CInGame::Instance()->GetDevice()->getGUIEnvironment()->addButton(firePos, 0, AppSkin::GUI_FIRE, L"FIRE");
+
+	core::rect<int> exitPos(
+		size.Width - 200 - 2 * offset - 2 * offset2,  // left  = jumpLeft - gap - w
+		size.Height - 300 - offset,               // top
+		size.Width - 50 - offset - 2 * offset2,    // right = jumpLeft - gap
+		size.Height - 150                              // bottom
+	);
+	CInGame::Instance()->GetDevice()->getGUIEnvironment()->addButton(exitPos, 0, AppSkin::GUI_EXIT, L"EXIT");
+
+	joy_stick = CInGame::Instance()->GetDevice()->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
+	jump_button = CInGame::Instance()->GetDevice()->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_JUMP);
+	fire_button = CInGame::Instance()->GetDevice()->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_FIRE);
+	exit_button = CInGame::Instance()->GetDevice()->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_EXIT);
+#endif // __ANDROID__
 }

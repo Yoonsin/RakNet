@@ -1,5 +1,4 @@
 #ifdef __ANDROID__
-// BEGIN_INCLUDE(all)
 #include <EGL/egl.h>
 #include <GLES/gl.h>
 #include <android/choreographer.h>
@@ -11,24 +10,12 @@
 #include <android/native_activity.h>
 #include "android_tools.h"
 #include "android/window.h"
-
 #include <cassert>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <initializer_list>
 #include <memory>
-
-//Hardware Timestamp
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ifaddrs.h>
-#include <sys/ioctl.h>
-#include <linux/ethtool.h>
-#include <linux/sockios.h>
-#include <net/if.h>
-#include <unistd.h>
 
 #define LOG_TAG "native-activity"
 
@@ -75,7 +62,7 @@ static const int SOURCE_TOUCH_NAVIGATION = 0x00200000;
 /* Irrlicht stuff */
 #include <irrlicht.h>
 #include "CMainMenu.h"
-#include "CDemo.h"
+#include "CInGame.h"
 using namespace irr;
 using namespace core;
 using namespace scene;
@@ -83,20 +70,10 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
-CDemo* demo = nullptr;
-
-/* Raknet stuff */
-#include "RakNetStuff.h"
-
-/**
- * Our saved state data.
- */
 struct SavedState {
     float angle;
     int32_t x;
     int32_t y;
-
-    //ref : Endless-Turnnel  CookedEvent
     int type;
     int motionPointerId;
     bool motionIsOnScreen;
@@ -105,36 +82,14 @@ struct SavedState {
     float motionMinY, motionMaxY;
 };
 
-/**
- * Shared state for our app.
- */
 struct Engine {
     android_app* app;
-
-    ASensorManager* sensorManager;
-    const ASensor* accelerometerSensor;
-    ASensorEventQueue* sensorEventQueue;
-
     EGLDisplay display;
     EGLSurface surface;
     EGLContext context;
     int32_t width;
     int32_t height;
     SavedState state;
-
-    void CreateSensorListener(ALooper_callbackFunc callback) {
-        CHECK_NOT_NULL(app);
-
-        sensorManager = ASensorManager_getInstance();
-        if (sensorManager == nullptr) {
-            return;
-        }
-
-        accelerometerSensor = ASensorManager_getDefaultSensor(
-            sensorManager, ASENSOR_TYPE_ACCELEROMETER);
-        sensorEventQueue = ASensorManager_createEventQueue(
-            sensorManager, app->looper, ALOOPER_POLL_CALLBACK, callback, this);
-    }
 
     /// Resumes ticking the application.
     void Resume() {
@@ -212,9 +167,6 @@ private:
     }
 };
 
-/**
- * Initialize an EGL context for the current display.
- */
 static int engine_init_display(Engine* engine) {
     // initialize OpenGL ES and EGL
 
@@ -312,9 +264,6 @@ static int engine_init_display(Engine* engine) {
     return 0;
 }
 
-/**
- * Tear down the EGL context currently associated with the display.
- */
 static void engine_term_display(Engine* engine) {
     if (engine->display != EGL_NO_DISPLAY) {
         eglMakeCurrent(engine->display, EGL_NO_SURFACE, EGL_NO_SURFACE,
@@ -333,9 +282,6 @@ static void engine_term_display(Engine* engine) {
     engine->surface = EGL_NO_SURFACE;
 }
 
-/**
- * Process the next input event.
- */
 static int32_t engine_handle_input(android_app* app,
     AInputEvent* event) {
     auto* engine = (Engine*)app->userData;
@@ -347,9 +293,6 @@ static int32_t engine_handle_input(android_app* app,
     return 0;
 }
 
-/**
- * Process the next main command.
- */
 static void engine_handle_cmd(android_app* app, int32_t cmd) {
     auto* engine = (Engine*)app->userData;
     switch (cmd) {
@@ -370,24 +313,9 @@ static void engine_handle_cmd(android_app* app, int32_t cmd) {
         engine_term_display(engine);
         break;
     case APP_CMD_GAINED_FOCUS:
-        // When our app gains focus, we start monitoring the accelerometer.
-        if (engine->accelerometerSensor != nullptr) {
-            ASensorEventQueue_enableSensor(engine->sensorEventQueue,
-                engine->accelerometerSensor);
-            // We'd like to get 60 events per second (in us).
-            ASensorEventQueue_setEventRate(engine->sensorEventQueue,
-                engine->accelerometerSensor,
-                (1000L / 60) * 1000);
-        }
         engine->Resume();
         break;
     case APP_CMD_LOST_FOCUS:
-        // When our app loses focus, we stop monitoring the accelerometer.
-        // This is to avoid consuming battery while not being used.
-        if (engine->accelerometerSensor != nullptr) {
-            ASensorEventQueue_disableSensor(engine->sensorEventQueue,
-                engine->accelerometerSensor);
-        }
         engine->Pause();
         break;
     default:
@@ -398,88 +326,15 @@ static void engine_handle_cmd(android_app* app, int32_t cmd) {
 int OnSensorEvent(int /* fd */, int /* events */, void* data) {
     CHECK_NOT_NULL(data);
     Engine* engine = reinterpret_cast<Engine*>(data);
-
-    CHECK_NOT_NULL(engine->accelerometerSensor);
-    ASensorEvent event;
-    while (ASensorEventQueue_getEvents(engine->sensorEventQueue, &event, 1) > 0) {
-        LOGI("accelerometer: x=%f y=%f z=%f", event.acceleration.x,
-            event.acceleration.y, event.acceleration.z);
-    }
-
-    // From the docs:
-    //
-    // Implementations should return 1 to continue receiving callbacks, or 0 to
-    // have this file descriptor and callback unregistered from the looper.
     return 1;
 }
 
-// 하드웨어 타임스탬프 지원 확인 함수
-int IsHardwareTimestampSupported(const char* ifname) {
-    int sockfd;
-    struct ifreq ifr;
-    struct ethtool_ts_info ts_info;
-
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("socket");
-        return 0;
-    }
-
-    memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
-
-    ts_info.cmd = ETHTOOL_GET_TS_INFO;
-    ifr.ifr_data = (caddr_t)&ts_info;
-
-    if (ioctl(sockfd, SIOCETHTOOL, &ifr) == -1) {
-        perror("ioctl");
-        close(sockfd);
-        return 0;
-    }
-
-    close(sockfd);
-
-    // tx_type와 rx_type이 0이 아니면 지원한다고 판단
-    if (ts_info.tx_types != 0 && ts_info.rx_filters != 0)
-        return 1;
-
-    return 0;
-}
-
-
 void android_main(android_app* state) {
-    app_dummy();
-
     Engine engine{};
 
     memset(&engine, 0, sizeof(engine));
     state->userData = &engine;
     engine.app = state;
-
-    ////
-    //struct ifaddrs* ifaddr;
-    //if (getifaddrs(&ifaddr) == -1) {
-    //    perror("getifaddrs");
-    //}
-
-    //printf("네트워크 인터페이스별 하드웨어 타임스탬프 지원 여부:\n");
-
-    //for (struct ifaddrs* ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-    //    if (ifa->ifa_name == NULL)
-    //        continue;
-
-    //    // 중복 이름 출력 방지용: 인터페이스 이름이 바뀔 때만 출력
-    //    static char prev_ifname[IFNAMSIZ] = { 0 };
-    //    if (strcmp(prev_ifname, ifa->ifa_name) == 0)
-    //        continue;
-    //    strncpy(prev_ifname, ifa->ifa_name, IFNAMSIZ);
-
-    //    int supported = IsHardwareTimestampSupported(ifa->ifa_name);
-    //    printf("  %s: %s\n", ifa->ifa_name, supported ? "지원함" : "미지원");
-    //}
-
-    //freeifaddrs(ifaddr);
-    ////
 
     bool fullscreen = false;
     bool music = true;
@@ -493,16 +348,18 @@ void android_main(android_app* state) {
 	GamePlatform platform = GamePlatform::Holder;
     bool isLogged = true;
     bool isBot = false;
-    int logCount = 1;
+    int clientCount = 1;
     int winScore = 10;
-    int mathodMask = 4;
+    int methodMask = 1;
     const char* baseDir = "/storage/emulated/0/Download";
-   
-    demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir, isBot, winScore, mathodMask);
-    demo->state = state;
-    demo->run();
-    delete demo;
-    demo = nullptr;
+
+    new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask);
+    CInGame::Instance()->state = state;
+    CInGame::Instance()->Run();
+    CInGame::DestroyInstance();
+
+    ANativeActivity_finish(state->activity);
+    exit(0);
 }
 
 #else

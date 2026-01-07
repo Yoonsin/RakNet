@@ -1,6 +1,4 @@
-// This is a Demo of the Irrlicht Engine (c) 2005 by N.Gebhardt.
-// This file is not documentated.
-
+#pragma once
 #ifndef __C_MAIN_MENU_H_INCLUDED__
 #define __C_MAIN_MENU_H_INCLUDED__
 

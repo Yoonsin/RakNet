@@ -37,8 +37,10 @@ CSemaphore sem;
 #include <sys/auxv.h>
 #endif
 
-RakNet::RakNetRandom gRand;
+using namespace RakNet;
+using namespace irr;
 
+RakNet::RakNetRandom gRand;
 CInGame* CInGame::instance = nullptr;
 
 CInGame* CInGame::Instance() {
@@ -53,38 +55,45 @@ void CInGame::DestroyInstance() {
 	}
 }
 
+void CInGame::ShutDown() {
+	MethodManager::DestroyInstance();
+	NetLogManager::Instance()->Shutdown();
+	NetLogManager::DestroyInstance();
+	NetworkManager::Instance()->Shutdown();
+	NetworkManager::DestroyInstance();
+	CollisionManager::DestroyInstance();
+	InputController::DestroyInstance();
+	PacketHandler::DestroyInstance();
+	HUDManager::DestroyInstance();
+	SceneManager::DestroyInstance();
+	device->drop();
+	device = nullptr;
+}
+
 CInGame::CInGame(){}
 
-CInGame::CInGame(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw& _playerName, bool isS, GamePlatform plat, bool isLog, int logCnt, const char* base, bool _isBot, int _winScore, int methodMask)
+CInGame::CInGame(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw& _playerName, bool isS, GamePlatform plat, bool isLog, int ClientCnt, const char* base, bool _isBot, int _winScore, int methodMask)
 {
-#ifdef __ANDROID__
-	mediaPath = "media/"; //"irrlicht/media/";
-#else
-#ifdef _WIN32
-	mediaPath = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/IrrlichtMedia/";
-#else
-	mediaPath = "../../../src/IrrlichtMedia/";
-#endif //_WIN32
-#endif //__ANDROID__
-	
+	if (instance == nullptr) instance = this;
+
 	device = 0;
 	bulletCount = 0;
 	gameStartTime = 0;
-	BOT_MOVE_TIME = 5000;
+	BOT_MOVE_TIME = 1000;
 	playerName = _playerName;
 	gamePlatform = plat;
-	baseDir = base;
 	isBot = _isBot;
 	winScore = _winScore;
 	isBulletRendering = false;
 	isShoot = false;
 	isGameStart = false;
 	isGameEnd = false;
+	driverType = d;
 	
 	SceneManager::Instance()->Initialize(f,m,s,a,v,fsaa,d); 
-	NetworkManager::Instance()->Initialize();
-	NetLogManager::Instance()->Initialize(isLog, logCnt); 
-	MethodManager::Instance()->Initialize(methodMask); 
+	NetworkManager::Instance()->Initialize(isS, ClientCnt );
+	NetLogManager::Instance()->Initialize(isLog, 30000, base); 
+	MethodManager::Instance()->Initialize(methodMask, isS); 
 	HUDManager::Instance()->Initialize(); 
 }
 
@@ -92,33 +101,111 @@ CInGame::~CInGame()
 {
 }
 
-void CInGame::run()
+void CInGame::Activate()
+{
+#ifdef __ANDROID__
+	video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
+	irr::android::SDisplayMetrics displayMetrics;
+	memset(&displayMetrics, 0, sizeof displayMetrics);
+	irr::android::getDisplayMetrics(state, displayMetrics);
+	SIrrlichtCreationParameters param;
+	param.DriverType = driverType;				// android:glEsVersion in AndroidManifest.xml should be "0x00020000"
+	param.WindowSize = core::dimension2d<u32>(displayMetrics.widthPixels, displayMetrics.heightPixels);	// using 0,0 it will automatically set it to the maximal size
+	param.PrivateData = state;
+	param.Bits = 24;
+	param.ZBufferBits = 16;
+	param.AntiAlias = 0;
+	param.EventReceiver = InputController::Instance();
+	device = createDeviceEx(param);
+
+#else
+	core::dimension2d<u32> resolution(640, 480);
+	irr::SIrrlichtCreationParameters params;
+	params.DriverType = driverType;
+	params.WindowSize = resolution;
+	params.Bits = 32;
+	params.Fullscreen = SceneManager::Instance()->fullscreen;
+	params.Stencilbuffer = SceneManager::Instance()->shadows;
+	params.Vsync = SceneManager::Instance()->vsync;
+	params.AntiAlias = SceneManager::Instance()->aa;
+	params.EventReceiver = InputController::Instance();
+	device = createDeviceEx(params);
+#endif //__ANDROID__
+
+	//Android에서 MIP_MAPS를 끄지 않으면 퀘이크 맵 전체가 검게보임
+	device->getVideoDriver()->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
+	device->setWindowCaption(L"Irrlicht Engine Demo");
+	device->getSceneManager()->setAmbientLight(video::SColorf(0x00c0c0c0)); // set ambient light
+
+	//array = 0xb4000072facc9d90 "../../../IrrlichtMedia/sydney.md2"
+#ifdef _WIN32
+	mediaPath = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/IrrlichtMedia/";
+#elif __ANDROID__
+	mediaPath = "media/"; //"irrlicht/media/";
+#else
+	mediaPath = "../../../IrrlichtMedia/";
+#endif //_WIN32
+
+#ifdef __ANDROID__
+	io::IFileSystem* fs = device->getFileSystem();
+    video::IVideoDriver* driver = device->getVideoDriver();
+	for (u32 i = 0; i < fs->getFileArchiveCount(); ++i)
+	{
+		io::IFileArchive* archive = fs->getFileArchive(i);
+		if (archive->getType() == io::E_FILE_ARCHIVE_TYPE::EFAT_ANDROID_ASSET)
+		{
+			archive->addDirectoryToFileList(mediaPath);
+			break;
+		}
+	}
+
+	//Android GUI Extension 
+	gui::IGUIEnvironment* guienv = device->getGUIEnvironment();
+	core::rect<irr::s32> winRect(0, 0, 9 * displayMetrics.widthPixels / 10, 9 * displayMetrics.heightPixels / 10);
+	Drawer2D* drawer = new Drawer2D(device);
+	AppSkin* skin = new AppSkin(device, drawer);
+	assert(isExtendableSkin(skin));
+	guienv->setSkin(skin);
+	skin->drop();
+	int offset = 150;
+	core::rect<s32> testArea3(20, winRect.getHeight() / 2 + 20 + offset, winRect.getWidth() / 4, winRect.getHeight() + offset);
+	bool scrollable = false; bool horizontal = false;
+	
+	AggregateGUIElement* a3 = new AggregateGUIElement(guienv, 1.f, 1.f, 1.f, 1.f, true, horizontal, scrollable, {
+		new JoyStickElement(drawer, guienv, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,true,  AppSkin::DEFAULT_AGGREGATABLE, video::SColor(255,255,255,255),  static_cast<void*>(&(InputController::Instance()->isKeyLock))) },
+		{}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea3);
+#endif //__ANDROID__
+
+	if (device->getFileSystem()->existFile("irrlicht.dat")) device->getFileSystem()->addFileArchive("irrlicht.dat", true, true, io::EFAT_ZIP);
+	else device->getFileSystem()->addFileArchive(mediaPath + "irrlicht.dat", true, true, io::EFAT_ZIP);
+	if (device->getFileSystem()->existFile("map-20kdm2.pk3")) device->getFileSystem()->addFileArchive("map-20kdm2.pk3", true, true, io::EFAT_ZIP);
+	else device->getFileSystem()->addFileArchive(mediaPath + "map-20kdm2.pk3", true, true, io::EFAT_ZIP);
+}
+
+void CInGame::Run()
 {
 	auto duration = std::chrono::system_clock::now().time_since_epoch();
 	auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 	InitRandom(millis);
 
-	// RakNet startup
-	NetworkManager::Instance()->Activate();
+	Activate();
+	HUDManager::Instance()->Activate();
+	NetworkManager::Instance()->Activate(); // RakNet startup
 	SceneManager::Instance()->Activate();
 	SceneManager::Instance()->CalculateSyndeyBoundingBox();
 	while (device->run())
 	{
-		update();
+		Update();
 		SceneManager::Instance()->Update(); //load next scene if necessary
 		PacketHandler::Instance()->Update();
 		// 1초마다 네트워크 통계 로그 출력 (Method 3가 활성화된 경우)
-		if (GetGamePlatform() == Server && MethodManager::Instance()->IsMethodActive(3))MethodManager::Instance()->UpdateMethod(3);
+		if (GetGamePlatform() == Server && MethodManager::Instance()->IsMethodActive(METHOD_3))MethodManager::Instance()->UpdateMethod(METHOD_3);
 	}
-
-	// RakNet shutdown
-	NetworkManager::Instance()->Shutdown();
-	NetworkManager::DestroyInstance();
-	device->drop();
+	ShutDown();
 }
 
-void CInGame::update() {
-	if (isGameStart && !MethodManager::Instance()->IsMethodActive(2)) MoveBot();
+void CInGame::Update() {
+	if (isGameStart && !MethodManager::Instance()->IsMethodActive(METHOD_2)) MoveBot();
 	if (isShoot) { shoot(); isShoot = false; }
 }
 
@@ -173,7 +260,12 @@ void CInGame::MoveBot()
 				Respawn(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos, NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
 				botMoveTime = t + BOT_MOVE_TIME;
 
-				PacketHandler::Instance()->SendRespawnPacket();
+				RakNet::BitStream bs; 
+				PacketHandler::Instance()->MakeRespawnPacket(&bs);
+				if (bs.GetNumberOfBytesUsed() > 0) {
+					if (NetworkManager::Instance()->IsServer() && MethodManager::Instance()->IsMethodActive(METHOD_1) == true) MethodManager::Instance()->ExecuteMethod1(&bs);
+					else NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+				}
 			}
 		}
 	}
@@ -217,8 +309,8 @@ void CInGame::SetResetBot() {
 	//-1 : Left, 0 : Down , 1 : Right
 	//그 외 : 고정위치
 	dir = RandomInt(-1, 1);
-	if (MethodManager::Instance()->IsMethodActive(1)) dir = 2;
-	if (MethodManager::Instance()->IsMethodActive(2)) dir = 3;
+	if (MethodManager::Instance()->IsMethodActive(METHOD_1)) dir = 2;
+	if (MethodManager::Instance()->IsMethodActive(METHOD_2)) dir = 3;
 
 	//Spawn Postion
 	switch (dir)
@@ -238,7 +330,7 @@ void CInGame::SetResetBot() {
 	}
 		  break;
 	case 2: {
-		if (MethodManager::Instance()->eval1bool) {
+		if (MethodManager::Instance()->method1bool) {
 			//떨어진 곳
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos = core::vector3df(-118.683563, 224.552368, -493.077454);
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
@@ -248,7 +340,7 @@ void CInGame::SetResetBot() {
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos = core::vector3df(-46.856121, 217.035385, -292.425385);
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget = core::vector3df(-518.377686, 332.969666, -276.827545);
 		}
-		MethodManager::Instance()->eval1bool = !MethodManager::Instance()->eval1bool;
+		MethodManager::Instance()->method1bool = !MethodManager::Instance()->method1bool;
 	}
 		break;
 	case 3: {
@@ -262,7 +354,7 @@ void CInGame::SetResetBot() {
 	}
 
 	//메소드 2같은 경우는 고정 값으로
-	if (MethodManager::Instance()->IsMethodActive(2)) return;
+	if (MethodManager::Instance()->IsMethodActive(METHOD_2)) return;
 	if (SceneManager::Instance()->fpsCamAnim) SceneManager::Instance()->fpsCamAnim->setMoveSpeed(RandomFloat(0.1f, 0.5f));
 
 	//Gravity
@@ -281,6 +373,7 @@ void CInGame::Respawn(core::vector3df& pos, core::vector3df& target)
 	if(SceneManager::Instance()->fpsCamAnim) SceneManager::Instance()->fpsCamAnim->setReset(true);
 	if(SceneManager::Instance()->fpsCamResponse) SceneManager::Instance()->fpsCamResponse->setReset(true);
 }
+
 
 #if QOS_SUPPORTED 
 void CInGame::WriteQoSInfo() {
@@ -301,7 +394,6 @@ void CInGame::WriteQoSInfo() {
 	{
 		NetworkManager::Instance()->GetPlayerReplica()* player =NetworkManager::Instance()->GetPlayerList()[idx];
 		if (player->creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))continue;
-		
 		RakNet::SystemAddress addr = NetworkManager::Instance()->GetPeer()->GetSystemAddressFromGuid(player->creatingSystemGUID);
 		data += addr.ToString(false) + std::string("/");
 		data += player->gamePlatform == Shooter ? "PC" : (player->gamePlatform == Holder ? "M" : "S"); 
@@ -310,10 +402,8 @@ void CInGame::WriteQoSInfo() {
 		data += std::to_string(NetworkManager::Instance()->GetPeer()->GetLastPing(player->creatingSystemGUID)) + std::string("/");
 		data += std::to_string(player->fps);
 		if (idx !=NetworkManager::Instance()->GetPlayerList().Size() - 1) data += std::string("*");
-
 		NetworkManager::Instance()->GetPeer()->Ping(addr); //RTT의 빠른 갱신을 위한 핑 요청
 	}
-
 	write_shm.copyToSharedMemory((char*)(data.c_str()));
 	sem.releaseSemaphore();
 }
@@ -322,12 +412,9 @@ unsigned long CInGame::get_nsecs()
 {
 	//unsigned long now = get_nsecs(); or uint64_t now = get_nsecs();
 	//alternative to bpf_ktime_get_ns (ref : https://stackoverflow.com/questions/60970877/xdp-bpf-is-there-an-user-space-alternative-to-bpf-ktime-get-ns)
-
 	struct timespec ts;
-
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_sec * 1000000000UL + ts.tv_nsec;
 }
-
 #endif
 

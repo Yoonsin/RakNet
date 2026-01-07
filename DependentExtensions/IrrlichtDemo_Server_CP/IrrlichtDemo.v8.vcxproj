@@ -343,7 +343,6 @@
     <ClCompile Include="NetLogManager.cpp" />
     <ClCompile Include="NetworkManager.cpp" />
     <ClCompile Include="PacketHandler.cpp" />
-    <ClCompile Include="RakNetScheduler.cpp" />
     <ClCompile Include="Replicas.cpp" />
     <ClCompile Include="SceneManager.cpp" />
   </ItemGroup>
@@ -401,7 +400,6 @@
     <ClInclude Include="NetLogManager.h" />
     <ClInclude Include="NetworkManager.h" />
     <ClInclude Include="PacketHandler.h" />
-    <ClInclude Include="RakNetScheduler.h" />
     <ClInclude Include="Replicas.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resource1.h" />
@@ -483,7 +481,10 @@
     <None Include="AndroidPackaging\app\src\main\AndroidManifest.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="IrrlichtDemo_Server_CP.rc" />
+    <ResourceCompile Include="IrrlichtDemo_Server_CP.rc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
+    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Lib\LibStatic\LibStatic_vc9.vcxproj">

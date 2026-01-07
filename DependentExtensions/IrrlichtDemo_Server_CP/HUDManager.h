@@ -32,52 +32,43 @@ public:
     static HUDManager* Instance();
     static void DestroyInstance();
     void Initialize();
-    void Activate(IGUIEnvironment* guienv, const core::dimension2d<u32>& screenSize);
+    void Activate();
     void Update();
     //void UpdateStats(int fps, const char* pingStr, const char* packetLossStr);
     //void UpdateScore(int redScore, int blueScore, bool isServer);
-    void PushMessage(const core::stringw& message);
+    void PushMessage(const RakString& message);
     void SetHolderPosText(const core::vector3df& pos);
-    void DrawCrosshair(video::IVideoDriver* driver, const core::dimension2d<u32>& screenSize);
+    void DrawCrosshair();
     void SetPlayerNameText();
     const char* GetCurrentMessage(void);
+    void InitMobileHUD();
     RakNet::RakString GetCurrentKillLogMessage(void);
+    DataStructures::Queue<KillLog> killLogMessages;
+    gui::IGUIStaticText* statusText;
+    gui::IGUIStaticText* killLogText;
+    gui::IGUIStaticText* myNameText;
+    gui::IGUIStaticText* holderPosText;
+    gui::IGUIElement* joy_stick;
+    gui::IGUIElement* jump_button;
+    gui::IGUIElement* fire_button;
+    gui::IGUIElement* exit_button;
 private:
     HUDManager(); // private 생성자
     ~HUDManager();
     static HUDManager* instance;
     
+    video::IVideoDriver* driver;
     IGUIEnvironment* guienv;
     IGUIFont* font;
-    gui::IGUIStaticText* statusText;
-    gui::IGUIStaticText* killLogText;
-    gui::IGUIStaticText* myNameText;
-    gui::IGUIStaticText* holderPosText;
-    gui::IGUIInOutFader* inOutFader;
-    video::SColor backColor;
-    
-    scene::IQ3LevelMesh* quakeLevelMesh;
-    scene::ISceneNode* quakeLevelNode;
-    scene::ISceneNode* skyboxNode;
-    scene::IAnimatedMeshSceneNode* model1;
-    scene::IAnimatedMeshSceneNode* model2;
-    scene::IParticleSystemSceneNode* campFire;
-    
     IGUIListBox* messageBox; // EditBox 대신 ListBox가 로그 출력에 더 적합할 수 있음 (기존 EditBox 유지도 가능)
     video::ITexture* crosshairTex;
     core::array<SParticleImpact> Impacts;
 
     DataStructures::Multilist<ML_QUEUE, RakNet::RakString> outputMessages;
-    DataStructures::Queue<KillLog> killLogMessages;
     TimeMS whenOutputMessageStarted;
     
     int currentScene;
     s32 sceneStartTime;
     s32 timeForThisScene;
-
-    gui::IGUIElement* joy_stick;
-    gui::IGUIElement* jump_button;
-    gui::IGUIElement* fire_button;
-    gui::IGUIElement* exit_button;
 };
 

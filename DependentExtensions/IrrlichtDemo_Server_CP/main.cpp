@@ -10,13 +10,12 @@
 #include <stdio.h>
 
 #include "CMainMenu.h"
-#include "CDemo.h"
+#include "CInGame.h"
 
 using namespace irr;
 
 #ifdef  __ANDROID__
 #else
-CDemo* demo = nullptr;
 #ifdef _WIN32
 //#pragma comment(lib, "Irrlicht.lib")
 INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR strCmdLine, INT)
@@ -34,10 +33,10 @@ int main(int argc, char* argv[])
 
 	bool isServer = false;
 	bool isLogged = true;
-	bool isBot = false;
-	int logCount = 2;
+	bool isBot = true;
+	int clientCount = 2;
 	int winScore = 3;
-	int methodMask = 5;
+	int methodMask = METHOD_1;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
@@ -53,9 +52,12 @@ int main(int argc, char* argv[])
 	while (token != nullptr) {
 		if (strcmp(token, "-log") == 0) {
 			isLogged = true;  // -log 인수가 있으면 isLogged를 true로 설정
+		
+		}
+		else if (strcmp(token, "clientCnt") == 0) {
 			token = strtok(nullptr, " ");  // 다음 인수로 넘어가기
 			if (token != nullptr) {
-				logCount = atoi(token);  // 다음 인수를 정수로 변환하여 logCount에 저장
+				clientCount = atoi(token);  // 다음 인수를 정수로 변환하여 clientCount에 저장
 			}
 		}
 		else if (strcmp(token, "-bot") == 0) {
@@ -64,29 +66,28 @@ int main(int argc, char* argv[])
 		else if (strcmp(token, "-score") == 0) {
 			token = strtok(nullptr, " ");  // 다음 인수로 넘어가기
 			if (token != nullptr) {
-				winScore = atoi(token);  // 다음 인수를 정수로 변환하여 logCount에 저장
+				winScore = atoi(token);  
 			}
 		}
 		else if (strcmp(token, "-method") == 0) {
 			token = strtok(nullptr, " ");  // 다음 인수로 넘어가기
 			if (token != nullptr) {
-				methodMask = atoi(token);  // 다음 인수를 정수로 변환하여 logCount에 저장
+				methodMask = atoi(token); 
 			}
 		}
 		token = strtok(nullptr, " ");  // 더 이상 없으면 종료
 	}
 
-	const char* baseDir = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/stats/";
+	const char* baseDir = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/stats";
 
 	//#ifndef _DEBUG
-	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer,logCount,isBot))
+	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer,clientCount,isBot))
 		//#endif
 	{
 		if (isServer) platform = GamePlatform::Server;
-		demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, baseDir, isBot, winScore, methodMask);
-		demo->run();
-		delete demo;
-		demo = nullptr;
+		new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask);
+		CInGame::Instance()->Run();
+		CInGame::DestroyInstance();
 	}
 #else
 	isServer = true;
@@ -97,8 +98,10 @@ int main(int argc, char* argv[])
 	for (int i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "-log") == 0) {
 			isLogged = true;  // -log 인수가 있으면 isLogged를 true로 설정
+		}
+		else if (strcmp(argv[i], "-clientCnt") == 0) {
 			if (i + 1 < argc) {
-				logCount = atoi(argv[i + 1]);  // 다음 인수를 정수로 변환하여 logCount에 저장
+				clientCount = atoi(argv[i + 1]);  // 다음 인수를 정수로 변환하여 clientCount
 				i++;
 			}
 		}
@@ -107,22 +110,23 @@ int main(int argc, char* argv[])
 		}
 		else if (strcmp(argv[i], "-score") == 0) {
 			if (i + 1 < argc) {
-				winScore = atoi(argv[i + 1]);  // 다음 인수를 정수로 변환하여 logCount에 저장
+				winScore = atoi(argv[i + 1]);  
 				i++;
 			}
 		}
 		else if (strcmp(argv[i], "-method") == 0) {
 			if (i + 1 < argc) {
-				methodMask = atoi(argv[i + 1]);  // 다음 인수를 정수로 변환하여 logCount에 저장
+				methodMask = atoi(argv[i + 1]);  
 				i++;
 			}
 		}
 	}
 
-	demo = new CDemo(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, logCount, "",isBot, winScore, methodMask);
-	demo->run();
-	delete demo;
-	demo = nullptr;
+	const char* baseDir = "/home/parts/stats";
+
+	new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir,isBot, winScore, methodMask);
+	CInGame::Instance()->Run();
+	CInGame::DestroyInstance();
 #endif // _WIN32
 	return 0;
 }

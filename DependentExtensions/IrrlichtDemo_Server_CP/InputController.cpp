@@ -1,4 +1,10 @@
 #include "InputController.h"
+#include "HUDManager.h"
+#include "SceneManager.h"
+#include "CInGame.h"
+
+using namespace RakNet;
+using namespace irr;
 
 InputController* InputController::instance = nullptr;
 InputController* InputController::Instance() {
@@ -13,7 +19,7 @@ void InputController::DestroyInstance() {
 	}
 }
 
-InputController::InputController() : isKeyLock(false), wasKeyLock(false) {
+InputController::InputController() : isKeyLock(false), wasKeyLock(false), isRotate(false), TouchID(-1) {
 	for (u32 i = 0; i < KEY_KEY_CODES_COUNT; ++i)
 		KeyIsDown[i] = false;
 }
@@ -23,14 +29,22 @@ InputController::~InputController() {
 }
 
 bool InputController::OnEvent(const SEvent& event) {
+
+	if (event.EventType == EET_LOG_TEXT_EVENT) return true;
+
 #ifdef __ANDROID__
-	if (!device)
+	if (!CInGame::Instance()->GetDevice())
 		return false;
 
 	SEvent fakeKeyEvent;
 	fakeKeyEvent.EventType = EET_KEY_INPUT_EVENT;
 	fakeKeyEvent.KeyInput.Key = KEY_KEY_CODES_COUNT;
 
+	scene::ISceneNodeAnimatorCameraFPS* fpsCamAnim = SceneManager::Instance()->fpsCamAnim;
+	gui::IGUIElement* joy_stick = HUDManager::Instance()->joy_stick;
+	gui::IGUIElement* jump_button = HUDManager::Instance()->jump_button;
+	gui::IGUIElement* fire_button = HUDManager::Instance()->fire_button;
+	gui::IGUIElement* exit_button = HUDManager::Instance()->exit_button;
 	if (isKeyLock && event.EventType == EET_TOUCH_INPUT_EVENT) {
 		curTouchID.move = curTouchID.jump = curTouchID.fire = curTouchID.exit = curTouchID.viewRotate = -1;
 		isRotate = false;
@@ -45,7 +59,7 @@ bool InputController::OnEvent(const SEvent& event) {
 		{
 		case ETIE_PRESSED_DOWN:
 		{
-			if (device)
+			if (CInGame::Instance()->GetDevice())
 			{
 				core::position2d<s32> touchPoint(event.TouchInput.X, event.TouchInput.Y);
 				if (joy_stick && joy_stick->isPointInside(touchPoint)) {
@@ -113,38 +127,38 @@ bool InputController::OnEvent(const SEvent& event) {
 					//KeyIsDown[KEY_SPACE] = false;
 					//fakeKeyEvent.KeyInput.Key = KEY_SPACE;
 					//fakeKeyEvent.KeyInput.PressedDown = false;
-					if (GetSceneManager()->getActiveCamera())
+					if (CInGame::Instance()->GetSceneManager()->getActiveCamera())
 					{
-						Respawn(initPos, initTarget);
+						CInGame::Instance()->Respawn(CInGame::Instance()->initPos, CInGame::Instance()->initTarget);
 						isKeyLock = false;
 					}
 
 					curTouchID.jump = -1;
 				}
 				else
-					if (fire_button && fire_button->isPointInside(touchPoint) && id == curTouchID.fire && currentScene == 1) {
+					if (fire_button && fire_button->isPointInside(touchPoint) && id == curTouchID.fire && SceneManager::Instance()->currentScene == 1) {
 						curTouchID.fire = -1;
 
-						if (GetSceneManager()->getActiveCamera()->isVisible() == false)
+						if (CInGame::Instance()->GetSceneManager()->getActiveCamera()->isVisible() == false)
 						{
-							if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
-							GetSceneManager()->getActiveCamera()->setVisible(true);
+							if (CInGame::Instance()->GetDevice()->getCursorControl() != nullptr) CInGame::Instance()->GetDevice()->getCursorControl()->setVisible(false);
+							CInGame::Instance()->GetSceneManager()->getActiveCamera()->setVisible(true);
 						}
 						else {
-							shoot();
+							CInGame::Instance()->shoot();
 						}
 
 					}
 					else
-						if (exit_button && exit_button->isPointInside(touchPoint) && id == curTouchID.exit && currentScene == 1) {
+						if (exit_button && exit_button->isPointInside(touchPoint) && id == curTouchID.exit && SceneManager::Instance()->currentScene == 1) {
 							curTouchID.exit = -1;
 
-							if (GetSceneManager()->getActiveCamera()->isVisible() == false)
+							if (CInGame::Instance()->GetSceneManager()->getActiveCamera()->isVisible() == false)
 							{
-								if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
-								GetSceneManager()->getActiveCamera()->setVisible(true);
+								if (CInGame::Instance()->GetDevice()->getCursorControl() != nullptr) CInGame::Instance()->GetDevice()->getCursorControl()->setVisible(false);
+								CInGame::Instance()->GetSceneManager()->getActiveCamera()->setVisible(true);
 							}
-							else device->closeDevice();
+							else CInGame::Instance()->GetDevice()->closeDevice();
 						}
 
 			if (isRotate && id == curTouchID.viewRotate) {
@@ -160,14 +174,14 @@ bool InputController::OnEvent(const SEvent& event) {
 		}
 	}
 
-	if (device->getSceneManager()->getActiveCamera())
+	if (CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera())
 	{
-		device->getCursorControl();
-		device->getSceneManager()->getActiveCamera()->OnEvent(fakeKeyEvent);
+		CInGame::Instance()->GetDevice()->getCursorControl();
+		CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(fakeKeyEvent);
 	}
 
 #else
-	if (!device)
+    if (!(CInGame::Instance()->GetDevice()))
 		return false;
 
 	if (isKeyLock && !wasKeyLock) {
@@ -214,17 +228,17 @@ bool InputController::OnEvent(const SEvent& event) {
 //		if (currentScene < 3)
 //			timeForThisScene = 0;
 //		else
-			//device->closeDevice();
+			//CInGame::Instance()->GetDevice()->closeDevice();
 
 		// RakNet: Escape to get the mouse back
-		if (GetSceneManager()->getActiveCamera()->isVisible())
+		if (CInGame::Instance()->GetSceneManager()->getActiveCamera()->isVisible())
 		{
-			if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(true);
-			GetSceneManager()->getActiveCamera()->setVisible(false);
+			if (CInGame::Instance()->GetDevice()->getCursorControl() != nullptr) CInGame::Instance()->GetDevice()->getCursorControl()->setVisible(true);
+			CInGame::Instance()->GetSceneManager()->getActiveCamera()->setVisible(false);
 		}
 		else
 		{
-			device->closeDevice();
+			CInGame::Instance()->GetDevice()->closeDevice();
 		}
 	}
 	else
@@ -236,20 +250,20 @@ bool InputController::OnEvent(const SEvent& event) {
 			(event.EventType == EET_MOUSE_INPUT_EVENT &&
 				event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP) &&
 			//currentScene == 3
-			currentScene == 1
+			SceneManager::Instance()->currentScene == 1
 			)
 		{
 
 			// RakNet: Click without focus to get focus back
-			if (GetSceneManager()->getActiveCamera()->isVisible() == false)
+			if (CInGame::Instance()->GetSceneManager()->getActiveCamera()->isVisible() == false)
 			{
-				if (device->getCursorControl() != nullptr) device->getCursorControl()->setVisible(false);
-				GetSceneManager()->getActiveCamera()->setVisible(true);
+				if (CInGame::Instance()->GetDevice()->getCursorControl() != nullptr) CInGame::Instance()->GetDevice()->getCursorControl()->setVisible(false);
+				CInGame::Instance()->GetSceneManager()->getActiveCamera()->setVisible(true);
 			}
 			else
 			{
 				// shoot
-				shoot();
+				CInGame::Instance()->shoot();
 			}
 		}
 		else
@@ -257,15 +271,15 @@ bool InputController::OnEvent(const SEvent& event) {
 				event.KeyInput.Key == KEY_F9 &&
 				event.KeyInput.PressedDown == false)
 			{
-				video::IImage* image = device->getVideoDriver()->createScreenShot();
+				video::IImage* image = CInGame::Instance()->GetDevice()->getVideoDriver()->createScreenShot();
 				if (image)
 				{
-					device->getVideoDriver()->writeImageToFile(image, "screenshot.bmp");
-					device->getVideoDriver()->writeImageToFile(image, "screenshot.png");
-					device->getVideoDriver()->writeImageToFile(image, "screenshot.tga");
-					device->getVideoDriver()->writeImageToFile(image, "screenshot.ppm");
-					device->getVideoDriver()->writeImageToFile(image, "screenshot.jpg");
-					device->getVideoDriver()->writeImageToFile(image, "screenshot.pcx");
+					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.bmp");
+					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.png");
+					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.tga");
+					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.ppm");
+					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.jpg");
+					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.pcx");
 					image->drop();
 				}
 			}
@@ -275,31 +289,32 @@ bool InputController::OnEvent(const SEvent& event) {
 					event.KeyInput.Key == KEY_KEY_R &&
 					event.KeyInput.PressedDown == false)
 				{
-					if (auto* cam = device->getSceneManager()->getActiveCamera()) {
-						if (isBot) {
-							SetResetBot();
-							Respawn(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos, NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
-							botMoveTime = RakNet::GetTimeMS() + BOT_MOVE_TIME;
+					if (CInGame::Instance()->GetDevice()->getSceneManager() == nullptr) return true;
+					if (auto* cam = CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()) {
+						if (CInGame::Instance()->isBot) {
+							CInGame::Instance()->SetResetBot();
+							CInGame::Instance()->Respawn(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos, NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
+							CInGame::Instance()->botMoveTime = RakNet::GetTimeMS() + CInGame::Instance()->BOT_MOVE_TIME;
 						}
 						else {
-							Respawn(initPos, initTarget);
+							CInGame::Instance()->Respawn(CInGame::Instance()->initPos, CInGame::Instance()->initTarget);
 						}
 						isKeyLock = false;
 						FlushMovementKeys(); //리셋 시에도 모든 이동키 해제
 					}
 				}
 				else
-					if (device->getSceneManager()->getActiveCamera())
+					if (CInGame::Instance()->GetDevice()->getSceneManager() != nullptr && CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera())
 					{
 						if (isKeyLock)
 							return true; // 여기서 바로 빠져나가면 기존 방향으로 계속 이동하지 않음
 
 						if (event.EventType == EET_MOUSE_INPUT_EVENT) {
-							//device->getSceneManager()->getActiveCamera()->OnEvent(event);
+							//CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
 						}
 						else if (event.EventType == EET_KEY_INPUT_EVENT) {
-							device->getSceneManager()->getActiveCamera()->OnEvent(event);
-							//if(event.KeyInput.Key == KEY_KEY_A || event.KeyInput.Key == KEY_KEY_D) device->getSceneManager()->getActiveCamera()->OnEvent(event);
+							CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
+							//if(event.KeyInput.Key == KEY_KEY_A || event.KeyInput.Key == KEY_KEY_D) CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
 							//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", GetSceneManager()->getActiveCamera()->getPosition().X, GetSceneManager()->getActiveCamera()->getPosition().Y, GetSceneManager()->getActiveCamera()->getPosition().Z, isKeyLock, wasKeyLock);
 						}
 						return true;
@@ -339,34 +354,8 @@ bool InputController::IsMovementKeyDown(void) const {
 
 void InputController::EnableInput(bool enabled)
 {
-	scene::ICameraSceneNode* camera = GetSceneManager()->getActiveCamera();
+	scene::ICameraSceneNode* camera = CInGame::Instance()->GetSceneManager()->getActiveCamera();
 	if (camera) camera->setInputReceiverEnabled(enabled);
-}
-
-void InputController::InitMobileControls() {
-	// set game UI
-
-	core::dimension2d<u32> size = device->getVideoDriver()->getScreenSize();
-	int offset = 50;
-	int offset2 = 150;
-	core::rect<int> jumpPos(size.Width - 150 - offset - offset2, size.Height - 300 - offset, size.Width - offset2, size.Height - 150);
-	device->getGUIEnvironment()->addButton(jumpPos, 0, AppSkin::GUI_JUMP, L"RESET"); //디버그 용으로 점프 -> 리셋으로 수정
-
-	core::rect<int> firePos(size.Width - 150 - offset - offset2, size.Height - 550 - offset, size.Width - offset2, size.Height - 400);
-	device->getGUIEnvironment()->addButton(firePos, 0, AppSkin::GUI_FIRE, L"FIRE");
-
-	core::rect<int> exitPos(
-		size.Width - 200 - 2 * offset - 2 * offset2,  // left  = jumpLeft - gap - w
-		size.Height - 300 - offset,               // top
-		size.Width - 50 - offset - 2 * offset2,    // right = jumpLeft - gap
-		size.Height - 150                              // bottom
-	);
-	device->getGUIEnvironment()->addButton(exitPos, 0, AppSkin::GUI_EXIT, L"EXIT");
-
-	joy_stick = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::REGULAR_AGGREGATION);
-	jump_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_JUMP);
-	fire_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_FIRE);
-	exit_button = device->getGUIEnvironment()->getRootGUIElement()->getElementFromId(AppSkin::GUI_EXIT);
 }
 
 void InputController::FlushMovementKeys()
@@ -384,7 +373,7 @@ void InputController::FlushMovementKeys()
 	for (EKEY_CODE k : keys) {
 		KeyIsDown[k] = false;      // 내부 키 상태 해제
 		ev.KeyInput.Key = k;       // 카메라에도 KeyUp 전달
-		if (auto* cam = device->getSceneManager()->getActiveCamera())
+		if (auto* cam = CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera())
 			cam->OnEvent(ev);
 	}
 }

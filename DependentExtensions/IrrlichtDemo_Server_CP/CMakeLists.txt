@@ -33,9 +33,17 @@ endif()
 
 # 소스 파일들
 file(GLOB IRR_SOURCES
-    CDemo.cpp
+    CInGame.cpp
     CMainMenu.cpp
-    RakNetStuff.cpp
+    CollisionManager.cpp
+    HUDManager.cpp
+    InputController.cpp
+    MethodManager.cpp
+    NetLogManager.cpp    
+    NetworkManager.cpp
+    PacketHandler.cpp
+    Replicas.cpp
+    SceneManager.cpp
     main.cpp
     shared_mem.cpp
 )

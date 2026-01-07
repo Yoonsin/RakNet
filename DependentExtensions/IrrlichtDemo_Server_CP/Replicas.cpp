@@ -1,7 +1,18 @@
 #include "Replicas.h"
+#include "RakPeerInterface.h"
+#include "RakPeer.h"
+#include "ReplicaManager3.h"
 #include "NetworkManager.h"
-#include "CDemo.h"
+#include "PacketHandler.h"
+#include "InputController.h"
+#include "CInGame.h"
+#include "HUDManager.h"
+#include "CollisionManager.h"
+#include "SceneManager.h"
 #include "GetTime.h"
+
+using namespace RakNet;
+using namespace irr;
 
 BaseIrrlichtReplica::BaseIrrlichtReplica()
 {
@@ -73,7 +84,7 @@ void PlayerReplica::SerializeConstruction(RakNet::BitStream* constructionBitstre
 	BaseIrrlichtReplica::SerializeConstruction(constructionBitstream, destinationConnection);
 	constructionBitstream->Write(rotationAroundYAxis);
 	constructionBitstream->Write(gamePlatform);
-	constructionBitstream->Write(demo->GetDevice()->getVideoDriver()->getFPS());
+	constructionBitstream->Write(CInGame::Instance()->GetDevice()->getVideoDriver()->getFPS());
 }
 bool PlayerReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstream, RakNet::Connection_RM3* sourceConnection)
 {
@@ -82,23 +93,22 @@ bool PlayerReplica::DeserializeConstruction(RakNet::BitStream* constructionBitst
 	constructionBitstream->Read(rotationAroundYAxis);
 	constructionBitstream->Read(gamePlatform);
 	constructionBitstream->Read(fps);
-	//demo->PushMessage(RakNet::RakString("Deserialize Construction"));
+	//CInGame::Instance()->PushMessage(RakNet::RakString("Deserialize Construction"));
 	return true;
 }
 void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream* constructionBitstream, RakNet::Connection_RM3* destinationConnection)
 {
 	// Object was remotely created and all data loaded. Now we can make the object visible
 	scene::IAnimatedMesh* mesh = 0;
-	scene::ISceneManager* sm = demo->GetSceneManager();
-	mesh = sm->getMesh(IRRLICHT_MEDIA_PATH "sydney.md2");
+	scene::ISceneManager* sm = CInGame::Instance()->GetSceneManager();
+	mesh = sm->getMesh(CInGame::Instance()->mediaPath + "sydney.md2");
 	model = sm->addAnimatedMeshSceneNode(mesh, 0);
 
+	//Collision Box (Debug)
 	//debugBox = new DebugBoxSceneNode(model,sm);
-	//debugBox->demo=demo;
 	//debugBox->setDebugDataVisible(true); 
 	//debugBox->EnableDrawTriangles(true);
-	//
-	//scene::ITriangleSelector* selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), model->getAbsoluteTransformation(), sm, creatingSystemGUID);
+	//scene::ITriangleSelector* selector = CreateSelectorFromTransformedBox(SceneManager::Instance()->GetSyndeyBoundingBox(), model->getAbsoluteTransformation(), sm, creatingSystemGUID);
 	//model->setTriangleSelector(selector);
 	//selector->drop();  // 참조 카운트 관리
 	//debugBox->SetSelector(model->getTriangleSelector());
@@ -109,7 +119,7 @@ void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream* constructionB
 	model->setMD2Animation(scene::EMAT_STAND);
 
 	curAnim = scene::EMAT_STAND;
-	model->setMaterialTexture(0, demo->GetDevice()->getVideoDriver()->getTexture(IRRLICHT_MEDIA_PATH "sydney.bmp"));
+	model->setMaterialTexture(0, CInGame::Instance()->GetDevice()->getVideoDriver()->getTexture(CInGame::Instance()->mediaPath + "sydney.bmp"));
 	model->setMaterialFlag(video::EMF_LIGHTING, true);
 	model->addShadowVolumeSceneNode();
 	model->setAutomaticCulling(scene::EAC_BOX);
@@ -144,7 +154,7 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters* ser
 		serializeParameters->outputBitstream[0].Write(shootDirection);
 	}
 	else {
-		scene::ISceneManager* sm = demo->GetSceneManager();
+		scene::ISceneManager* sm = CInGame::Instance()->GetSceneManager();
 		scene::ICameraSceneNode* camera = sm->getActiveCamera();
 		if (camera == nullptr) {
 			serializeParameters->outputBitstream[0].Write(false);
@@ -160,7 +170,7 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters* ser
 	}
 
 	//서버에서는 전달만2
-	serializeParameters->outputBitstream[0].Write((NetworkManager::Instance()->GetTopology() == SERVER) ? fps : demo->GetDevice()->getVideoDriver()->getFPS());
+	serializeParameters->outputBitstream[0].Write((NetworkManager::Instance()->GetTopology() == SERVER) ? fps : CInGame::Instance()->GetDevice()->getVideoDriver()->getFPS());
 
 	//timeStamp
 	//serializeParameters->messageTimestamp = RakNet::GetTimeMS();
@@ -206,7 +216,7 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		bool tmp = IsDead();
 		if (wasDead && !tmp) {
 			RakNet::BitStream bs;
-			bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_LIFE);
+			bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_LIFE);
 			bs.Write(creatingSystemGUID);
 			bs.Write(tmp);
 			wasDead = false;
@@ -215,14 +225,14 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 				if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 				{
 					//서버 봇이면 즉시 리스폰
-					demo->SetResetBot();
-					demo->Respawn(respawnPos, respawnTarget);
-					demo->botMoveTime = RakNet::GetTimeMS() + demo->BOT_MOVE_TIME;
+					CInGame::Instance()->SetResetBot();
+					CInGame::Instance()->Respawn(respawnPos, respawnTarget);
+					CInGame::Instance()->botMoveTime = RakNet::GetTimeMS() + CInGame::Instance()->BOT_MOVE_TIME;
 				}
 
 				//리스폰 요청 보내기
 				RakNet::BitStream bs;
-				bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_RESPAWN);
+				bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_RESPAWN);
 				bs.Write(creatingSystemGUID);
 				bs.Write(respawnPos);
 				bs.Write(respawnTarget);
@@ -286,13 +296,14 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		//맨 앞에 남아있는 프레임부터 차례대로 검사 -> 현재 시간이랑 1초 이상 차이나면 버림
 		while (!fq->IsEmpty() && frame.timeStamp - fq->Peek().timeStamp > HISTORY_DURATION_MS)
 			fq->Pop();
+	}
 
-		// Is a locally created object?
-		// 이동 적용
-		if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
-		{
-			NetworkManager::Instance()->GetPlayerReplica()->position = demo->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
-			NetworkManager::Instance()->GetPlayerReplica()->rotationAroundYAxis = demo->GetSceneManager()->getActiveCamera()->getRotation().Y - 90.0f;
+	// Is a locally created object?
+	// 이동 적용
+	if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
+	{
+			NetworkManager::Instance()->GetPlayerReplica()->position = CInGame::Instance()->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
+			NetworkManager::Instance()->GetPlayerReplica()->rotationAroundYAxis = CInGame::Instance()->GetSceneManager()->getActiveCamera()->getRotation().Y - 90.0f;
 
 			if (NetworkManager::Instance()->GetPlayerBotReplica()) {
 				NetworkManager::Instance()->GetPlayerBotReplica()->botModel->setPosition(NetworkManager::Instance()->GetPlayerBotReplica()->position);
@@ -301,96 +312,95 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 
 			// Local player has no mesh to interpolate
 			// Input our camera position as our player position
-			isMoving = demo->IsMovementKeyDown();
-
+			isMoving = InputController::Instance()->IsMovementKeyDown();
 			// Ack, makes the screen messed up and the mouse move off the window
 			// Find another way to keep the dead player from moving
 			// 서버 봇 적용하면 이동시 튕기는 문제 발생
-			if (NetworkManager::Instance()->GetTopology() != SERVER) demo->EnableInput((NetworkManager::Instance()->GetTopology() == SERVER) ? IsDead() == false : isDead == false);
+			if (NetworkManager::Instance()->GetTopology() != SERVER) InputController::Instance()->EnableInput((NetworkManager::Instance()->GetTopology() == SERVER) ? IsDead() == false : isDead == false);
 
-			//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", position.X, position.Y, position.Z, demo->isKeyLock, demo->wasKeyLock);
-			// DebugPrintf("Player target : %f, %f, %f\n", demo->GetSceneManager()->getActiveCamera()->getTarget().X, demo->GetSceneManager()->getActiveCamera()->getTarget().Y, demo->GetSceneManager()->getActiveCamera()->getTarget().Z);
+			//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", position.X, position.Y, position.Z, CInGame::Instance()->isKeyLock, CInGame::Instance()->wasKeyLock);
+			// DebugPrintf("Player target : %f, %f, %f\n", CInGame::Instance()->GetSceneManager()->getActiveCamera()->getTarget().X, CInGame::Instance()->GetSceneManager()->getActiveCamera()->getTarget().Y, CInGame::Instance()->GetSceneManager()->getActiveCamera()->getTarget().Z);
 
-			if (demo->gamePlatform == Holder) {
-				demo->SetHolderPosText(NetworkManager::Instance()->GetPlayerReplica()->position);
+			if (CInGame::Instance()->gamePlatform == Holder) {
+				HUDManager::Instance()->SetHolderPosText(NetworkManager::Instance()->GetPlayerReplica()->position);
 			}
-		}
+	}
 
-		if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) return;
+	if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) return;
 
-		//Debug Frame
-		//DrawDebugFrame(demo->GetSyndeyBoundingBox(),position, rotationAroundYAxis, demo->GetSceneManager(), creatingSystemGUID, 500);
+	//Debug Frame
+	//DrawDebugFrame(CInGame::Instance()->GetSyndeyBoundingBox(),position, rotationAroundYAxis, CInGame::Instance()->GetSceneManager(), creatingSystemGUID, 500);
 
+	//원격에서 보는 봇 + 리스폰 명령 받았을 때 
+	if (isBot)
+	{
+		//method 1 일 때는 이동을 아예 안함
+		if (MethodManager::Instance()->IsMethodActive(METHOD_1)) return;
 
-		//원격에서 보는 봇 + 리스폰 명령 받았을 때 
 		//딱 한번 보간없이 강제 이동함
-		if (isBot)
-		{
-			//method 1 일 때는 봇 보간 끄기
-			if (isTeleport || (demo->evalMask & METHOD_1)) {
-				model->setPosition(position);
-				model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
-				lastUpdate = curTime;
-				interpEndTime = curTime;
-				isTeleport = false;
-				bulletCoolTime = 0;
-				//DebugPrintf("reset!\n");
-				return;
-			}
-		}
-
-		// Update interpolation at Remote
-		RakNet::TimeMS elapsed = curTime - lastUpdate;
-		//DebugPrintf("Update curTime : %d, lastUpdate : %d, elapsed time : %d, guid : %llu\n", curTime, lastUpdate, elapsed, creatingSystemGUID.g);
-		if (elapsed <= 1)
-			return;
-		if (elapsed > 100)
-			elapsed = 100;
-
-		lastUpdate = curTime;
-
-		irr::core::vector3df curPositionDelta = position - model->getPosition();
-		irr::core::vector3df interpThisTick = positionDeltaPerMS * (float)elapsed;
-		if (curTime < interpEndTime && interpThisTick.getLengthSQ() < curPositionDelta.getLengthSQ())
-		{
-			model->setPosition(model->getPosition() + positionDeltaPerMS * (float)elapsed);
-			//DebugPrintf("interPolation\n");
-		}
-		else
-		{
+		if (isTeleport) {
 			model->setPosition(position);
-		}
-
-		float curRotationDelta = GetRotationDifference(rotationAroundYAxis, model->getRotation().Y);
-		float interpThisTickRotation = rotationDeltaPerMS * (float)elapsed;
-		if (curTime < interpEndTime && fabs(interpThisTickRotation) < fabs(curRotationDelta))
-		{
-			model->setRotation(model->getRotation() + core::vector3df(0, interpThisTickRotation, 0));
-		}
-		else
-		{
 			model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
+			lastUpdate = curTime;
+			interpEndTime = curTime;
+			isTeleport = false;
+			bulletCoolTime = 0;
+			//DebugPrintf("reset!\n");
+			return;
+		}
+	}
+
+	// Update interpolation at Remote
+	RakNet::TimeMS elapsed = curTime - lastUpdate;
+	//DebugPrintf("Update curTime : %d, lastUpdate : %d, elapsed time : %d, guid : %llu\n", curTime, lastUpdate, elapsed, creatingSystemGUID.g);
+	if (elapsed <= 1)
+		return;
+	if (elapsed > 100)
+		elapsed = 100;
+
+	lastUpdate = curTime;
+
+	irr::core::vector3df curPositionDelta = position - model->getPosition();
+	irr::core::vector3df interpThisTick = positionDeltaPerMS * (float)elapsed;
+	if (curTime < interpEndTime && interpThisTick.getLengthSQ() < curPositionDelta.getLengthSQ())
+	{
+		model->setPosition(model->getPosition() + positionDeltaPerMS * (float)elapsed);
+		//DebugPrintf("interPolation\n");
+	}
+	else
+	{
+		model->setPosition(position);
+	}
+
+	float curRotationDelta = GetRotationDifference(rotationAroundYAxis, model->getRotation().Y);
+	float interpThisTickRotation = rotationDeltaPerMS * (float)elapsed;
+	if (curTime < interpEndTime && fabs(interpThisTickRotation) < fabs(curRotationDelta))
+	{
+		model->setRotation(model->getRotation() + core::vector3df(0, interpThisTickRotation, 0));
+	}
+	else
+	{
+		model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
+	}
+
+	//Print HolderPos
+	if (isBot && (MethodManager::Instance()->isMethodZero())) {
+
+		//보간된 위치
+		HUDManager::Instance()->SetHolderPosText(model->getPosition());
+		core::vector3df pos = model->getPosition();
+
+		if (isDead || bulletCoolTime > RakNet::GetTimeMS() || bulletCoolTime == -1 || NetworkManager::Instance()->GetTopology() == SERVER) {
+			return;
 		}
 
-		//Print HolderPos
-		if (isBot && (demo->evalMask == 0)) {
-
-			//보간된 위치
-			demo->SetHolderPosText(model->getPosition());
-			core::vector3df pos = model->getPosition();
-
-			if (isDead || bulletCoolTime > RakNet::GetTimeMS() || bulletCoolTime == -1 || NetworkManager::Instance()->GetTopology() == SERVER) {
-				return;
-			}
-
-			if (isWithinRange(pos.Y, 167.0f, 20.0f) && isWithinRange(pos.Z, -288.0f, 15.0f)) {
-				bulletCoolTime = RakNet::GetTimeMS() + BULLET_COOL_TIME;
-				demo->isShoot = true;
-
-			}
+		if (CollisionManager::Instance()->isWithinRange(pos.Y, 167.0f, 20.0f) && CollisionManager::Instance()->isWithinRange(pos.Z, -288.0f, 15.0f)) {
+			bulletCoolTime = RakNet::GetTimeMS() + BULLET_COOL_TIME;
+			CInGame::Instance()->isShoot = true;
 		}
 	}
 }
+
 void PlayerReplica::UpdateAnimation(irr::scene::EMD2_ANIMATION_TYPE anim)
 {
 	if (anim != curAnim && model)
@@ -481,8 +491,8 @@ RM3SerializationResult PlayerBotReplica::Serialize(RakNet::SerializeParameters* 
 	serializeParameters->outputBitstream[0].Write(gamePlatform);
 
 	if (NetworkManager::Instance()->GetTopology() == SERVER) {
-		serializeParameters->outputBitstream[0].Write(++demo->um_cnt);
-		demo->umTimeMap.Set(demo->um_cnt, RakNet::GetTimeMS());
+		serializeParameters->outputBitstream[0].Write(++MethodManager::Instance()->um_cnt);
+		MethodManager::Instance()->umTimeMap.Set(MethodManager::Instance()->um_cnt, RakNet::GetTimeMS());
 	}
 
 	//TODO : umTimeList size overflow check
@@ -501,9 +511,9 @@ void PlayerBotReplica::Deserialize(RakNet::DeserializeParameters* deserializePar
 	deserializeParameters->serializationBitstream[0].Read(gamePlatform);
 
 	if (NetworkManager::Instance()->GetTopology() != SERVER) {
-		deserializeParameters->serializationBitstream[0].Read(demo->um_cnt);
-		demo->reactionTime = RakNet::GetTimeMS();
-		demo->umReceptionTimes.Set(demo->um_cnt, RakNet::GetTimeMS());
+		deserializeParameters->serializationBitstream[0].Read(MethodManager::Instance()->um_cnt);
+		MethodManager::Instance()->reactionTime = RakNet::GetTimeMS();
+		MethodManager::Instance()->umReceptionTimes.Set(MethodManager::Instance()->um_cnt, RakNet::GetTimeMS());
 	}
 
 	// Is a locally created object?
@@ -524,8 +534,8 @@ void PlayerBotReplica::Deserialize(RakNet::DeserializeParameters* deserializePar
 void PlayerBotReplica::CreateBotModel()
 {
 	scene::IAnimatedMesh* mesh = 0;
-	scene::ISceneManager* sm = demo->GetSceneManager();
-	mesh = sm->getMesh(IRRLICHT_MEDIA_PATH "sydney.md2");
+	scene::ISceneManager* sm = CInGame::Instance()->GetSceneManager();
+	mesh = sm->getMesh(CInGame::Instance()->mediaPath + "sydney.md2");
 	botModel = sm->addAnimatedMeshSceneNode(mesh, 0);
 
 	botModel->setPosition(position);
@@ -534,7 +544,7 @@ void PlayerBotReplica::CreateBotModel()
 	botModel->setMD2Animation(scene::EMAT_STAND);
 
 	curAnim = scene::EMAT_STAND;
-	botModel->setMaterialTexture(0, demo->GetDevice()->getVideoDriver()->getTexture(IRRLICHT_MEDIA_PATH "sydney.bmp"));
+	botModel->setMaterialTexture(0, CInGame::Instance()->GetDevice()->getVideoDriver()->getTexture(IRRLICHT_MEDIA_PATH "sydney.bmp"));
 	botModel->setMaterialFlag(video::EMF_LIGHTING, true);
 	botModel->addShadowVolumeSceneNode();
 	botModel->setAutomaticCulling(scene::EAC_BOX);
@@ -565,21 +575,21 @@ void BallReplica::SerializeConstruction(RakNet::BitStream* constructionBitstream
 	constructionBitstream->Write(shotDirection);
 	constructionBitstream->Write(bulletCount);
 
-	if ((demo->evalMask & METHOD_2) == 0) return;
+	if (MethodManager::Instance()->IsMethodActive(METHOD_2) == false) return;
 	if (NetworkManager::Instance()->GetTopology() == SERVER) return;
 
 	RakNet::TimeMS actionTime = RakNet::GetTimeMS();
 	// am_cnt는 한 번만
-	constructionBitstream->Write(++demo->am_cnt);
+	constructionBitstream->Write(++MethodManager::Instance()->am_cnt);
 
 	// (간단한 버전) 맵의 모든 항목에 대해 (um_id, delta) 튜플을 전송
-	int tupleCount = demo->umReceptionTimes.Size();
+	int tupleCount = MethodManager::Instance()->umReceptionTimes.Size();
 	constructionBitstream->Write(tupleCount);
 
-	for (unsigned int i = 0; i < demo->umReceptionTimes.Size(); ++i)
+	for (unsigned int i = 0; i < MethodManager::Instance()->umReceptionTimes.Size(); ++i)
 	{
-		int um_id = demo->umReceptionTimes.GetKeyAtIndex(i);
-		RakNet::TimeMS receptionTime = demo->umReceptionTimes.Get(um_id);
+		int um_id = MethodManager::Instance()->umReceptionTimes.GetKeyAtIndex(i);
+		RakNet::TimeMS receptionTime = MethodManager::Instance()->umReceptionTimes.Get(um_id);
 		RakNet::TimeMS delta = actionTime - receptionTime;
 		constructionBitstream->Write(um_id);
 		constructionBitstream->Write(delta);
@@ -602,7 +612,7 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstre
 		position = position + shotDirection * (float)estimatedElapsed * SHOT_SPEED;
 	}
 
-	if (NetworkManager::Instance()->GetTopology() != SERVER || (demo->evalMask & METHOD_2) == 0) return true;
+	if (NetworkManager::Instance()->GetTopology() != SERVER || (MethodManager::Instance()->IsMethodActive(METHOD_2) == false)) return true;
 
 	// 이 변수들은 루프 밖에서 한 번만 선언합니다.
 	int am_cnt; int tupleCount;
@@ -640,7 +650,7 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstre
 				// 1. 순서가 맞음
 				data.isSequenced = true;
 				senderPlayer->nextExpectedAmCnt++;
-				demo->orderPq.Push(weight, data, __FILE__, __LINE__); // 큐에 즉시 삽입
+				MethodManager::Instance()->orderPq.Push(weight, data, __FILE__, __LINE__); // 큐에 즉시 삽입
 
 				// 2. (선택적) 버퍼에 있던 다음 순서의 메시지들도 처리
 				while (senderPlayer->outOfOrderAmBuffer.Has(senderPlayer->nextExpectedAmCnt))
@@ -650,7 +660,7 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstre
 
 					bufferedData.isSequenced = true;
 					uint64_t bufferedWeight = ((uint64_t)bufferedData.um_cnt << 32) | (uint64_t)bufferedData.reactionTime;
-					demo->orderPq.Push(bufferedWeight, bufferedData, __FILE__, __LINE__); // 버퍼 -> 큐로 이동
+					MethodManager::Instance()->orderPq.Push(bufferedWeight, bufferedData, __FILE__, __LINE__); // 버퍼 -> 큐로 이동
 
 					senderPlayer->nextExpectedAmCnt++;
 				}
@@ -696,76 +706,15 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream* constructionBit
 				break;
 			}
 		}
-		demo->shootFromOrigin(position, shotDirection, platform);
+		SceneManager::Instance()->shootFromOrigin(position, shotDirection, platform);
 		return;
 	}
 
 	//method 2를 쓸 때는 충돌 검사 하지 않음
-	if (demo->evalMask & METHOD_2)
+	if (MethodManager::Instance()->IsMethodActive(METHOD_2))
 		return;
 
-	demo->BulletHitDetected(creatingSystemGUID, 0);
-
-	// Hit Scan Only
-	//core::vector3df start = position;
-	//core::vector3df end = start + (shotDirection * camera->getFarValue());
-	//core::line3d<irr::f32> line(start, end);
-	//core::triangle3df triangle;
-	//core::vector3df hitPoint;
-	//const scene::ISceneNode* hitNode;
-	//
-	//for (idx = 0; idx < NetworkManager::Instance()->GetPlayerList().Size(); ++idx)
-	//{
-	//	auto* player = NetworkManager::Instance()->GetPlayerList()[idx];
-	//	if (player->creatingSystemGUID == ownerGUID) {
-	//		player->PlayAttackAnimation();
-	//		continue; // 총을 쏜 본인
-	//	}
-	//	
-	//	scene::ITriangleSelector* selector = nullptr;
-	//	core::matrix4 transform;
-	//	scene::ISceneNode* node = nullptr;
-
-	//	if (PlayerBotReplica* bot = dynamic_cast<PlayerBotReplica*>(player)) {
-	//		if (bot->IsDead()) continue;
-	//		transform = bot->botModel->getAbsoluteTransformation();
-	//		selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), transform, sm, bot->creatingSystemGUID);
-	//		node = bot->botModel;
-	//	}
-	//	else {
-	//		if (player->IsDead()) continue;
-	//		transform = player->model->getAbsoluteTransformation();
-	//		selector = CreateSelectorFromTransformedBox(demo->GetSyndeyBoundingBox(), transform, sm, player->creatingSystemGUID);
-	//		node = player->model;
-	//	}
-
-	//	if (selector == nullptr)
-	//		continue;
-
-	//	// 충돌 검사
-	//	// TODO : Mobile은 getCollisionPoint 인수가 HitResult 구조체
-	//	bool hit = sm->getSceneCollisionManager()->getCollisionPoint(line, selector, hitPoint, triangle, hitNode);
-	//	selector->drop(); // drop 꼭 해주기
-
-	//	if (hit && hitNode && hitNode->getID() == static_cast<s32>(player->creatingSystemGUID.g))
-	//	{
-	//		player->deathTimeout = RakNet::GetTimeMS() + 3000;
-	//		RakNet::RakString msg("%s Dead from : %s",
-	//			dynamic_cast<PlayerBotReplica*>(player) ? "Bot" : "Player",
-	//			NetworkManager::Instance()->GetPeer()->GetSystemAddressFromGuid(creatingSystemGUID).ToString(true));
-	//		demo->PushMessage(msg);
-	//		//OutputDebugStringA(msg.C_String());
-	//		
-	//		RakNet::BitStream bs;
-	//		bs.Write((RakNet::MessageID)CDemo::ID_GAME_MESSAGE_PLAYER_LIFE);
-	//		bs.Write(player->creatingSystemGUID);
-	//		bs.Write(player->IsDead());
-	//		player->wasDead = true;
-
-	//		NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
-	//		break; // 더 검사하지 않음
-	//	}
-	//}
+	CollisionManager::Instance()->BulletHitDetected(creatingSystemGUID, 0);
 }
 void BallReplica::PreDestruction(RakNet::Connection_RM3* sourceConnection)
 {
@@ -795,45 +744,13 @@ void BallReplica::Update(RakNet::TimeMS curTime)
 			return;
 		}
 	}
-
-	//// Keep at the same position as the visible effect
-	//// Deterministic, so no need to actually transmit position
-	//// The variable position is the origin that the ball was created at. For the player, it is their actual position
-	//RakNet::TimeMS elapsedTime;
-	//// Due to ping variances and timestamp miscalculations, it's possible with very low pings to get a slightly negative time, so we have to check
-	//if (curTime>=creationTime)
-	//	elapsedTime = curTime - creationTime;
-	//else
-	//	elapsedTime=0;
-	//irr::core::vector3df updatedPosition = position + shotDirection * (float) elapsedTime * SHOT_SPEED;
-
-	////See if the bullet hit us
-	////외부 총알을 맞았을 때
-	//if (creatingSystemGUID != NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
-	//{
-	//	bool check = (NetworkManager::Instance()->GetTopology() == SERVER && NetworkManager::Instance()->GetPlayerBotReplica()->IsDead() == false) || (NetworkManager::Instance()->GetTopology() == CLIENT && NetworkManager::Instance()->GetPlayerReplica()->IsDead() == false);
-	//	if (check) {
-	//		float playerHalfHeight = demo->GetSyndeyBoundingBox().getExtent().Y / 2;
-	//		irr::core::vector3df positionRelativeToCharacter = updatedPosition - ((NetworkManager::Instance()->GetTopology() == SERVER) ?NetworkManager::Instance()->GetPlayerBotReplica()->position : NetworkManager::Instance()->GetPlayerReplica()->position);//+core::vector3df(0,playerHalfHeight,0);
-	//		if (demo->GetSyndeyBoundingBox().isPointInside(positionRelativeToCharacter))
-	//			//if ((NetworkManager::Instance()->GetPlayerReplica()->position+core::vector3df(0,playerHalfHeight,0)-updatedPosition).getLengthSQ() < BALL_DIAMETER*BALL_DIAMETER/4.0f)
-	//		{
-	//			// We're dead for 3 seconds
-	//			if (NetworkManager::Instance()->GetTopology() == SERVER) {
-	//				NetworkManager::Instance()->GetPlayerBotReplica()->deathTimeout = curTime + 3000;
-	//				demo->PushMessage(RakNet::RakString("Bot Dead from : ") + NetworkManager::Instance()->GetPeer()->GetSystemAddressFromGuid(creatingSystemGUID).ToString(true));
-
-	//			}else NetworkManager::Instance()->GetPlayerReplica()->deathTimeout = curTime + 3000;
-	//		}
-	//	}
-	//}
 }
 
 RakNet::Replica3* Connection_RM3Irrlicht::AllocReplica(RakNet::BitStream* allocationId, ReplicaManager3* replicaManager3)
 {
 	RakNet::RakString typeName; allocationId->Read(typeName);
-	if (typeName == "PlayerReplica") { BaseIrrlichtReplica* r = new PlayerReplica; r->demo = demo; return r; }
-	if (typeName == "PlayerBotReplica") { BaseIrrlichtReplica* r = new PlayerBotReplica; r->demo = demo; return r; }
-	if (typeName == "BallReplica") { BaseIrrlichtReplica* r = new BallReplica; r->demo = demo; return r; }
+	if (typeName == "PlayerReplica") { BaseIrrlichtReplica* r = new PlayerReplica; return r; }
+	if (typeName == "PlayerBotReplica") { BaseIrrlichtReplica* r = new PlayerBotReplica; return r; }
+	if (typeName == "BallReplica") { BaseIrrlichtReplica* r = new BallReplica; return r; }
 	return 0;
 }

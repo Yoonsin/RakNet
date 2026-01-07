@@ -39,9 +39,11 @@
 #include "Replicas.h" // PlayerReplica 등을 위해 필요
 #include "NetLogManager.h"
 #include "CInGame.h"
+#include "MethodManager.h"
 #include "RakNetStatistics.h"
 
 using namespace RakNet;
+using namespace irr;
 using namespace std;
 
 static const float INGOING_TIME_MS = 0.0f;
@@ -58,18 +60,19 @@ void NetworkManager::DestroyInstance() {
 	}
 }
 
-NetworkManager::NetworkManager() : rakPeer(nullptr), networkIDManager(nullptr), replicaManager3(nullptr), statisticsPlugin(nullptr) {}
+NetworkManager::NetworkManager() : rakPeer(nullptr), networkIDManager(nullptr), replicaManager3(nullptr), statisticsPlugin(nullptr), playerBotReplica(nullptr), playerReplica(nullptr) {}
 
 NetworkManager::~NetworkManager() {
 	// 안전한 포인터 삭제 로직
 }
 
-void NetworkManager::Initialize() { 
+void NetworkManager::Initialize(bool isServer, int maxClientCnt) { 
+	topology = isServer ? Topology::SERVER : Topology::CLIENT;
+	this->MaxClientCnt = maxClientCnt;
 }
 
 void NetworkManager::Activate()
 {
-	topology = isServer ? Topology::SERVER : Topology::CLIENT;
 	rakPeer = RakNet::RakPeerInterface::GetInstance();
 	rakPeer->SetPacketReturnDelay(INGOING_TIME_MS);
 	RakNet::SocketDescriptor sd((topology == SERVER) ? SERVER_PORT : 1234, 0);
@@ -83,7 +86,6 @@ void NetworkManager::Activate()
 	networkIDManager = new RakNet::NetworkIDManager;
 	replicaManager3 = new ReplicaManager3Irrlicht();
 	replicaManager3->SetNetworkIDManager(networkIDManager);
-	replicaManager3->demo = demo; // ReplicaManager에 Demo 포인터 전달
 	replicaManager3->SetAutoManageConnections(false, true);
 	replicaManager3->SetAutoSerializeInterval(30);
 	rakPeer->AttachPlugin(replicaManager3);
@@ -96,7 +98,7 @@ void NetworkManager::Activate()
 	if (topology == SERVER) {
 		sr = rakPeer->Startup(MAX_PLAYERS, &sd, 1);
 		rakPeer->SetMaximumIncomingConnections(MAX_PLAYERS);
-		//if (demo->evalMask & METHOD_3)
+		//if (CInGame::Instance()->evalMask & METHOD_3)
 			//rakPeer->ApplyNetworkSimulator(0.1f, 100, 50);
 	}
 	else sr = rakPeer->Startup(1, &sd, 1);
@@ -106,21 +108,19 @@ void NetworkManager::Activate()
 
 	// Create and register the network object that represents the player
 	// Hook RakNet stuff into this class
-	if (isBot) {
+	if (CInGame::Instance()->isBot) {
 		playerBotReplica = new PlayerBotReplica;
-		playerBotReplica->demo = demo;
 		playerBotReplica->CreateBotModel();
-		playerBotReplica->gamePlatform = demo->gamePlatform;
+		playerBotReplica->gamePlatform = CInGame::Instance()->gamePlatform;
 		playerReplica = playerBotReplica;
 	}
 	else {
 		playerReplica = new PlayerReplica;
-		playerReplica->demo = demo;
-		playerReplica->gamePlatform = demo->gamePlatform;
+		playerReplica->gamePlatform = CInGame::Instance()->gamePlatform;
 	}
 
 	//Draw debug 
-	//scene::ISceneManager* smgr = demo->GetSceneManager();
+	//scene::ISceneManager* smgr = CInGame::Instance()->GetSceneManager();
 	//collisionBoxQueue = new CollisionBoxQueueSceneNode(smgr->getRootSceneNode(), smgr);
 	//collisionBoxQueue->demo = demo;
 
@@ -128,8 +128,8 @@ void NetworkManager::Activate()
 #if __ANDROID__
 		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
 #else
-		ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //랜
-		//ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
+		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //랜
+		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
 
 #endif // __ANDROID__
 		//loggerPlugin = PacketLogger::GetInstance();
@@ -138,7 +138,7 @@ void NetworkManager::Activate()
 	else if (topology == SERVER) {
 		/*if(isBot) replicaManager3->Reference(playerBotReplica);
 		else replicaManager3->Reference(playerReplica);*/
-		if (CInGame::Instance()->IsMethodActive(3)) {
+		if (MethodManager::Instance()->IsMethodActive(METHOD_3)) {
 			statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
 			statisticsPlugin->SetTrackConnections(true, 0, true);
 			rakPeer->AttachPlugin(statisticsPlugin);
@@ -148,27 +148,11 @@ void NetworkManager::Activate()
 	}
 }
 
-void NetworkManager::Shutdown(bool isLogged, bool isBot, const char* baseDir, int evalMask)
+void NetworkManager::Shutdown()
 {
 	DataStructures::List<Replica3*> replicaListOut;
 	replicaManager3->GetReplicasCreatedByMe(replicaListOut);
 	replicaManager3->BroadcastDestructionList(replicaListOut, RakNet::UNASSIGNED_SYSTEM_ADDRESS);
-
-	if (isLogged) {
-		if (topology == SERVER) {
-			NetLogManager::Instance()->SaveStatisticsToCSV(baseDir, 0);
-
-			if (CInGame::instance()->IsMethodActive(3)) {
-				//Egress, Ingress
-				NetLogManager::Instance()->SaveStatisticsToCSV(baseDir, 3);
-			}
-		}
-		else if (topology == CLIENT) {
-			if (CInGame::instance()->IsMethodActive(1))
-				NetLogManager::Instance()->SaveStatisticsToCSV(baseDir, 1);
-		}
-	}
-
 	rakPeer->SetOccasionalPing(false);
 
 	// Shutdown so the server knows we stopped
@@ -178,14 +162,14 @@ void NetworkManager::Shutdown(bool isLogged, bool isBot, const char* baseDir, in
 	delete networkIDManager;
 	delete replicaManager3;
 	
-	if (evalMask & METHOD_3) {
+	if (MethodManager::Instance()->IsMethodActive(METHOD_3)) {
 		if (topology == SERVER) {
 			StatisticsHistoryPlugin::DestroyInstance(statisticsPlugin);
 			//delete statisticsPlugin;
 		}
 	}
 
-	if (isBot) {
+	if (CInGame::Instance()->isBot) {
 		playerBotReplica->PreDestruction(0);
 		delete playerBotReplica;
 		//delete loggerPlugin;
@@ -196,6 +180,7 @@ void NetworkManager::Shutdown(bool isLogged, bool isBot, const char* baseDir, in
 		//delete loggerPlugin;
 	}
 }
+
 
 bool Connection_RM3Irrlicht::QuerySerializationList(DataStructures::List< RakNet::Replica3*>& replicasToSerialize) {
 	(void)replicasToSerialize;

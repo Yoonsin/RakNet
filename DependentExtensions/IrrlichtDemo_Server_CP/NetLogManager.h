@@ -2,6 +2,7 @@
 #include "RakNetTypes.h"
 #include "DS_List.h"
 #include "RakString.h"
+#include <mutex>
 
 enum PrintStatics {
     ID_CLIENT_POLLING_END = 0,
@@ -18,23 +19,39 @@ public:
     static NetLogManager* Instance();
     static void DestroyInstance();
 
-    // 초기화 (버퍼 할당 등)
-    void Initialize(bool isLog, int logCnt);
-    void Activate();
-    void SaveStatisticsToCSV(const char* baseDir, int methodNum);
-    void PrintStatistics(bool isExportFile, int methodNum);
-    void PrintStatistics(char* ipStr, PrintStatics id, int num);
+    // 초기화 (로그 활성화 여부, 최대 저장 개수 설정)
+    void Initialize(bool enableLog, int maxLogCount, const char* base);
 
-    // 로그 버퍼에 접근하기 위한 Helper
-    void PushLog(int methodNum, const RakNet::RakString& log);
+    // [핵심] RTT 로그 기록 함수 (Method 번호, 대상 주소, RTT 값)
+    void LogRTT(int methodIndex, const RakNet::SystemAddress& sa, int rtt);
+
+    // 일반 메시지 로그 기록 (printf 처럼 사용)
+    void LogMessage(int methodIndex, const char* format, ...);
+
+    // 쌓인 로그를 CSV 파일로 저장
+    void SaveLogsToCSV(int methodIndex);
+
+    // 디버그 창 즉시 출력 (화면 표시용)
+    void PrintDebug(const char* format, ...);
+
+	void Shutdown();
+
+	bool IsLogging() const { return isLoggingEnabled; }
 
 private:
     NetLogManager();
     ~NetLogManager();
+    
     static NetLogManager* instance;
-    DataStructures::List<DataStructures::List<RakNet::RakString>> statBufList;
 
-    bool isLogged;
-    bool isServer;
-    int logCount;
+    bool isLoggingEnabled;
+    int maxLogEntries;
+    const char* baseDir;
+
+    // 로그 버퍼: [MethodIndex][LogStringList]
+    // 예: logBuffers[1] 은 Method 1의 로그 리스트
+    DataStructures::List<DataStructures::List<RakNet::RakString>> logBuffers;
+
+    // 동시 접근 방지용 뮤텍스
+    std::mutex logMutex;
 };

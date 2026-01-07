@@ -12,7 +12,7 @@
       "MIMode": "gdb",
       "args": [],
       "env": {
-        "DISPLAY": ":1"
+        "DISPLAY": ":0"
       }
     }
   ]

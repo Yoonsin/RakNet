@@ -22,13 +22,13 @@ public:
 	bool IsKeyDown(EKEY_CODE keyCode) const;
 	void SetKeyDown(EKEY_CODE keyCode, bool isDown);
 	bool IsMovementKeyDown(void) const;
-	void InitMobileControls();
 	void EnableInput(bool enabled);
 	void FlushMovementKeys();
-private:
-	static InputController* instance;
 	bool isKeyLock;
 	bool wasKeyLock;
+private:
+	static InputController* instance;
+
 	bool KeyIsDown[KEY_KEY_CODES_COUNT];
 
 	//mobile

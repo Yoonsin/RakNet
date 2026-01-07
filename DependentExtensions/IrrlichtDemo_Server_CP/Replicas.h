@@ -3,6 +3,7 @@
 #include "RakPeer.h"
 #include "ReplicaManager3.h"
 #include "CollisionManager.h"
+#include "MethodManager.h"
 #include "DS_Map.h"
 #include <irrlicht.h>
 #include <vector3d.h>
@@ -22,17 +23,6 @@ struct FrameState {
 	irr::core::matrix4 collisionTransform;
 	irr::core::vector3df shotPosition;
 	irr::core::vector3df shotDirection;
-};
-
-struct orderData {
-	int um_cnt;
-	int am_cnt;
-	int processTime;
-	RakNet::TimeMS reactionTime;
-	RakNet::TimeMS ingoingTime;
-	RakNet::TimeMS timeOut;
-	RakNet::RakNetGUID playerGUID;
-	bool isSequenced;
 };
 
 class CInGame;

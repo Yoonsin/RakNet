@@ -144,7 +144,6 @@
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClCompile>
     <ClCompile Include="CInGame.cpp" />
-    <ClCompile Include="RakNetScheduler.cpp" />
     <ClCompile Include="NetworkManager.cpp" />
     <ClCompile Include="Replicas.cpp" />
     <ClCompile Include="NetLogManager.cpp" />
@@ -192,7 +191,6 @@
     <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_tools.h">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClInclude>
-    <ClInclude Include="RakNetScheduler.h" />
     <ClInclude Include="NetworkManager.h" />
     <ClInclude Include="Replicas.h" />
     <ClInclude Include="NetLogManager.h" />

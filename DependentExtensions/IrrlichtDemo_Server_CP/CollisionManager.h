@@ -37,14 +37,12 @@ public:
 	void EnableDrawTriangles(bool enable);
 
 private:
-	CDemo* demo;
 	scene::ITriangleSelector* triangleSelector = nullptr;
 	bool drawTriangles = false;
 };
 class CollisionBoxQueueSceneNode : public scene::ISceneNode
 {
 public:
-	inline bool isWithinRange(f32 value, f32 target, f32 range) { return (target - range <= value) && (value <= target + range); }
 	CollisionBoxQueueSceneNode(scene::ISceneNode* parent, scene::ISceneManager* mgr, s32 id = -1);
 	virtual const core::aabbox3d<f32>& getBoundingBox() const;
 	virtual void OnRegisterSceneNode();
@@ -52,7 +50,6 @@ public:
 	DataStructures::Queue <CollDebugState>* GetQueue() { return &q; }
 
 private:
-	CDemo* demo;
 	DataStructures::Queue <CollDebugState> q;
 };
 
@@ -63,6 +60,7 @@ public:
 	static void DestroyInstance();
 	void BulletHitDetected(RakNet::RakNetGUID creatingSystemGUID, float ingoingTimeMS);
 	CollisionBoxQueueSceneNode* collisionBoxQueue;
+	bool isWithinRange(f32 value, f32 target, f32 range) { return (target - range <= value) && (value <= target + range); }
 private:
 	CollisionManager();
 	~CollisionManager();

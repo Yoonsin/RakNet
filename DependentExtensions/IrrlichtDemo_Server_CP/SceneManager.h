@@ -1,6 +1,8 @@
 #pragma once
 #include <irrlicht.h>
 #include <vector>
+#include "NetworkManager.h"
+#include "GetTime.h"
 using namespace irr;
 
 #ifdef __ANDROID__
@@ -74,6 +76,15 @@ public:
 
     scene::ISceneNodeAnimatorCameraFPS* fpsCamAnim = nullptr;
     scene::ISceneNodeAnimatorCollisionResponse* fpsCamResponse = nullptr;
+    bool fullscreen;
+    bool music;
+    bool shadows;
+    bool additive;
+    bool vsync;
+    bool aa;
+    video::E_DRIVER_TYPE driverType;
+    const char* baseDir;
+    int currentScene;
 private:
     SceneManager();
     ~SceneManager();
@@ -90,19 +101,22 @@ private:
     scene::IAnimatedMeshSceneNode* model1;
     scene::IAnimatedMeshSceneNode* model2;
     scene::IParticleSystemSceneNode* campFire;
+    gui::IGUIInOutFader* inOutFader;
+    video::SColor backColor;
 
     // 파티클 관리 구조체 및 배열
-    struct SParticleImpact {};
+    struct SParticleImpact {
+        u32 when;
+        core::vector3df pos;
+        core::vector3df outVector;
+    };
     core::array<SParticleImpact> Impacts;
     core::aabbox3df syndeyBoundingBox; // Bounding box of syndney.md2, extended by BALL_DIAMETER/2 for collision against shots
-
-    bool fullscreen;
-    bool music;
-    bool shadows;
-    bool additive;
-    bool vsync;
-    bool aa;
-	video::E_DRIVER_TYPE driverType;
-    const char* baseDir;
+    IrrlichtDevice* device;
+    video::IVideoDriver* driver;
+    gui::IGUIEnvironment* guienv;
+    RakNet::TimeMS sceneStartTime;
+    RakNet::TimeMS timeForThisScene;
+	RakNet::TimeMS now;
 };
 

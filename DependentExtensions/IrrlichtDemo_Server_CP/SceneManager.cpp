@@ -1,5 +1,11 @@
 #include "SceneManager.h"
+#include "NetworkManager.h"
+#include "CInGame.h"
+#include "HUDManager.h"
 #include "InputController.h"
+
+using namespace RakNet;
+using namespace irr;
 
 SceneManager* SceneManager::instance = nullptr;
 SceneManager* SceneManager::Instance() {
@@ -13,140 +19,47 @@ void SceneManager::DestroyInstance() {
 	}
 }
 SceneManager::SceneManager() {
-#ifdef __ANDROID__
-	video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
-	irr::android::SDisplayMetrics displayMetrics;
-	memset(&displayMetrics, 0, sizeof displayMetrics);
-	irr::android::getDisplayMetrics(state, displayMetrics);
-	TouchID = -1;
-
-	SIrrlichtCreationParameters param;
-	param.DriverType = driverType;				// android:glEsVersion in AndroidManifest.xml should be "0x00020000"
-	param.WindowSize = core::dimension2d<u32>(displayMetrics.widthPixels, displayMetrics.heightPixels);	// using 0,0 it will automatically set it to the maximal size
-	param.PrivateData = state;
-	param.Bits = 24;
-	param.ZBufferBits = 16;
-	param.AntiAlias = 0;
-	param.EventReceiver = this;
-	device = createDeviceEx(param);
-	//device->getTimer()->start();
-
-	char filePath[1024] = "/media";
-	char absPath[5000];
-	if (realpath(filePath, absPath)) {
-		DebugPrintf("Absolute path: %s", absPath);
-	}
-	else {
-		DebugPrintf("File not found: %s", filePath);
-	}
-
-#else
-	core::dimension2d<u32> resolution(640, 480);
-	irr::SIrrlichtCreationParameters params;
-
-	if (driverType == video::EDT_BURNINGSVIDEO || driverType == video::EDT_SOFTWARE)
-	{
-		resolution.Width = 640;
-		resolution.Height = 480;
-	}
-	/*
-	if (isServer) params.DriverType = video::EDT_NULL;
-	else params.DriverType = driverType;
-	*/
-
-	params.DriverType = driverType;
-	params.WindowSize = resolution;
-	params.Bits = 32;
-	params.Fullscreen = fullscreen;
-	params.Stencilbuffer = shadows;
-	params.Vsync = vsync;
-	params.AntiAlias = aa;
-	params.EventReceiver = this;
-	device = createDeviceEx(params);
-#endif //__ANDROID__
-
-	video::IVideoDriver* driver = device->getVideoDriver();
-	scene::ISceneManager* smgr = device->getSceneManager();
-	gui::IGUIEnvironment* guienv = device->getGUIEnvironment();
-	io::IFileSystem* fs = device->getFileSystem();
-	ILogger* logger = device->getLogger();
-
-	//Android에서 MIP_MAPS를 끄지 않으면 퀘이크 맵 전체가 검게보임
-	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
-
-	device->setWindowCaption(L"Irrlicht Engine Demo");
-	device->setEventReceiver(InputController::Instance());
-
-	// set ambient light
-	smgr->setAmbientLight(video::SColorf(0x00c0c0c0));
-
-#ifdef __ANDROID__
-	ANativeWindow* nativeWindow = static_cast<ANativeWindow*>(driver->getExposedVideoData().OGLESAndroid.Window);
-	int32_t windowWidth = ANativeWindow_getWidth(state->window);
-	int32_t windowHeight = ANativeWindow_getHeight(state->window);
-	core::dimension2d<s32> dim(driver->getScreenSize());
-
-	for (u32 i = 0; i < fs->getFileArchiveCount(); ++i)
-	{
-		io::IFileArchive* archive = fs->getFileArchive(i);
-		if (archive->getType() == io::E_FILE_ARCHIVE_TYPE::EFAT_ANDROID_ASSET)
-		{
-			archive->addDirectoryToFileList(mediaPath);
-			break;
-		}
-	}
-
-	isRotate = false;
-
-	//IrrlichtDemo Extensions
-	core::rect<irr::s32> winRect(0, 0, 9 * displayMetrics.widthPixels / 10, 9 * displayMetrics.heightPixels / 10);
-	Drawer2D* drawer = new Drawer2D(device);
-	AppSkin* skin = new AppSkin(device, drawer);
-	assert(isExtendableSkin(skin));
-	guienv->setSkin(skin);
-	skin->drop();
-
-	//joystick
-	int offset = 150;
-	core::rect<s32> testArea3(20, winRect.getHeight() / 2 + 20 + offset, winRect.getWidth() / 4, winRect.getHeight() + offset);
-	bool scrollable = false;
-	bool horizontal = false;
-	//JoyStickElement* joyStick = new JoyStickElement(drawer, env, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,false, AppSkin::DEFAULT_AGGREGATABLE,video::SColor(255,255,255,255),NULL,NULL,testArea3);
-	AggregateGUIElement* a3 = new AggregateGUIElement(guienv, 1.f, 1.f, 1.f, 1.f, true, horizontal, scrollable, {
-		new JoyStickElement(drawer, guienv, driver->getTexture("media/joy_background.png"), driver->getTexture("media/joy_handle.png"),1.f,true,  AppSkin::DEFAULT_AGGREGATABLE, video::SColor(255,255,255,255),  static_cast<void*>(&isKeyLock)) },
-		{}, false, AppSkin::REGULAR_AGGREGATION, NULL, NULL, testArea3);
-
-	//AppSkin::DEFAULT_AGGREGATABLE
-#endif //__ANDROID__
-
-	if (device->getFileSystem()->existFile("irrlicht.dat"))
-		device->getFileSystem()->addFileArchive("irrlicht.dat", true, true, io::EFAT_ZIP);
-	else
-		device->getFileSystem()->addFileArchive(mediaPath + "irrlicht.dat", true, true, io::EFAT_ZIP);
-	if (device->getFileSystem()->existFile("map-20kdm2.pk3"))
-		device->getFileSystem()->addFileArchive("map-20kdm2.pk3", true, true, io::EFAT_ZIP);
-	else {
-		device->getFileSystem()->addFileArchive(mediaPath + "map-20kdm2.pk3", true, true, io::EFAT_ZIP);
-
-#ifdef __ANDROID__
-		if (device->getFileSystem()->existFile(mediaPath + "map-20kdm2.pk3")) {
-			DebugPrintf("맵 파일이 존재함!");
-		}
-		else {
-			DebugPrintf("맵 파일이 없음!");
-		}
-#else 
-		wchar_t tmp[255];
-#endif // __ANDROID__
-	}
-
 }
-SceneManager::~SceneManager() {
-	if (mapSelector)
-		mapSelector->drop();
 
-	if (metaSelector)
+SceneManager::~SceneManager() {
+	Cleanup();
+}
+
+void SceneManager::Cleanup() {
+	// 1. Selector 해제 (create로 생성된 객체는 반드시 drop 해야 함)
+	if (metaSelector) {
 		metaSelector->drop();
+		metaSelector = nullptr;
+	}
+	if (mapSelector) {
+		mapSelector->drop();
+		mapSelector = nullptr;
+	}
+
+	// 2. SceneNode 해제
+	if (quakeLevelNode) {
+		quakeLevelNode->remove();
+		quakeLevelNode = nullptr;
+	}
+	if (skyboxNode) {
+		skyboxNode->remove();
+		skyboxNode = nullptr;
+	}
+	if (campFire) {
+		campFire->remove();
+		campFire = nullptr;
+	}
+	if (model1) {
+		model1->remove();
+		model1 = nullptr;
+	}
+	if (model2) {
+		model2->remove();
+		model2 = nullptr;
+	}
+
+	// 파티클 배열 초기화
+	Impacts.clear();
 }
 void SceneManager::Initialize(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE d) {
 	this->fullscreen = fullscreen;
@@ -156,14 +69,26 @@ void SceneManager::Initialize(bool fullscreen, bool music, bool shadows, bool ad
 	this->vsync = vsync;
 	this->aa = aa;
 	this->driverType = d;
-	quakeLevelMesh = quakeLevelNode = skyboxNode = model1 = model2 = inOutFader = 0;
-	campFire = metaSelector = mapSelector = sceneStartTime = backColor = timeForThisScene = 0;
+	quakeLevelMesh = nullptr;
+	quakeLevelNode = nullptr;
+	skyboxNode = nullptr;
+	model1 = nullptr; 
+	model2 = nullptr; 
+	inOutFader = nullptr;
+	campFire = nullptr; 
+	metaSelector = nullptr; 
+	mapSelector = nullptr; 
+	sceneStartTime = 0;
+	timeForThisScene = 0;
+	backColor = 0; 
 	currentScene = -2;
 }
 
 void SceneManager::Activate() {
-	this->device = device;
+	this->device = CInGame::Instance()->GetDevice();
+	driver = device->getVideoDriver();
 	smgr = device->getSceneManager();
+	guienv = device->getGUIEnvironment();
 	sceneStartTime = device->getTimer()->getTime();
 }
 
@@ -193,7 +118,6 @@ void SceneManager::createParticleImpacts()
 			scene::IParticleSystemSceneNode* pas = 0;
 
 			pas = sm->addParticleSystemSceneNode(false, 0, -1, Impacts[i].pos);
-
 			pas->setParticleSize(core::dimension2d<f32>(10.0f, 10.0f));
 
 			scene::IParticleEmitter* em = pas->createBoxEmitter(
@@ -209,7 +133,7 @@ void SceneManager::createParticleImpacts()
 			paf->drop();
 
 			pas->setMaterialFlag(video::EMF_LIGHTING, false);
-			pas->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "smoke.bmp"));
+			pas->setMaterialTexture(0, device->getVideoDriver()->getTexture(CInGame::Instance()->mediaPath + "smoke.bmp"));
 #ifdef __ANDROID__
 			pas->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
 #else
@@ -231,7 +155,7 @@ void SceneManager::CalculateSyndeyBoundingBox(void)
 	// Find the extents of the player character's model (for networking collision checks)
 	scene::IAnimatedMesh* mesh = 0;
 	scene::ISceneManager* sm = device->getSceneManager();
-	mesh = sm->getMesh(mediaPath + "sydney.md2");
+	mesh = sm->getMesh(CInGame::Instance()->mediaPath + "sydney.md2");
 	irr::scene::IAnimatedMeshSceneNode* model;
 	model = sm->addAnimatedMeshSceneNode(mesh, 0);
 	model->setScale(core::vector3df(1, 1, 1));
@@ -329,7 +253,7 @@ void SceneManager::switchToNextScene()
 		keyMap[10].KeyCode = KEY_KEY_1;
 		//camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //기본 플레이
 		camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, false, 5.f); //기본 플레이
-		SetTransformCamera(camera, gamePlatform);
+		CInGame::Instance()->SetTransformCamera(camera, CInGame::Instance()->gamePlatform);
 
 		core::vector3df gravity = core::vector3df(0, /*-300.f*/quakeLevelMesh ? -10.f : 0.0f, 0);
 		scene::ISceneNodeAnimatorCollisionResponse* collider =
@@ -355,7 +279,7 @@ void SceneManager::switchToNextScene()
 			//Last parameter is jump speed
 			//Tweaked so you can get up ladders
 		camera = sm->addCameraSceneNodeFPS(0, 100.0f, .4f, -1, keyMap, 9, false, 5.f);
-		SetTransformCamera(camera, gamePlatform);
+		CInGame::Instance()->SetTransformCamera(camera, CInGame::Instance()->gamePlatform);
 
 		core::vector3df gravity = core::vector3df(0, quakeLevelMesh ? -10.f : 0.0f, 0);
 		scene::ISceneNodeAnimatorCollisionResponse* collider =
@@ -386,6 +310,7 @@ void SceneManager::switchToNextScene()
 }
 void SceneManager::loadSceneData()
 {
+	Cleanup();
 	// load quake level
 	video::IVideoDriver* driver = device->getVideoDriver();
 	scene::ISceneManager* sm = device->getSceneManager();
@@ -397,11 +322,11 @@ void SceneManager::loadSceneData()
 
 #ifdef __ANDROID__
 	if (!quakeLevelMesh) {
-		DebugPrintf("Error: Quake3 Level Mesh 로드 실패!");
+		NetLogManager::Instance()->PrintDebug("Error: Quake3 Level Mesh 로드 실패!");
 	}
 	scene::IMesh* levelMesh = quakeLevelMesh->getMesh(scene::quake3::E_Q3_MESH_GEOMETRY);
 	if (!levelMesh) {
-		DebugPrintf("Error: Quake Level Mesh Geometry가 NULL!");
+		NetLogManager::Instance()->PrintDebug("Error: Quake Level Mesh Geometry가 NULL!");
 	}
 #endif // __ANDROID__
 
@@ -462,6 +387,7 @@ void SceneManager::loadSceneData()
 	scene::ISceneNodeAnimator* anim = 0;
 	// create sky box
 	driver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
+	core::stringc mediaPath = CInGame::Instance()->mediaPath;
 	skyboxNode = sm->addSkyBoxSceneNode(
 		driver->getTexture(mediaPath + "irrlicht2_up.jpg"),
 		driver->getTexture(mediaPath + "irrlicht2_dn.jpg"),
@@ -533,10 +459,9 @@ void SceneManager::loadSceneData()
 
 	// create meta triangle selector with all triangles selectors in it.
 	metaSelector = sm->createMetaTriangleSelector();
-	metaSelector->addTriangleSelector(mapSelector);
+	if (mapSelector) metaSelector->addTriangleSelector(mapSelector);
 
 	// create camp fire
-
 	campFire = sm->addParticleSystemSceneNode(false);
 	campFire->setPosition(core::vector3df(100, 120, 600));
 	//campFire->setPosition(core::vector3df(279.522980, 100.080017, -290.277802));
@@ -560,9 +485,6 @@ void SceneManager::loadSceneData()
 	campFire->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
 	campFire->setMaterialTexture(0, driver->getTexture(mediaPath + "fireball.bmp"));
 	campFire->setMaterialType(video::EMT_TRANSPARENT_VERTEX_ALPHA);
-#ifdef __ANDROID__
-	InputController::Instance()->InitMobileControls();
-#endif // __ANDROID__
 }
 void SceneManager::createLoadingScreen()
 {
@@ -581,15 +503,10 @@ void SceneManager::createLoadingScreen()
 	const int lwidth = size.Width - 20;
 	const int lheight = 16;
 
-	core::rect<int> pos(10, size.Height - lheight - 80, 10 + lwidth, size.Height - 80);
-	//device->getGUIEnvironment()->addImage(pos);
-	statusText = device->getGUIEnvironment()->addStaticText(L"Start", pos, true);
-	statusText->setOverrideColor(video::SColor(255, 205, 200, 200));
-
 #ifdef __ANDROID__
-	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "bigfont.png"));
+	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(CInGame::Instance()->mediaPath + "bigfont.png"));
 #else
-	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(mediaPath + "fonthaettenschweiler.bmp"));
+	device->getGUIEnvironment()->getSkin()->setFont(device->getGUIEnvironment()->getFont(CInGame::Instance()->mediaPath + "fonthaettenschweiler.bmp"));
 #endif
 
 	device->getGUIEnvironment()->getSkin()->setColor(gui::EGDC_BUTTON_TEXT,
@@ -611,12 +528,13 @@ RakNet::TimeMS SceneManager::shootFromOrigin(core::vector3df camPosition, core::
 	core::vector3df wallHitPoint(0, 0, 0);
 	return shootFromOrigin(camPosition, camAt, start, end, wallHit, wallHitPoint, platform);
 }
+
 RakNet::TimeMS SceneManager::shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint, GamePlatform platform)
 {
 	scene::ISceneManager* sm = device->getSceneManager();
 	scene::ICameraSceneNode* camera = sm->getActiveCamera();
 
-	if (!camera || mapSelector)
+	if (!camera || !mapSelector)
 		return 0;
 
 	SParticleImpact imp;
@@ -696,6 +614,7 @@ RakNet::TimeMS SceneManager::shootFromOrigin(core::vector3df camPosition, core::
 	node = sm->addBillboardSceneNode(0,
 		core::dimension2d<f32>(BALL_DIAMETER - 10, BALL_DIAMETER - 10), start);
 
+	core::stringc mediaPath = CInGame::Instance()->mediaPath;
 	node->setMaterialFlag(video::EMF_LIGHTING, false);
 	if (platform == Holder) {
 		node->setMaterialTexture(0, device->getVideoDriver()->getTexture(mediaPath + "fireball_green.bmp"));
@@ -732,5 +651,4 @@ RakNet::TimeMS SceneManager::shootFromOrigin(core::vector3df camPosition, core::
 	}
 
 	return (RakNet::TimeMS)time;
-
 }

@@ -1,14 +1,4 @@
 #pragma once
-/*
- *  Copyright (c) 2014, Oculus VR, Inc.
- *  All rights reserved.
- *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
- */
-
 #define SERVER_IP "192.168.1.2" 
 #define SERVER_IP_LOCAL "127.0.0.1"
 #define SERVER_PORT 20123
@@ -56,7 +46,7 @@ public:
 	~NetworkManager();
 
 	// 초기화 및 종료
-	void Initialize();
+	void Initialize(bool isServer, int MaxClientCnt);
 	void Activate();
 	void Shutdown();
 
@@ -75,6 +65,7 @@ public:
 	void AddPlayer(PlayerReplica* player) { playerList.Push(player, _FILE_AND_LINE_); }
 	void RemovePlayer(PlayerReplica* player) {unsigned int idx = playerList.GetIndexOf(player);if (idx != (unsigned int)-1) playerList.RemoveAtIndex(idx);}
 	DataStructures::List<PlayerReplica*>& GetPlayerList() { return playerList; };
+	int GetMaxClientCnt() const { return MaxClientCnt; }
 
 private:
 	static NetworkManager* instance;
@@ -90,26 +81,25 @@ private:
 	CInGame* Game; // 게임 로직 참조
 	PlayerReplica* playerReplica;
 	PlayerBotReplica* playerBotReplica;
+	int MaxClientCnt;
 };
 
 class Connection_RM3Irrlicht : public RakNet::Connection_RM3 {
 public:
-	Connection_RM3Irrlicht(const RakNet::SystemAddress& _systemAddress, RakNet::RakNetGUID _guid, CInGame* _demo) : RakNet::Connection_RM3(_systemAddress, _guid) { demo = _demo; }
+	Connection_RM3Irrlicht(const RakNet::SystemAddress& _systemAddress, RakNet::RakNetGUID _guid) : RakNet::Connection_RM3(_systemAddress, _guid) {  }
 	virtual ~Connection_RM3Irrlicht() {}
 	virtual RakNet::Replica3* AllocReplica(RakNet::BitStream* allocationId, RakNet::ReplicaManager3* replicaManager3);
 	virtual bool QuerySerializationList(DataStructures::List< RakNet::Replica3*>& replicasToSerialize); 
 protected:
-	CInGame* demo;
 };
 
 class ReplicaManager3Irrlicht : public RakNet::ReplicaManager3
 {
 public:
-	virtual RakNet::Connection_RM3* AllocConnection(const RakNet::SystemAddress& systemAddress, RakNet::RakNetGUID rakNetGUID) const { return new Connection_RM3Irrlicht(systemAddress, rakNetGUID, demo); }
+	virtual RakNet::Connection_RM3* AllocConnection(const RakNet::SystemAddress& systemAddress, RakNet::RakNetGUID rakNetGUID) const { return new Connection_RM3Irrlicht(systemAddress, rakNetGUID ); }
 	virtual void DeallocConnection(RakNet::Connection_RM3* connection) const { delete connection; }
 	virtual void PrintTimeGap(char* str)  override { /*statBufList[0].Push(RakNet::RakString(str), _FILE_AND_LINE_); //Log*/ }
 	virtual void SetIsLog(bool isLog) override { this->isLog = isLog; }
-	CInGame* demo;
 };
 
 static const float INTERP_TIME_MS = 100.0f;
