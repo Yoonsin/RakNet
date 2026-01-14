@@ -26,7 +26,7 @@ public:
 	bool run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 		bool& outAdditive, bool &outVSync, bool& outAA,
 		video::E_DRIVER_TYPE& outDriver,
-		core::stringw &playerName,bool& isServer,int& logCount, bool&isBot );
+		core::stringw &playerName,bool& isServer,int& logCount, bool&isBot, bool& outIsLocalServer);
 
 	virtual bool OnEvent(const SEvent& event);
 
@@ -52,6 +52,7 @@ private:
 	bool aa;
 	bool isServer;
 	bool isBot;
+	bool isLocalServer;
 
 	scene::IAnimatedMesh* quakeLevel;
 	scene::ISceneNode* lightMapNode;

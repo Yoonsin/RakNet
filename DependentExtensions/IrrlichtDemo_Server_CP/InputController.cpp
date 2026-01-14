@@ -241,84 +241,85 @@ bool InputController::OnEvent(const SEvent& event) {
 			CInGame::Instance()->GetDevice()->closeDevice();
 		}
 	}
-	else
-		if (
+	else if (
 			// RakNet: Use space to jump, not shoot
 	//		(event.EventType == EET_KEY_INPUT_EVENT &&
 	//		event.KeyInput.Key == KEY_SPACE &&
 	//		event.KeyInput.PressedDown == false) ||
 			(event.EventType == EET_MOUSE_INPUT_EVENT &&
-				event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP) &&
+			event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP) &&
 			//currentScene == 3
-			SceneManager::Instance()->currentScene == 1
-			)
-		{
+			SceneManager::Instance()->currentScene == 1)
+	{
 
-			// RakNet: Click without focus to get focus back
-			if (CInGame::Instance()->GetSceneManager()->getActiveCamera()->isVisible() == false)
-			{
-				if (CInGame::Instance()->GetDevice()->getCursorControl() != nullptr) CInGame::Instance()->GetDevice()->getCursorControl()->setVisible(false);
-				CInGame::Instance()->GetSceneManager()->getActiveCamera()->setVisible(true);
-			}
-			else
-			{
-				// shoot
-				CInGame::Instance()->shoot();
-			}
+		// RakNet: Click without focus to get focus back
+		if (CInGame::Instance()->GetSceneManager()->getActiveCamera()->isVisible() == false)
+		{
+			if (CInGame::Instance()->GetDevice()->getCursorControl() != nullptr) CInGame::Instance()->GetDevice()->getCursorControl()->setVisible(false);
+			CInGame::Instance()->GetSceneManager()->getActiveCamera()->setVisible(true);
 		}
 		else
-			if (event.EventType == EET_KEY_INPUT_EVENT &&
-				event.KeyInput.Key == KEY_F9 &&
-				event.KeyInput.PressedDown == false)
-			{
-				video::IImage* image = CInGame::Instance()->GetDevice()->getVideoDriver()->createScreenShot();
-				if (image)
-				{
-					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.bmp");
-					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.png");
-					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.tga");
-					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.ppm");
-					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.jpg");
-					CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.pcx");
-					image->drop();
-				}
-			}
-			else
-				if (
-					event.EventType == EET_KEY_INPUT_EVENT &&
-					event.KeyInput.Key == KEY_KEY_R &&
-					event.KeyInput.PressedDown == false)
-				{
-					if (CInGame::Instance()->GetDevice()->getSceneManager() == nullptr) return true;
-					if (auto* cam = CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()) {
-						if (CInGame::Instance()->isBot) {
-							CInGame::Instance()->SetResetBot();
-							CInGame::Instance()->Respawn(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos, NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
-							CInGame::Instance()->botMoveTime = RakNet::GetTimeMS() + CInGame::Instance()->BOT_MOVE_TIME;
-						}
-						else {
-							CInGame::Instance()->Respawn(CInGame::Instance()->initPos, CInGame::Instance()->initTarget);
-						}
-						isKeyLock = false;
-						FlushMovementKeys(); //리셋 시에도 모든 이동키 해제
-					}
-				}
-				else
-					if (CInGame::Instance()->GetDevice()->getSceneManager() != nullptr && CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera())
-					{
-						if (isKeyLock)
-							return true; // 여기서 바로 빠져나가면 기존 방향으로 계속 이동하지 않음
+		{
+			// shoot
+			CInGame::Instance()->shoot();
+		}
+	}
+	else if (event.EventType == EET_KEY_INPUT_EVENT &&
+			event.KeyInput.Key == KEY_F9 &&
+			event.KeyInput.PressedDown == false)
+	{
+		video::IImage* image = CInGame::Instance()->GetDevice()->getVideoDriver()->createScreenShot();
+		if (image)
+		{
+			CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.bmp");
+			CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.png");
+			CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.tga");
+			CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.ppm");
+			CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.jpg");
+			CInGame::Instance()->GetDevice()->getVideoDriver()->writeImageToFile(image, "screenshot.pcx");
+			image->drop();
+		}
+	}
+	else if (event.EventType == EET_KEY_INPUT_EVENT &&
+			 event.KeyInput.Key == KEY_KEY_R &&
+			 event.KeyInput.PressedDown == false)
+	{
+		if (CInGame::Instance()->GetDevice()->getSceneManager() == nullptr) return true;
+		if (auto* cam = CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()) {
+		if (CInGame::Instance()->isBot) {
+			CInGame::Instance()->SetResetBot();
+			CInGame::Instance()->Respawn(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos, NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
+			CInGame::Instance()->botMoveTime = RakNet::GetTimeMS() + CInGame::Instance()->BOT_MOVE_TIME;
+		}
+		else {
+			CInGame::Instance()->Respawn(CInGame::Instance()->initPos, CInGame::Instance()->initTarget);
+		}
+		isKeyLock = false;
+		FlushMovementKeys(); //리셋 시에도 모든 이동키 해제
+		}
+	}
+	else  if (event.EventType == EET_KEY_INPUT_EVENT && event.KeyInput.Key == KEY_KEY_T && event.KeyInput.PressedDown == false)
+	{
+		if (NetworkManager::Instance()->IsServer()) {
+			NetworkManager::Instance()->StartStressTest(10000); // 10초간 지속
+		}
+	}
+	else if (CInGame::Instance()->GetDevice()->getSceneManager() != nullptr &&
+			CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera())
+	{
+		if (isKeyLock)
+			return true; // 여기서 바로 빠져나가면 기존 방향으로 계속 이동하지 않음
 
-						if (event.EventType == EET_MOUSE_INPUT_EVENT) {
-							//CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
-						}
-						else if (event.EventType == EET_KEY_INPUT_EVENT) {
-							CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
-							//if(event.KeyInput.Key == KEY_KEY_A || event.KeyInput.Key == KEY_KEY_D) CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
-							//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", GetSceneManager()->getActiveCamera()->getPosition().X, GetSceneManager()->getActiveCamera()->getPosition().Y, GetSceneManager()->getActiveCamera()->getPosition().Z, isKeyLock, wasKeyLock);
-						}
-						return true;
-					}
+		if (event.EventType == EET_MOUSE_INPUT_EVENT) {
+			//CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
+		}
+		else if (event.EventType == EET_KEY_INPUT_EVENT) {
+			CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
+			//if(event.KeyInput.Key == KEY_KEY_A || event.KeyInput.Key == KEY_KEY_D) CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
+			//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", GetSceneManager()->getActiveCamera()->getPosition().X, GetSceneManager()->getActiveCamera()->getPosition().Y, GetSceneManager()->getActiveCamera()->getPosition().Z, isKeyLock, wasKeyLock);
+		}
+		return true;
+	}
 #endif //__ANDROID__
 	return false;
 }

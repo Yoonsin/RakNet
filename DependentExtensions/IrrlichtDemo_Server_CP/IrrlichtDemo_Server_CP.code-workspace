@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../../irrlicht-1.7.2/include"
+		},
+		{
+			"path": "../../../../irrlicht-1.7.2/source"
+		},
+		{
+			"path": "../../Source"
+		}
+	],
+	"settings": {}
+}

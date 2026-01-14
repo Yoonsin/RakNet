@@ -1,0 +1,43 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/GitHub/CommonLibraries/IrrlichtExtensions",
+                "C:/GitHub/CommonLibraries/Common",
+                "./../../Source",
+                "C:/GitHub/CommonLibraries/Irrlicht/include",
+                "./../../DependentExtensions/miniupnpc-1.5",
+                "C:/GitHub/RakNet/Source",
+                "C:/irrlicht-1.7.2/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "browse": {
+                "path": [
+                    "C:/GitHub/CommonLibraries/IrrlichtExtensions",
+                    "C:/GitHub/CommonLibraries/Common",
+                    "./",
+                    "./../../Source",
+                    "C:/GitHub/CommonLibraries/Irrlicht/include",
+                    "./../../DependentExtensions/miniupnpc-1.5",
+                    "C:/GitHub/RakNet/Source",
+                    "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/cpp",
+                    "C:/irrlicht-1.7.2/source/Irrlicht",
+                    "C:/irrlicht-1.7.2/include"
+                ]
+            },
+            "windowsSdkVersion": "10.0.22621.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

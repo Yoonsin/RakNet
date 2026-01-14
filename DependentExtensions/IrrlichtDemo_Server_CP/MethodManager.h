@@ -14,9 +14,9 @@
 // (1 << 0) = 1 (001)
 // (1 << 1) = 2 (010)
 // (1 << 2) = 4 (100)
-const int METHOD_1 = 1;
-const int METHOD_2 = 2;
-const int METHOD_3 = 4;
+constexpr int METHOD_1 = 1;
+constexpr int METHOD_2 = 2;
+constexpr int METHOD_3 = 4;
 
 struct ScheduledPacket {
 	RakNet::TimeMS executionTime; // 전송되어야 할 절대 시간
@@ -27,6 +27,12 @@ struct ScheduledPacket {
 	bool operator>(const ScheduledPacket& other) const {
 		return executionTime > other.executionTime;
 	}
+};
+
+struct PlayerCongestionState {
+	double congestionIndex; // CI_f
+	double burstMultiplier; // Burst 배율
+	bool isCongested;       // CI > 1.0 여부
 };
 
 struct orderData {
@@ -40,45 +46,68 @@ struct orderData {
 	bool isSequenced;
 };
 
-int SystemAddressComparison(const RakNet::SystemAddress& key1, const RakNet::SystemAddress& key2);
+struct RttKey {
+	RakNet::SystemAddress systemAddress;
+	int sequenceIndex; // 몇 번째 패킷인지 식별 (중복 방지)
+
+	// 기본 생성자
+	RttKey() : sequenceIndex(0) {
+		systemAddress = RakNet::UNASSIGNED_SYSTEM_ADDRESS;
+	}
+	RttKey(RakNet::SystemAddress sa, int seq) : systemAddress(sa), sequenceIndex(seq) {}
+};
+
+int RttKeyComparison(const RttKey& key1, const RttKey& key2);
 
 class MethodManager
 {
 public:
 	static MethodManager* Instance();
 	static void DestroyInstance();
-	void Initialize(int methodMask, bool isServer);
+	void Initialize(int methodMask, int methodLogMask, int scenario, bool isServer);
 	void Activate();
-	void UpdateMethods(int activeMethodsBitmask);
 	void UpdateMethod(int methodFlag);
 	bool IsMethodActive(int methodFlag) const;
+	bool IsMethodLogActive(int methodLogFlag) const;
 	bool isMethodZero() const { return currentMethodsBitmask == 0; }
 	void ExecuteMethod1(RakNet::BitStream* bs);
+	void ExecuteMethod3(RakNet::BitStream* bs, RakNet::SystemAddress target);
+	void SendManagedPacket(RakNet::BitStream* bs, RakNet::SystemAddress target, int methodType);
 	int CalculateDelayForPlayer(RakNet::SystemAddress sa);
 	void EnqueuePacket(RakNet::SystemAddress target, RakNet::BitStream* bs, RakNet::TimeMS delayMs);
-	void RecordSendTime(RakNet::SystemAddress sa, RakNet::TimeMS time);
-	RakNet::TimeMS GetAndRemoveSendTime(RakNet::SystemAddress sa);
-
+	void RecordSendTime(RakNet::SystemAddress sa, int sequenceIndex, RakNet::TimeMS time, int methodType);
+	RakNet::TimeMS GetAndRemoveSendTime(RakNet::SystemAddress sa, int sequenceIndex, int methodType);
+	void UpdateMethod3();
+	int GetCongestedUserCount();
+	static int ConvertMethodToIndex(int method);
+	int GetSequenceIndexForMethod(int method);
+	
 	bool method1bool;
-	int eval1cnt;
+	int method1cnt;
+	int currentCongestedUserCount;
+	int method3cnt;
 
 	int um_cnt;
 	int am_cnt;
 	int sumScore;
-	RakNet::TimeMS reactionTime = 0;
+	RakNet::TimeMS reactionTime;
+  
 	DataStructures::Heap<uint64_t, orderData, false> orderPq;
 	DataStructures::Map<int, RakNet::TimeMS> umTimeMap;
 	DataStructures::Map<int, RakNet::TimeMS> umReceptionTimes;
-	DataStructures::Map<RakNet::SystemAddress, RakNet::TimeMS, SystemAddressComparison> packetSendTimeMap;  //Key: 플레이어 주소, Value: 보낸 시간(ms)
-	std::mutex mapMutex; // 스레드 안전성을 위해 뮤텍스 권장
-
+	DataStructures::Map<RttKey, RakNet::TimeMS, RttKeyComparison> method1RttMap;
+	DataStructures::Map<RttKey, RakNet::TimeMS, RttKeyComparison> method3RttMap;
+	std::mutex mapMutex;  // 스레드 안전성을 위해 뮤텍스 권장
+	int scenarioNum;      // 현재 실험 시나리오 번호 (0은 자유 1~3은 시나리오와 제일 관련이 깊은 메소드 번호, )
 private:
 	MethodManager();
 	~MethodManager();
 	void ThreadLoop();
 	static MethodManager* instance;
-	int currentMethodsBitmask;
-	RakNet::TimeMS eval3LogTime;
+	int currentMethodsBitmask;		// 활성화된 메소드 비트마스크
+	int currentMethodsLogBitmask;	// 메소드 로그 기록 비트마스크
+	
+	RakNet::TimeMS method3LogTime;
 	bool isServer;
 
 	std::priority_queue<ScheduledPacket, std::vector<ScheduledPacket>, std::greater<ScheduledPacket>> taskQueue;
@@ -87,5 +116,8 @@ private:
 	std::thread* schedulerThread;
 	std::atomic<bool> isRunning;
 	
+	std::mutex congestionMutex;
+	DataStructures::Map<RakNet::SystemAddress, PlayerCongestionState> playerCongestionMap;
+	const double DEFAULT_BURST_D = 1.0;
 };
 

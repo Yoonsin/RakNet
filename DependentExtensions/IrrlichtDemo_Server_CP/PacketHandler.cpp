@@ -29,7 +29,11 @@ void PacketHandler::DestroyInstance() {
 	}
 }
 
-PacketHandler::PacketHandler() {}
+PacketHandler::PacketHandler() {
+	testPacketCount = 0;
+	testRountCount = 0;
+	testStartTime = 0;
+}
 PacketHandler::~PacketHandler() {
 	// 안전한 포인터 삭제 로직
 }
@@ -174,6 +178,7 @@ void PacketHandler::OnHandlePacket() {
 						bs.Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos);
 						bs.Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
 						bs.Write(false);
+						bs.Write(0); // sequenceNum
 						NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 					}
 					break;
@@ -220,13 +225,15 @@ void PacketHandler::OnHandlePacket() {
 			core::vector3df respawnPos;
 			core::vector3df respawnTarget;
 			bool eval1;
+			int sequenceNum;
 
 			//리스폰 요청 보낸 봇의 GUID
 			bsIn.Read(botGuid);
 			bsIn.Read(respawnPos);
 			bsIn.Read(respawnTarget);
 			bsIn.Read(eval1);
-
+			bsIn.Read(sequenceNum); // 메소드 1의 읽
+			
 			if (NetworkManager::Instance()->IsServer()) {
 				//보낸 이를 제외한 모두에게 다시 브로드캐스팅
 				RakNet::BitStream bs;
@@ -235,6 +242,7 @@ void PacketHandler::OnHandlePacket() {
 				bs.Write(respawnPos);
 				bs.Write(respawnTarget);
 				bs.Write(false);
+				bs.Write(0);
 
 				NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, botGuid, true);
 			}
@@ -243,6 +251,8 @@ void PacketHandler::OnHandlePacket() {
 				    //클라이언트가 받았을 때 서버에게 ACK 전송
 					RakNet::BitStream bs;
 					bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_ACK);
+					bs.Write(METHOD_1);
+					bs.Write(sequenceNum);
 					NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 				}
 			}
@@ -268,25 +278,63 @@ void PacketHandler::OnHandlePacket() {
 		{
 			RakNet::BitStream bsIn(packet->data, packet->length, false);
 			bsIn.IgnoreBytes(1);
+			int methodType = 0;
+			int packetSequence = 0;
+			bsIn.Read(methodType);
+			bsIn.Read(packetSequence);
 
 			if (NetworkManager::Instance()->IsServer()) {
 				// 1. DS_Map에서 보낸 시간 꺼내오기
-				RakNet::TimeMS sentTime = MethodManager::Instance()->GetAndRemoveSendTime(packet->systemAddress);
-
+				RakNet::TimeMS sentTime = MethodManager::Instance()->GetAndRemoveSendTime(packet->systemAddress, packetSequence, methodType);
+				
+				if(methodType == METHOD_3) NetLogManager::Instance()->PrintDebug(RakNet::RakString("[Server] Stress Test Batch END / IP : %s / ROUND : %d", packet->systemAddress.ToString(false), packetSequence));
 				// 2. 기록이 있다면 RTT 계산 (현재시간 - 보낸시간)
 				if (sentTime != 0) {
-					RakNet::TimeMS currentTime = RakNet::GetTimeMS();
-					RakNet::TimeMS appRTT = currentTime - sentTime;
+					RakNet::TimeMS currentTime = RakNet::GetTimeMS(); RakNet::TimeMS appRTT = currentTime - sentTime;
+					if (MethodManager::Instance()->IsMethodLogActive(methodType)) NetLogManager::Instance()->LogRTT(methodType, packet->systemAddress, appRTT, packetSequence);
+				}
+			}
+		}
+		break;
+		case ID_GAME_MESSAGE_HEAVY_PACKET:
+		{
+			RakNet::BitStream bsIn(packet->data, packet->length, false);
+			bsIn.IgnoreBytes(1);
+			
+			RakNet::TimeMS serverTime;
+			bsIn.Read(serverTime); // Timestamp
+			int packetSize;
+			bsIn.Read(packetSize); // Dummy Data Size
+			bsIn.IgnoreBytes(packetSize); // Dummy Data Skip
 
-					// [수정] NetLogManager를 통해 파일 로그 버퍼에 저장 // 현재 활성화된 메소드가 무엇인지 확인하여 인덱스로 전달 (예: METHOD_1 -> 1)
-					int currentMethodIndex = 0;
-					if (MethodManager::Instance()->IsMethodActive(METHOD_1)) currentMethodIndex = 1;
-					// else if (MethodManager::Instance()->IsMethodActive(METHOD_2)) currentMethodIndex = 2; // 필요시 확장
+			int packetIndex;
+			bsIn.Read(packetIndex); //패킷 번호 읽기 (0 ~ 99)
+			int packetSequence;
+			bsIn.Read(packetSequence); //패킷 일련번호 읽기
 
-					// 1. 메모리에 로그 기록 (나중에 파일로 저장됨)
-					NetLogManager::Instance()->LogRTT(currentMethodIndex, packet->systemAddress, appRTT);
-					// 2. 콘솔에도 바로 확인용 출력
-					NetLogManager::Instance()->PrintDebug("[APP_RTT] %s : %d ms\n", packet->systemAddress.ToString(), appRTT);
+			// 1. 시작 패킷 (0번)
+			if (packetIndex == 0) {
+				testStartTime = RakNet::GetTimeMS();
+				NetLogManager::Instance()->PrintDebug("Batch Start\n");
+				//HUDManager::Instance()->PushMessage(RakNet::RakString("Batch Start"));
+			}
+
+			// 2. 종료 패킷 (99번) -> 여기서 측정 종료
+			if (packetIndex == 99) {
+				RakNet::TimeMS endTime = RakNet::GetTimeMS();
+				RakNet::TimeMS duration = endTime - testStartTime;
+				if (testStartTime > 0) {
+					testRountCount++;
+					NetLogManager::Instance()->PrintDebug("Batch Complete / Round %d", testRountCount);
+					//HUDManager::Instance()->PushMessage(RakNet::RakString("Batch Complete / Round %d", testRountCount));
+					testStartTime = 0; 
+
+					//서버에 ACK 전송
+					RakNet::BitStream bs;
+					bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_ACK);
+					bs.Write(METHOD_3);
+					bs.Write(packetSequence);
+					NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 				}
 			}
 		}
@@ -310,7 +358,7 @@ void PacketHandler::MakeRespawnPacket(RakNet::BitStream* bs) {
 
 	if (MethodManager::Instance()->IsMethodActive(METHOD_1)) {
 		MethodManager::Instance()->UpdateMethod(METHOD_1);
-		if (MethodManager::Instance()->eval1cnt > 500) {
+		if (MethodManager::Instance()->method1cnt > 500) {
 			CInGame::Instance()->isGameEnd = true;
 			return;
 		}
@@ -321,14 +369,15 @@ void PacketHandler::MakeRespawnPacket(RakNet::BitStream* bs) {
 	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos);
 	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
 	bs->Write(MethodManager::Instance()->method1bool);
+	bs->Write(MethodManager::Instance()->method1cnt); //패킷 일련번호
 }
+
 
 void PacketHandler::OnUpdateReplica() {
 	if (SceneManager::Instance()->currentScene >= 1)
 	{
 		//(서버 봇을 제외한) 모든 플레이어가 생성되면 서버 측에서 이름을 할당
 		//클라 측에서 이름을 할당하는게 더 편하나 현재 모바일에서 이름을 할당하기 어려운 문제가 있어서 서버 측에서 할당.
-		
 		if (NetworkManager::Instance()->IsServer() && CInGame::Instance()->isPlayersNameSet == false && NetworkManager::Instance()->GetMaxClientCnt() == NetworkManager::Instance()->GetPlayerList().Size() - CInGame::Instance()->serverPlayerCnt) {
 			CInGame::Instance()->isPlayersNameSet = true;
 			int playerCnt = 1; int botCnt = 1;
@@ -353,7 +402,7 @@ void PacketHandler::OnUpdateReplica() {
 				bs.Write(player->creatingSystemGUID);
 			}
 
-			NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+			NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS,true);
 
 			//서버 측 이름은 여기서 할당
 			const char* charStr = serverNames.C_String();

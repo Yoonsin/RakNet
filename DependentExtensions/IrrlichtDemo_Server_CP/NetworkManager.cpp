@@ -35,11 +35,13 @@
 //#endif // __ANDROID__
 
 #include "NetworkManager.h"
+#include "HUDManager.h"
 #include "NetworkIDManager.h"
 #include "Replicas.h" // PlayerReplica 등을 위해 필요
 #include "NetLogManager.h"
 #include "CInGame.h"
 #include "MethodManager.h"
+#include "PacketHandler.h"
 #include "RakNetStatistics.h"
 
 using namespace RakNet;
@@ -66,8 +68,9 @@ NetworkManager::~NetworkManager() {
 	// 안전한 포인터 삭제 로직
 }
 
-void NetworkManager::Initialize(bool isServer, int maxClientCnt) { 
+void NetworkManager::Initialize(bool isServer, bool isLocalServer, int maxClientCnt) { 
 	topology = isServer ? Topology::SERVER : Topology::CLIENT;
+	this->isLocalServer = isLocalServer;
 	this->MaxClientCnt = maxClientCnt;
 }
 
@@ -98,8 +101,8 @@ void NetworkManager::Activate()
 	if (topology == SERVER) {
 		sr = rakPeer->Startup(MAX_PLAYERS, &sd, 1);
 		rakPeer->SetMaximumIncomingConnections(MAX_PLAYERS);
-		//if (CInGame::Instance()->evalMask & METHOD_3)
-			//rakPeer->ApplyNetworkSimulator(0.1f, 100, 50);
+		if (MethodManager::Instance()->IsMethodActive(METHOD_3) && MethodManager::Instance()->IsMethodLogActive(METHOD_3)) 
+			rakPeer->SetPerConnectionOutgoingBandwidthLimit(0); // 1000000 = 1Mbps
 	}
 	else sr = rakPeer->Startup(1, &sd, 1);
 	rakPeer->SetOccasionalPing(true);
@@ -128,23 +131,12 @@ void NetworkManager::Activate()
 #if __ANDROID__
 		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
 #else
-		//ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //랜
-		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
-
+		if(isLocalServer)ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //랜
+		else ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //랜
 #endif // __ANDROID__
-		//loggerPlugin = PacketLogger::GetInstance();
-		//rakPeer->AttachPlugin(loggerPlugin);
 	}
 	else if (topology == SERVER) {
-		/*if(isBot) replicaManager3->Reference(playerBotReplica);
-		else replicaManager3->Reference(playerReplica);*/
-		if (MethodManager::Instance()->IsMethodActive(METHOD_3)) {
-			statisticsPlugin = StatisticsHistoryPlugin::GetInstance();
-			statisticsPlugin->SetTrackConnections(true, 0, true);
-			rakPeer->AttachPlugin(statisticsPlugin);
-		}
-		//loggerPlugin = PacketLogger::GetInstance();
-		//rakPeer->AttachPlugin(loggerPlugin);
+
 	}
 }
 
@@ -162,25 +154,67 @@ void NetworkManager::Shutdown()
 	delete networkIDManager;
 	delete replicaManager3;
 	
-	if (MethodManager::Instance()->IsMethodActive(METHOD_3)) {
-		if (topology == SERVER) {
-			StatisticsHistoryPlugin::DestroyInstance(statisticsPlugin);
-			//delete statisticsPlugin;
-		}
-	}
-
 	if (CInGame::Instance()->isBot) {
 		playerBotReplica->PreDestruction(0);
 		delete playerBotReplica;
-		//delete loggerPlugin;
 	}
 	else {
 		playerReplica->PreDestruction(0);
 		delete playerReplica;
-		//delete loggerPlugin;
 	}
 }
 
+void NetworkManager::Update() {
+	if (isStressTesting) {
+		if (RakNet::GetTimeMS() > stressEndTime) {
+			isStressTesting = false;
+			HUDManager::Instance()->PushMessage(RakNet::RakString("[Server] Stress Test ENDED."));
+			NetLogManager::Instance()->PrintDebug("[Server] Stress Test ENDED.\n");
+		}
+		else {
+			// 매 프레임마다 조금씩 데이터를 쏟아부음 (지속적 혼잡 유발)
+			MethodManager::Instance()->method3cnt++;
+			SendStressTestChunk();
+		}
+	}
+}
+
+void NetworkManager::StartStressTest(int durationMS) {
+	if (topology != SERVER) return;
+	isStressTesting = true;
+	stressEndTime = RakNet::GetTimeMS() + durationMS;
+	HUDManager::Instance()->PushMessage(RakNet::RakString("[Server] Stress Test STARTED for %d ms",durationMS));
+	NetLogManager::Instance()->PrintDebug("[Server] Stress Test STARTED for %d ms\n", durationMS);
+}
+
+void NetworkManager::SendStressTestChunk() {
+	// 한 프레임당 패킷 100개 (100KB) -> 144 프레임 기준 약 14.4Mbps
+	const int PACKET_SIZE = 1000; // 1KB
+	char dummyData[PACKET_SIZE];
+	memset(dummyData, 'S', PACKET_SIZE);
+
+	unsigned short numberOfSystems = rakPeer->NumberOfConnections();
+	for (unsigned short i = 0; i < numberOfSystems; i++) {
+		RakNet::SystemAddress sa = rakPeer->GetSystemAddressFromIndex(i);
+		if (sa == RakNet::UNASSIGNED_SYSTEM_ADDRESS) continue;
+		
+		RakNet::TimeMS startTime = RakNet::GetTimeMS();
+		int method3cnt = MethodManager::Instance()->method3cnt; // 현재 패킷 일련번호
+		MethodManager::Instance()->RecordSendTime(sa, method3cnt, startTime, METHOD_3);
+		
+		for (int j = 0; j < 100; j++) { 
+			RakNet::BitStream bs;
+			bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_HEAVY_PACKET);
+			bs.Write(RakNet::GetTimeMS()); 
+			bs.Write(PACKET_SIZE);
+			bs.Write(dummyData, PACKET_SIZE);
+			bs.Write((int)j);
+			bs.Write(method3cnt); // 패킷 일련번호
+			GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, sa, false);
+			//MethodManager::Instance()->SendManagedPacket(&bs, sa, METHOD_3);
+		}
+	}
+}
 
 bool Connection_RM3Irrlicht::QuerySerializationList(DataStructures::List< RakNet::Replica3*>& replicasToSerialize) {
 	(void)replicasToSerialize;

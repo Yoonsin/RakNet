@@ -91,19 +91,13 @@ struct Engine {
     int32_t height;
     SavedState state;
 
-    /// Resumes ticking the application.
     void Resume() {
-        // Checked to make sure we don't double schedule Choreographer.
         if (!running_) {
             running_ = true;
             ScheduleNextTick();
         }
     }
 
-    /// Pauses ticking the application.
-    ///
-    /// When paused, sensor and input events will still be processed, but the
-    /// update and render parts of the loop will not run.
     void Pause() { running_ = false; }
 
 private:
@@ -113,17 +107,6 @@ private:
         AChoreographer_postFrameCallback(AChoreographer_getInstance(), Tick, this);
     }
 
-    /// Entry point for Choreographer.
-    ///
-    /// The first argument (the frame time) is not used as it is not needed for
-    /// this sample. If you copy from this sample and make use of that argument,
-    /// note that there's an API bug: that time is a signed 32-bit nanosecond
-    /// counter on 32-bit systems, so it will roll over every ~2 seconds. If your
-    /// minSdkVersion is 29 or higher, use AChoreographer_postFrameCallback64
-    /// instead, which is 64-bits for all architectures. Otherwise, bitwise-and
-    /// the value with the upper bits from CLOCK_MONOTONIC.
-    ///
-    /// \param data The Engine being ticked.
     static void Tick(long, void* data) {
         CHECK_NOT_NULL(data);
         auto engine = reinterpret_cast<Engine*>(data);
@@ -135,11 +118,6 @@ private:
             return;
         }
 
-        // Input and sensor feedback is handled via their own callbacks.
-        // Choreographer ensures that those callbacks run before this callback does.
-
-        // Choreographer does not continuously schedule the callback. We have to re-
-        // register the callback each time we're ticked.
         ScheduleNextTick();
         Update();
         DrawFrame();
@@ -350,10 +328,12 @@ void android_main(android_app* state) {
     bool isBot = false;
     int clientCount = 1;
     int winScore = 10;
-    int methodMask = 1;
+    int methodMask = METHOD_1;
+    int methodLogMask = METHOD_1;
+    int scenario = 1;
     const char* baseDir = "/storage/emulated/0/Download";
 
-    new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask);
+    new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask, methodLogMask, scenario, false);
     CInGame::Instance()->state = state;
     CInGame::Instance()->Run();
     CInGame::DestroyInstance();

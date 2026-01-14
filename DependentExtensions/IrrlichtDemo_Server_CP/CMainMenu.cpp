@@ -91,7 +91,7 @@ private:
 
 CMainMenu::CMainMenu()
 : startButton(0), MenuDevice(0), selected(2), start(false),
-	shadows(false), additive(false), transparent(true), vsync(false), aa(false), isServer(false), isBot(false),
+shadows(false), additive(false), transparent(true), vsync(false), aa(false), isServer(false), isBot(false), isLocalServer(false),
 #ifdef _DEBUG
 	fullscreen(false), music(false)
 #else
@@ -103,7 +103,7 @@ CMainMenu::CMainMenu()
 
 bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 			bool& outAdditive, bool& outVSync, bool& outAA,
-			video::E_DRIVER_TYPE& outDriver, core::stringw &playerName, bool& outIsServer, int& outLogCount, bool& outIsBot)
+			video::E_DRIVER_TYPE& outDriver, core::stringw &playerName, bool& outIsServer, int& outLogCount, bool& outIsBot, bool& outIsLocalServer)
 {
 	
 	video::E_DRIVER_TYPE driverType;
@@ -279,12 +279,14 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 		optTab, 9, L"Server");
 	guienv->addCheckBox(isBot, core::rect<int>(135, 135 + d, 245, 160 + d),
 		optTab, 10, L"Bot");
+	guienv->addCheckBox(isLocalServer, core::rect<int>(135, 185 + d, 245, 210 + d),
+		optTab, 13, L"LocalServer");
 
 	wchar_t buffer[20];
 	swprintf(buffer, 20, L"%d", outLogCount);
 	// RakNet: Add edit box
-	logCountEditBox = guienv->addEditBox(buffer, core::rect<int>(20, 185 + d, 230, 210 + d), true, optTab, 11);
-	nameEditBox = guienv->addEditBox(L"Your name here", core::rect<int>(20, 185 + d+30, 230, 210 + d+30), true, optTab, 12);
+	logCountEditBox = guienv->addEditBox(buffer, core::rect<int>(20, 185 + d, 130, 210 + d), true, optTab, 11);
+	nameEditBox = guienv->addEditBox(L"Your name here", core::rect<int>(20, 185 + d + 30, 230, 210 + d + 30), true, optTab, 12);
 
 #endif //__ANDROID__
 	
@@ -471,6 +473,7 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	outAA = aa;
 	outIsServer = isServer;
 	outIsBot = isBot;
+	outIsLocalServer = isLocalServer;
 
 	switch(selected)
 	{
@@ -615,13 +618,9 @@ bool CMainMenu::OnEvent(const SEvent& event)
 				sprintf(strDisplay, "start button click!!!");
 				MenuDevice->getLogger()->log(strDisplay);*/
 				
-				if (nameEditBox) {
-					name = nameEditBox->getText();
-				}
+				if (nameEditBox) { name = nameEditBox->getText(); }
 
-				if (logCountEditBox) {
-					logCnt = logCountEditBox->getText();
-				}
+				if (logCountEditBox) { logCnt = logCountEditBox->getText(); }
 
 				MenuDevice->closeDevice();
 				MenuDevice->drop();
@@ -658,6 +657,10 @@ bool CMainMenu::OnEvent(const SEvent& event)
 		case 10:
 			if (event.GUIEvent.EventType == gui::EGET_CHECKBOX_CHANGED)
 				isBot = ((gui::IGUICheckBox*)event.GUIEvent.Caller)->isChecked();
+			break;
+		case 13:
+			if (event.GUIEvent.EventType == gui::EGET_CHECKBOX_CHANGED)
+				isLocalServer = ((gui::IGUICheckBox*)event.GUIEvent.Caller)->isChecked();
 			break;
 		}
 	}

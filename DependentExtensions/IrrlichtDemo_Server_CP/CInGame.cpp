@@ -55,24 +55,9 @@ void CInGame::DestroyInstance() {
 	}
 }
 
-void CInGame::ShutDown() {
-	MethodManager::DestroyInstance();
-	NetLogManager::Instance()->Shutdown();
-	NetLogManager::DestroyInstance();
-	NetworkManager::Instance()->Shutdown();
-	NetworkManager::DestroyInstance();
-	CollisionManager::DestroyInstance();
-	InputController::DestroyInstance();
-	PacketHandler::DestroyInstance();
-	HUDManager::DestroyInstance();
-	SceneManager::DestroyInstance();
-	device->drop();
-	device = nullptr;
-}
-
 CInGame::CInGame(){}
 
-CInGame::CInGame(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw& _playerName, bool isS, GamePlatform plat, bool isLog, int ClientCnt, const char* base, bool _isBot, int _winScore, int methodMask)
+CInGame::CInGame(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw& _playerName, bool isS, GamePlatform plat, bool isLog, int ClientCnt, const char* base, bool _isBot, int _winScore, int methodMask, int methodLogMask, int scenario, bool isLocalS)
 {
 	if (instance == nullptr) instance = this;
 
@@ -91,9 +76,9 @@ CInGame::CInGame(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRI
 	driverType = d;
 	
 	SceneManager::Instance()->Initialize(f,m,s,a,v,fsaa,d); 
-	NetworkManager::Instance()->Initialize(isS, ClientCnt );
+	NetworkManager::Instance()->Initialize(isS, isLocalS, ClientCnt);
 	NetLogManager::Instance()->Initialize(isLog, 30000, base); 
-	MethodManager::Instance()->Initialize(methodMask, isS); 
+	MethodManager::Instance()->Initialize(methodMask, methodLogMask, scenario, isS); 
 	HUDManager::Instance()->Initialize(); 
 }
 
@@ -132,7 +117,7 @@ void CInGame::Activate()
 	device = createDeviceEx(params);
 #endif //__ANDROID__
 
-	//Android¿¡¼­ MIP_MAPS¸¦ ²ôÁö ¾ÊÀ¸¸é ÄùÀÌÅ© ¸Ê ÀüÃ¼°¡ °Ë°Ôº¸ÀÓ
+	//Androidï¿½ï¿½ï¿½ï¿½ MIP_MAPSï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Å© ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½Ë°Ôºï¿½ï¿½ï¿½
 	device->getVideoDriver()->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
 	device->setWindowCaption(L"Irrlicht Engine Demo");
 	device->getSceneManager()->setAmbientLight(video::SColorf(0x00c0c0c0)); // set ambient light
@@ -143,7 +128,7 @@ void CInGame::Activate()
 #elif __ANDROID__
 	mediaPath = "media/"; //"irrlicht/media/";
 #else
-	mediaPath = "../../../IrrlichtMedia/";
+	mediaPath = "../../../../IrrlichtMedia/";
 #endif //_WIN32
 
 #ifdef __ANDROID__
@@ -182,6 +167,21 @@ void CInGame::Activate()
 	else device->getFileSystem()->addFileArchive(mediaPath + "map-20kdm2.pk3", true, true, io::EFAT_ZIP);
 }
 
+void CInGame::ShutDown() {
+	NetLogManager::Instance()->Shutdown();
+	NetLogManager::DestroyInstance();
+	MethodManager::DestroyInstance();
+	NetworkManager::Instance()->Shutdown();
+	NetworkManager::DestroyInstance();
+	CollisionManager::DestroyInstance();
+	InputController::DestroyInstance();
+	PacketHandler::DestroyInstance();
+	HUDManager::DestroyInstance();
+	SceneManager::DestroyInstance();
+	device->drop();
+	device = nullptr;
+}
+
 void CInGame::Run()
 {
 	auto duration = std::chrono::system_clock::now().time_since_epoch();
@@ -197,15 +197,16 @@ void CInGame::Run()
 	{
 		Update();
 		SceneManager::Instance()->Update(); //load next scene if necessary
+		NetworkManager::Instance()->Update();
 		PacketHandler::Instance()->Update();
-		// 1ÃÊ¸¶´Ù ³×Æ®¿öÅ© Åë°è ·Î±× Ãâ·Â (Method 3°¡ È°¼ºÈ­µÈ °æ¿ì)
-		if (GetGamePlatform() == Server && MethodManager::Instance()->IsMethodActive(METHOD_3))MethodManager::Instance()->UpdateMethod(METHOD_3);
+		// 1ï¿½Ê¸ï¿½ï¿½ï¿½ ï¿½ï¿½Æ®ï¿½ï¿½Å© ï¿½ï¿½ï¿½ ï¿½Î±ï¿½ ï¿½ï¿½ï¿½ (Method 3ï¿½ï¿½ È°ï¿½ï¿½È­ï¿½ï¿½ ï¿½ï¿½ï¿½)
+		if (GetGamePlatform() == Server && MethodManager::Instance()->IsMethodActive(METHOD_3)) MethodManager::Instance()->UpdateMethod(METHOD_3);
 	}
 	ShutDown();
 }
 
 void CInGame::Update() {
-	if (isGameStart && !MethodManager::Instance()->IsMethodActive(METHOD_2)) MoveBot();
+	if (isGameStart && MethodManager::Instance()->scenarioNum == 1) MoveBot();
 	if (isShoot) { shoot(); isShoot = false; }
 }
 
@@ -263,7 +264,7 @@ void CInGame::MoveBot()
 				RakNet::BitStream bs; 
 				PacketHandler::Instance()->MakeRespawnPacket(&bs);
 				if (bs.GetNumberOfBytesUsed() > 0) {
-					if (NetworkManager::Instance()->IsServer() && MethodManager::Instance()->IsMethodActive(METHOD_1) == true) MethodManager::Instance()->ExecuteMethod1(&bs);
+					if (NetworkManager::Instance()->IsServer() && MethodManager::Instance()->IsMethodActive(METHOD_1) == true) MethodManager::Instance()->SendManagedPacket(&bs, RakNet::UNASSIGNED_SYSTEM_ADDRESS, METHOD_1);
 					else NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 				}
 			}
@@ -293,7 +294,7 @@ void CInGame::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform p
 		break;
 	}
 
-	//º¿ÀÌ¸é º¿ ÁöÁ¤À§Ä¡·Î (ÀÓ½Ã)
+	//ï¿½ï¿½ï¿½Ì¸ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¡ï¿½ï¿½ (ï¿½Ó½ï¿½)
 	if (isBot) {
 		initPos = core::vector3df(-118.683563, 224.552368, -493.077454);
 		initTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
@@ -307,7 +308,7 @@ void CInGame::SetResetBot() {
 
 	//Direction
 	//-1 : Left, 0 : Down , 1 : Right
-	//±× ¿Ü : °íÁ¤À§Ä¡
+	//ï¿½ï¿½ ï¿½ï¿½ : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¡
 	dir = RandomInt(-1, 1);
 	if (MethodManager::Instance()->IsMethodActive(METHOD_1)) dir = 2;
 	if (MethodManager::Instance()->IsMethodActive(METHOD_2)) dir = 3;
@@ -331,12 +332,12 @@ void CInGame::SetResetBot() {
 		  break;
 	case 2: {
 		if (MethodManager::Instance()->method1bool) {
-			//¶³¾îÁø °÷
+			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos = core::vector3df(-118.683563, 224.552368, -493.077454);
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
 		}
 		else {
-			//º»·¡ À§Ä¡
+			//ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos = core::vector3df(-46.856121, 217.035385, -292.425385);
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget = core::vector3df(-518.377686, 332.969666, -276.827545);
 		}
@@ -344,7 +345,7 @@ void CInGame::SetResetBot() {
 	}
 		break;
 	case 3: {
-		//¿ø·¡ Á×¾ú´ø °÷¿¡¼­ ºÎÈ°
+		//ï¿½ï¿½ï¿½ï¿½ ï¿½×¾ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È°
 		NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos = NetworkManager::Instance()->GetPlayerBotReplica()->position;
 		NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget = core::vector3df(-518.377686, 332.969666, -276.827545);
 	}
@@ -353,7 +354,7 @@ void CInGame::SetResetBot() {
 		break;
 	}
 
-	//¸Þ¼Òµå 2°°Àº °æ¿ì´Â °íÁ¤ °ªÀ¸·Î
+	//ï¿½Þ¼Òµï¿½ 2ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if (MethodManager::Instance()->IsMethodActive(METHOD_2)) return;
 	if (SceneManager::Instance()->fpsCamAnim) SceneManager::Instance()->fpsCamAnim->setMoveSpeed(RandomFloat(0.1f, 0.5f));
 
@@ -385,7 +386,7 @@ void CInGame::WriteQoSInfo() {
 	string data = "";
 	data += std::to_string(PORT) + std::string("|");
 	data += std::to_string(NetworkManager::Instance()->GetPlayerReplica()::playerList.Size() - 1) + std::string("|");
-	data += std::to_string(evalMask) + std::string("*"); //¼­¹ö ÀÚ½Å Á¦¿Ü
+	data += std::to_string(evalMask) + std::string("*"); //ï¿½ï¿½ï¿½ï¿½ ï¿½Ú½ï¿½ ï¿½ï¿½ï¿½ï¿½
 
 	//port|userCnt*UserData*UserData*UserData...
 	//UserData = IP/Platform/RTT(AveragePing)/ LastPing(LastPing)/2 /FPS
@@ -402,7 +403,7 @@ void CInGame::WriteQoSInfo() {
 		data += std::to_string(NetworkManager::Instance()->GetPeer()->GetLastPing(player->creatingSystemGUID)) + std::string("/");
 		data += std::to_string(player->fps);
 		if (idx !=NetworkManager::Instance()->GetPlayerList().Size() - 1) data += std::string("*");
-		NetworkManager::Instance()->GetPeer()->Ping(addr); //RTTÀÇ ºü¸¥ °»½ÅÀ» À§ÇÑ ÇÎ ¿äÃ»
+		NetworkManager::Instance()->GetPeer()->Ping(addr); //RTTï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Ã»
 	}
 	write_shm.copyToSharedMemory((char*)(data.c_str()));
 	sem.releaseSemaphore();

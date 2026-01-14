@@ -87,7 +87,7 @@ public:
 	static CInGame* Instance();
 	static void DestroyInstance();
 	CInGame();
-	CInGame(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base, bool isBot, int winScore,int mathodMask);
+	CInGame(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base, bool isBot, int winScore,int methodMask, int methodLogMask, int scenario, bool isLocalS);
 	~CInGame();
 	void Run();
 	void Activate();

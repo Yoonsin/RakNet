@@ -27,16 +27,19 @@ int main(int argc, char* argv[])
 	bool music = true;
 	bool shadows = false;
 	bool additive = false;
-	bool vsync = false;
+	bool vsync = true;
 	bool aa = false;
 	core::stringw playerName;
 
 	bool isServer = false;
+	bool isLocalServer = false;
 	bool isLogged = true;
 	bool isBot = true;
 	int clientCount = 2;
 	int winScore = 3;
 	int methodMask = METHOD_1;
+	int methodLogMask = METHOD_1;
+	int scenario = 1;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
@@ -48,44 +51,56 @@ int main(int argc, char* argv[])
 #ifdef _WIN32
 	/*_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);*/
 	CMainMenu menu;
-	char* token = strtok(strCmdLine, " ");  // °ø¹éÀ» ±âÁØÀ¸·Î ¸í·É¾î¸¦ ºÐ¸®
+	char* token = strtok(strCmdLine, " ");  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½É¾î¸¦ ï¿½Ð¸ï¿½
 	while (token != nullptr) {
 		if (strcmp(token, "-log") == 0) {
-			isLogged = true;  // -log ÀÎ¼ö°¡ ÀÖÀ¸¸é isLogged¸¦ true·Î ¼³Á¤
+			isLogged = true;  // -log ï¿½Î¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ isLoggedï¿½ï¿½ trueï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 		
 		}
 		else if (strcmp(token, "clientCnt") == 0) {
-			token = strtok(nullptr, " ");  // ´ÙÀ½ ÀÎ¼ö·Î ³Ñ¾î°¡±â
+			token = strtok(nullptr, " ");  // ï¿½ï¿½ï¿½ï¿½ ï¿½Î¼ï¿½ï¿½ï¿½ ï¿½Ñ¾î°¡ï¿½ï¿½
 			if (token != nullptr) {
-				clientCount = atoi(token);  // ´ÙÀ½ ÀÎ¼ö¸¦ Á¤¼ö·Î º¯È¯ÇÏ¿© clientCount¿¡ ÀúÀå
+				clientCount = atoi(token);  // ï¿½ï¿½ï¿½ï¿½ ï¿½Î¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ï¿ï¿½ clientCountï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 			}
 		}
 		else if (strcmp(token, "-bot") == 0) {
 			isBot = true;
 		}
 		else if (strcmp(token, "-score") == 0) {
-			token = strtok(nullptr, " ");  // ´ÙÀ½ ÀÎ¼ö·Î ³Ñ¾î°¡±â
+			token = strtok(nullptr, " ");  // ï¿½ï¿½ï¿½ï¿½ ï¿½Î¼ï¿½ï¿½ï¿½ ï¿½Ñ¾î°¡ï¿½ï¿½
 			if (token != nullptr) {
 				winScore = atoi(token);  
 			}
 		}
 		else if (strcmp(token, "-method") == 0) {
-			token = strtok(nullptr, " ");  // ´ÙÀ½ ÀÎ¼ö·Î ³Ñ¾î°¡±â
+			token = strtok(nullptr, " ");  // ï¿½ï¿½ï¿½ï¿½ ï¿½Î¼ï¿½ï¿½ï¿½ ï¿½Ñ¾î°¡ï¿½ï¿½
 			if (token != nullptr) {
 				methodMask = atoi(token); 
 			}
 		}
-		token = strtok(nullptr, " ");  // ´õ ÀÌ»ó ¾øÀ¸¸é Á¾·á
+		else if (strcmp(token, "-methodLog") == 0) {
+			token = strtok(nullptr, " ");  // ï¿½ï¿½ï¿½ï¿½ ï¿½Î¼ï¿½ï¿½ï¿½ ï¿½Ñ¾î°¡ï¿½ï¿½
+			if (token != nullptr) {
+				methodLogMask = atoi(token);
+			}
+		}
+		else if (strcmp(token, "-scenario") == 0) {
+			token = strtok(nullptr, " ");  // ï¿½ï¿½ï¿½ï¿½ ï¿½Î¼ï¿½ï¿½ï¿½ ï¿½Ñ¾î°¡ï¿½ï¿½
+			if (token != nullptr) {
+				scenario = atoi(token);
+			}
+		}
+		token = strtok(nullptr, " ");  // ï¿½ï¿½ ï¿½Ì»ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	}
 
 	const char* baseDir = "C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/stats";
 
 	//#ifndef _DEBUG
-	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer,clientCount,isBot))
+	if (menu.run(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer,clientCount,isBot, isLocalServer))
 		//#endif
 	{
 		if (isServer) platform = GamePlatform::Server;
-		new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask);
+		new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask, methodLogMask, scenario, isLocalServer);
 		CInGame::Instance()->Run();
 		CInGame::DestroyInstance();
 	}
@@ -94,14 +109,14 @@ int main(int argc, char* argv[])
 	vsync = true;
 	if (isServer) platform = GamePlatform::Server;
 
-	// ¸í·ÉÇà ÀÎ¼ö¸¦ Ã³¸®ÇÏ¿© isLogged °ª ¼³Á¤
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Î¼ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ï¿½Ï¿ï¿½ isLogged ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	for (int i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "-log") == 0) {
-			isLogged = true;  // -log ÀÎ¼ö°¡ ÀÖÀ¸¸é isLogged¸¦ true·Î ¼³Á¤
+			isLogged = true;  // -log ï¿½Î¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ isLoggedï¿½ï¿½ trueï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 		}
 		else if (strcmp(argv[i], "-clientCnt") == 0) {
 			if (i + 1 < argc) {
-				clientCount = atoi(argv[i + 1]);  // ´ÙÀ½ ÀÎ¼ö¸¦ Á¤¼ö·Î º¯È¯ÇÏ¿© clientCount
+				clientCount = atoi(argv[i + 1]);  // ï¿½ï¿½ï¿½ï¿½ ï¿½Î¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ï¿ï¿½ clientCount
 				i++;
 			}
 		}
@@ -120,11 +135,23 @@ int main(int argc, char* argv[])
 				i++;
 			}
 		}
+		else if (strcmp(argv[i], "-methodLog") == 0) {
+			if (i + 1 < argc) {
+				methodLogMask = atoi(argv[i + 1]);
+				i++;
+			}
+		}
+		else if (strcmp(argv[i], "-scenario") == 0) {
+			if (i + 1 < argc) {
+				scenario = atoi(argv[i + 1]);
+				i++;
+			}
+		}
 	}
 
 	const char* baseDir = "/home/parts/stats";
 
-	new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir,isBot, winScore, methodMask);
+	new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir,isBot, winScore, methodMask, methodLogMask, scenario, isLocalServer);
 	CInGame::Instance()->Run();
 	CInGame::DestroyInstance();
 #endif // _WIN32

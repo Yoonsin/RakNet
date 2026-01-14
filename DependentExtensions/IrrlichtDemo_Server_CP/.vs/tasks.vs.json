@@ -5,6 +5,11 @@
       "taskLabel": "task-IrrlichtDemo_Server_CP",
       "appliesTo": "/",
       "type": "launch"
+    },
+    {
+      "taskLabel": "task-CMakeLists",
+      "appliesTo": "CMakeLists.txt",
+      "type": "launch"
     }
   ]
 }

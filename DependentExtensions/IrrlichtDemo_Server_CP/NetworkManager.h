@@ -46,9 +46,10 @@ public:
 	~NetworkManager();
 
 	// 초기화 및 종료
-	void Initialize(bool isServer, int MaxClientCnt);
+	void Initialize(bool isServer, bool isLocalServer, int MaxClientCnt);
 	void Activate();
 	void Shutdown();
+	void Update();
 
 	// Getter
 	RakPeerInterface* GetPeer() const { return rakPeer; }
@@ -59,7 +60,9 @@ public:
 
 	Topology GetTopology() const { return topology; }
 	bool IsServer() const { return topology == Topology::SERVER; }
-
+	void StartStressTest(int durationMS);
+	void SendStressTestChunk();
+	
 	// 통계 플러그인 접근 (NetLogManager용)
 	StatisticsHistoryPlugin* GetStatisticsPlugin() const { return statisticsPlugin; }
 	void AddPlayer(PlayerReplica* player) { playerList.Push(player, _FILE_AND_LINE_); }
@@ -82,6 +85,9 @@ private:
 	PlayerReplica* playerReplica;
 	PlayerBotReplica* playerBotReplica;
 	int MaxClientCnt;
+	bool isLocalServer = false;
+	bool isStressTesting = false;
+	RakNet::TimeMS stressEndTime = 0;
 };
 
 class Connection_RM3Irrlicht : public RakNet::Connection_RM3 {

@@ -1,4 +1,5 @@
 #include "NetLogManager.h"
+#include "MethodManager.h"
 #include "NetworkManager.h"
 #include "GetTime.h"
 #include <cstdio>
@@ -15,6 +16,7 @@
 #include <sys/stat.h> // mkdir
 #define GetCurrentDir getcwd
 #endif
+
 
 using namespace RakNet;
 using namespace irr;
@@ -46,12 +48,13 @@ void NetLogManager::Initialize(bool enableLog, int maxLogCount, const char* base
 	baseDir = base;
 }
 
-void NetLogManager::LogRTT(int methodIndex, const RakNet::SystemAddress& sa, int rtt) {
+void NetLogManager::LogRTT(int methodType, const RakNet::SystemAddress& sa, int rtt, int Sequence) {
 	if (!isLoggingEnabled) return;
 
-	// CSV 포맷: Timestamp, IP, RTT
+	// CSV 포맷: Timestamp, IP, RTT, Sequence
 	RakNet::RakString logStr;
-	logStr.Set("%llu,%s,%d", RakNet::GetTimeMS(), sa.ToString(false), rtt);
+	logStr.Set("%u,%s,%d,%d", RakNet::GetTimeMS(), sa.ToString(false), rtt, Sequence);
+	int methodIndex = MethodManager::ConvertMethodToIndex(methodType);
 
 	std::lock_guard<std::mutex> lock(logMutex);
 	// 인덱스 안전 검사
@@ -64,7 +67,7 @@ void NetLogManager::LogRTT(int methodIndex, const RakNet::SystemAddress& sa, int
 	}
 }
 
-void NetLogManager::LogMessage(int methodIndex, const char* format, ...) {
+void NetLogManager::LogMessage(int methodType, const char* format, ...) {
 	if (!isLoggingEnabled) return;
 
 	char buffer[1024];
@@ -74,6 +77,7 @@ void NetLogManager::LogMessage(int methodIndex, const char* format, ...) {
 	va_end(args);
 
 	RakNet::RakString logStr(buffer);
+	int methodIndex = MethodManager::ConvertMethodToIndex(methodType);
 
 	std::lock_guard<std::mutex> lock(logMutex);
 	if (methodIndex >= 0 && methodIndex < logBuffers.Size()) {
@@ -85,10 +89,14 @@ void NetLogManager::LogMessage(int methodIndex, const char* format, ...) {
 }
 
 void NetLogManager::Shutdown() {
-	if(NetworkManager::Instance()->IsServer()) NetLogManager::Instance()->SaveLogsToCSV(1);
+	if (NetworkManager::Instance()->IsServer()) {
+		if (MethodManager::Instance()->IsMethodActive(METHOD_1) && MethodManager::Instance()->IsMethodLogActive(METHOD_1))NetLogManager::Instance()->SaveLogsToCSV(METHOD_1);
+		if (MethodManager::Instance()->IsMethodActive(METHOD_3) && MethodManager::Instance()->IsMethodLogActive(METHOD_3))NetLogManager::Instance()->SaveLogsToCSV(METHOD_3);
+	}
 }
 
-void NetLogManager::SaveLogsToCSV(int methodIndex) {
+void NetLogManager::SaveLogsToCSV(int methodType) {
+	int methodIndex = MethodManager::ConvertMethodToIndex(methodType);
 	std::lock_guard<std::mutex> lock(logMutex);
 
 	if (methodIndex < 0 || methodIndex >= logBuffers.Size()) return;
@@ -105,7 +113,7 @@ void NetLogManager::SaveLogsToCSV(int methodIndex) {
 	}
 
 	// CSV 헤더 작성
-	fprintf(fp, "Timestamp(ms),IP_Address,RTT(ms)\n");
+	fprintf(fp, "Timestamp(ms),IP_Address,RTT(ms),SequenceNum\n");
 
 	// 데이터 작성
 	for (unsigned int i = 0; i < logBuffers[methodIndex].Size(); i++) {

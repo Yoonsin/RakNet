@@ -23,10 +23,10 @@ public:
     void Initialize(bool enableLog, int maxLogCount, const char* base);
 
     // [핵심] RTT 로그 기록 함수 (Method 번호, 대상 주소, RTT 값)
-    void LogRTT(int methodIndex, const RakNet::SystemAddress& sa, int rtt);
+    void LogRTT(int methodType, const RakNet::SystemAddress& sa, int rtt, int Sequence = -1 );
 
     // 일반 메시지 로그 기록 (printf 처럼 사용)
-    void LogMessage(int methodIndex, const char* format, ...);
+    void LogMessage(int methodType, const char* format, ...);
 
     // 쌓인 로그를 CSV 파일로 저장
     void SaveLogsToCSV(int methodIndex);
