@@ -26,7 +26,7 @@ SceneManager::~SceneManager() {
 }
 
 void SceneManager::Cleanup() {
-	// 1. Selector ÇØÁ¦ (create·Î »ý¼ºµÈ °´Ã¼´Â ¹Ýµå½Ã drop ÇØ¾ß ÇÔ)
+	// 1. Selector ï¿½ï¿½ï¿½ï¿½ (createï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½Ýµï¿½ï¿½ drop ï¿½Ø¾ï¿½ ï¿½ï¿½)
 	if (metaSelector) {
 		metaSelector->drop();
 		metaSelector = nullptr;
@@ -36,7 +36,7 @@ void SceneManager::Cleanup() {
 		mapSelector = nullptr;
 	}
 
-	// 2. SceneNode ÇØÁ¦
+	// 2. SceneNode ï¿½ï¿½ï¿½ï¿½
 	if (quakeLevelNode) {
 		quakeLevelNode->remove();
 		quakeLevelNode = nullptr;
@@ -58,7 +58,7 @@ void SceneManager::Cleanup() {
 		model2 = nullptr;
 	}
 
-	// ÆÄÆ¼Å¬ ¹è¿­ ÃÊ±âÈ­
+	// ï¿½ï¿½Æ¼Å¬ ï¿½è¿­ ï¿½Ê±ï¿½È­
 	Impacts.clear();
 }
 void SceneManager::Initialize(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE d) {
@@ -104,6 +104,7 @@ void SceneManager::Update() {
 	guienv->drawAll();
 	HUDManager::Instance()->Update();
 	driver->endScene();
+
 }
 
 void SceneManager::createParticleImpacts()
@@ -251,8 +252,8 @@ void SceneManager::switchToNextScene()
 		keyMap[9].KeyCode = KEY_KEY_0;
 		keyMap[10].Action = EKA_ROTATE_RIGHT;
 		keyMap[10].KeyCode = KEY_KEY_1;
-		//camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //±âº» ÇÃ·¹ÀÌ
-		camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, false, 5.f); //±âº» ÇÃ·¹ÀÌ
+		//camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, true, 250.f); //ï¿½âº» ï¿½Ã·ï¿½ï¿½ï¿½
+		camera = sm->addCameraSceneNodeFPS(0, 1.0f, .4f, -1, keyMap, 11, false, 5.f); //ï¿½âº» ï¿½Ã·ï¿½ï¿½ï¿½
 		CInGame::Instance()->SetTransformCamera(camera, CInGame::Instance()->gamePlatform);
 
 		core::vector3df gravity = core::vector3df(0, /*-300.f*/quakeLevelMesh ? -10.f : 0.0f, 0);
@@ -322,11 +323,11 @@ void SceneManager::loadSceneData()
 
 #ifdef __ANDROID__
 	if (!quakeLevelMesh) {
-		NetLogManager::Instance()->PrintDebug("Error: Quake3 Level Mesh ·Îµå ½ÇÆÐ!");
+		NetLogManager::Instance()->PrintDebug("Error: Quake3 Level Mesh ï¿½Îµï¿½ ï¿½ï¿½ï¿½ï¿½!");
 	}
 	scene::IMesh* levelMesh = quakeLevelMesh->getMesh(scene::quake3::E_Q3_MESH_GEOMETRY);
 	if (!levelMesh) {
-		NetLogManager::Instance()->PrintDebug("Error: Quake Level Mesh Geometry°¡ NULL!");
+		NetLogManager::Instance()->PrintDebug("Error: Quake Level Mesh Geometryï¿½ï¿½ NULL!");
 	}
 #endif // __ANDROID__
 

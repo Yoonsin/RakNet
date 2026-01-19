@@ -74,6 +74,7 @@ CInGame::CInGame(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRI
 	isGameStart = false;
 	isGameEnd = false;
 	driverType = d;
+	if (driverType == video::EDT_NULL) isDummy = true;
 	
 	SceneManager::Instance()->Initialize(f,m,s,a,v,fsaa,d); 
 	NetworkManager::Instance()->Initialize(isS, isLocalS, ClientCnt);
@@ -214,7 +215,7 @@ void CInGame::shoot()
 {
 	if (NetworkManager::Instance()->GetPlayerReplica()==nullptr || NetworkManager::Instance()->GetPlayerReplica()->IsDead())
 		return;
-
+	
 	NetworkManager::Instance()->GetPlayerReplica()->shootCnt++;
 	HUDManager::Instance()->SetPlayerNameText();
 

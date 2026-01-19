@@ -39,7 +39,7 @@ NetLogManager::~NetLogManager() {
 void NetLogManager::Initialize(bool enableLog, int maxLogCount, const char* base) {
 
 	isLoggingEnabled = enableLog; maxLogEntries = maxLogCount;
-	// ¹öÆÛ ¹Ì¸® ÇÒ´ç (¸Ş¼Òµå 0~4¹ø Á¤µµ±îÁö Ä¿¹ö)
+	// ë²„í¼ ë¯¸ë¦¬ í• ë‹¹ (ë©”ì†Œë“œ 0~4ë²ˆ ì •ë„ê¹Œì§€ ì»¤ë²„)
 	std::lock_guard<std::mutex> lock(logMutex);
 	logBuffers.Clear(false, _FILE_AND_LINE_);
 	for (int i = 0; i < 5; i++) {
@@ -51,15 +51,15 @@ void NetLogManager::Initialize(bool enableLog, int maxLogCount, const char* base
 void NetLogManager::LogRTT(int methodType, const RakNet::SystemAddress& sa, int rtt, int Sequence) {
 	if (!isLoggingEnabled) return;
 
-	// CSV Æ÷¸Ë: Timestamp, IP, RTT, Sequence
+	// CSV í¬ë§·: Timestamp, IP, RTT, Sequence
 	RakNet::RakString logStr;
-	logStr.Set("%u,%s,%d,%d", RakNet::GetTimeMS(), sa.ToString(false), rtt, Sequence);
+	logStr.Set("%u,%s,%d,%d", RakNet::GetTimeMS(), sa.ToString(true), rtt, Sequence);
 	int methodIndex = MethodManager::ConvertMethodToIndex(methodType);
 
 	std::lock_guard<std::mutex> lock(logMutex);
-	// ÀÎµ¦½º ¾ÈÀü °Ë»ç
+	// ì¸ë±ìŠ¤ ì•ˆì „ ê²€ì‚¬
 	if (methodIndex >= 0 && methodIndex < logBuffers.Size()) {
-		// ÃÖ´ë °³¼ö ³ÑÀ¸¸é °¡Àå ¿À·¡µÈ °Í »èÁ¦ (¸Ş¸ğ¸® º¸È£)
+		// ìµœëŒ€ ê°œìˆ˜ ë„˜ìœ¼ë©´ ê°€ì¥ ì˜¤ë˜ëœ ê²ƒ ì‚­ì œ (ë©”ëª¨ë¦¬ ë³´í˜¸)
 		if (logBuffers[methodIndex].Size() >= maxLogEntries) {
 			logBuffers[methodIndex].RemoveAtIndex(0);
 		}
@@ -102,7 +102,7 @@ void NetLogManager::SaveLogsToCSV(int methodType) {
 	if (methodIndex < 0 || methodIndex >= logBuffers.Size()) return;
 	if (logBuffers[methodIndex].Size() == 0) return;
 
-	// ÆÄÀÏ¸í »ı¼º: baseDir/Method_X_Logs.csv
+	// íŒŒì¼ëª… ìƒì„±: baseDir/Method_X_Logs.csv
 	RakNet::RakString fileName;
 	fileName.Set("%s/Method_%d_RTT.csv", baseDir, methodIndex);
 
@@ -112,10 +112,10 @@ void NetLogManager::SaveLogsToCSV(int methodType) {
 		return;
 	}
 
-	// CSV Çì´õ ÀÛ¼º
+	// CSV í—¤ë” ì‘ì„±
 	fprintf(fp, "Timestamp(ms),IP_Address,RTT(ms),SequenceNum\n");
 
-	// µ¥ÀÌÅÍ ÀÛ¼º
+	// ë°ì´í„° ì‘ì„±
 	for (unsigned int i = 0; i < logBuffers[methodIndex].Size(); i++) {
 		fprintf(fp, "%s\n", logBuffers[methodIndex][i].C_String());
 	}
@@ -123,7 +123,7 @@ void NetLogManager::SaveLogsToCSV(int methodType) {
 	fclose(fp);
 	PrintDebug("Saved %d logs to %s\n", logBuffers[methodIndex].Size(), fileName.C_String());
 
-	// ÀúÀå ÈÄ ¹öÆÛ ºñ¿ì±â (¼±ÅÃ »çÇ×)
+	// ì €ì¥ í›„ ë²„í¼ ë¹„ìš°ê¸° (ì„ íƒ ì‚¬í•­)
 	logBuffers[methodIndex].Clear(false, _FILE_AND_LINE_);
 }
 
@@ -135,10 +135,10 @@ void NetLogManager::PrintDebug(const char* format, ...)
 	vsnprintf(buf, sizeof(buf), format, args);
 	va_end(args);
 #if defined(_WIN32)
-	// À©µµ¿ì: Visual Studio µğ¹ö±× Ãâ·ÂÃ¢¿¡ Ãâ·Â
+	// ìœˆë„ìš°: Visual Studio ë””ë²„ê·¸ ì¶œë ¥ì°½ì— ì¶œë ¥
 	OutputDebugStringA(buf);
 #else
-	// ¸®´ª½º/±âÅ¸ ÇÃ·§Æû: ±×³É stdout¿¡ Ãâ·Â
+	// ë¦¬ëˆ…ìŠ¤/ê¸°íƒ€ í”Œë«í¼: ê·¸ëƒ¥ stdoutì— ì¶œë ¥
 	printf("%s", buf);
 #endif
 }

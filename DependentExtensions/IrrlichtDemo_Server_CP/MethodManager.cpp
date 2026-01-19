@@ -5,18 +5,19 @@
 #include <cmath>
 #include <vector>
 #include <numeric>
+#include <utility>
+#include <tuple>
 
 using namespace RakNet;
 using namespace irr;
 
+// RTT Key Comparison
 int RttKeyComparison(const RttKey& key1, const RttKey& key2) {
     if (key1.systemAddress > key2.systemAddress) return 1;
     if (key1.systemAddress < key2.systemAddress) return -1;
-
     if (key1.sequenceIndex > key2.sequenceIndex) return 1;
     if (key1.sequenceIndex < key2.sequenceIndex) return -1;
-
-    return 0; 
+    return 0;
 }
 
 MethodManager* MethodManager::instance = nullptr;
@@ -29,26 +30,36 @@ MethodManager* MethodManager::Instance() {
 void MethodManager::DestroyInstance() {
     if (instance) {
         instance->isRunning = false;
-        instance->queueCondVar.notify_all(); // ÀÚ°í ÀÖ´Â ½º·¹µå ±ú¿ì±â
+        instance->queueCondVar.notify_all();
+
         if (instance->schedulerThread && instance->schedulerThread->joinable()) {
             instance->schedulerThread->join();
             delete instance->schedulerThread;
         }
 
-        // 2. [Ãß°¡] Å¥¿¡ ³²¾ÆÀÖ´Â ¹ÌÀü¼Û ÆÐÅ¶µéÀÇ ¸Þ¸ð¸® ÇØÁ¦
-         // priority_queue´Â clear()°¡ ¾øÀ¸¹Ç·Î ºô ¶§±îÁö ²¨³»¾ß ÇÔ
         {
-            std::lock_guard<std::mutex> lock(instance->queueMutex); // ¾ÈÀüÇÏ°Ô ¶ô °É°í ÁøÇà
+            std::lock_guard<std::mutex> lock(instance->queueMutex);
+
+            // í ë¹„ìš°ê¸° ìž‘ì—…
             while (!instance->taskQueue.empty()) {
                 ScheduledPacket packet = instance->taskQueue.top();
                 instance->taskQueue.pop();
+                if (packet.dataStream) delete packet.dataStream;
+            }
 
-                if (packet.dataStream) {
-                    delete packet.dataStream;
+            for (unsigned int i = 0; i < instance->playerQueues.Size(); i++) {
+                PlayerPacketQueue* pq = instance->playerQueues[i];
+                if (pq) {
+                    while (!pq->packetQ.empty()) {
+                        RakNet::BitStream* bs = pq->packetQ.front();
+                        pq->packetQ.pop();
+                        if (bs) delete bs;
+                    }
+                    delete pq;
                 }
             }
+            instance->playerQueues.Clear();
         }
-
         delete instance;
         instance = nullptr;
     }
@@ -56,36 +67,35 @@ void MethodManager::DestroyInstance() {
 
 MethodManager::MethodManager() {
     currentMethodsBitmask = 0;
-	currentMethodsLogBitmask = 0;
+    currentMethodsLogBitmask = 0;
     currentCongestedUserCount = 0;
     reactionTime = 0;
-	scenarioNum = 0;
+    scenarioNum = 0;
     method1bool = false;
     method1cnt = 0;
     method3cnt = 0;
-    method3LogTime = 0;
+    CongestionLogTime = 0;
     um_cnt = 0;
-    am_cnt = 0; 
-    sumScore = 0; 
-	schedulerThread = nullptr;
+    am_cnt = 0;
+    sumScore = 0;
+    schedulerThread = nullptr;
     isServer = false;
 }
 
 MethodManager::~MethodManager() {
     RakNet::TimeMS currentTime = RakNet::GetTimeMS();
-    if (IsMethodActive(METHOD_3) && currentTime - method3LogTime >= 1000) // 1000ms = 1ÃÊ
-    {
-		if (IsMethodLogActive(METHOD_3)) NetLogManager::Instance()->SaveLogsToCSV(3);
-        method3LogTime = currentTime;
+    if (IsMethodActive(METHOD_3) && currentTime - CongestionLogTime >= 1000) {
+        if (IsMethodLogActive(METHOD_3)) NetLogManager::Instance()->SaveLogsToCSV(3);
+        CongestionLogTime = currentTime;
     }
 }
 
 void MethodManager::Initialize(int methodMask, int methodLogMask, int scenario, bool isServer) {
     currentMethodsBitmask = methodMask;
-	currentMethodsLogBitmask = methodLogMask;
-	scenarioNum = scenario;
+    currentMethodsLogBitmask = methodLogMask;
+    scenarioNum = scenario;
+    this->isServer = isServer;
 
-	this->isServer = isServer;
     if (scenarioNum == 1) CInGame::Instance()->BOT_MOVE_TIME = 1000;
 
     if (this->isServer) {
@@ -94,20 +104,19 @@ void MethodManager::Initialize(int methodMask, int methodLogMask, int scenario, 
     }
 }
 
-void MethodManager::Activate() {
-}
+void MethodManager::Activate() {}
 
 int MethodManager::ConvertMethodToIndex(int method) {
     switch (method) {
     case METHOD_1: return 1;
     case METHOD_2: return 2;
     case METHOD_3: return 3;
-    default: return 0; // À¯È¿ÇÏÁö ¾ÊÀº °æ¿ì  
+    default: return 0;
     }
 }
 
 bool MethodManager::IsMethodActive(int methodFlag) const {
-	return (currentMethodsBitmask & methodFlag) != 0;
+    return (currentMethodsBitmask & methodFlag) != 0;
 }
 
 bool MethodManager::IsMethodLogActive(int methodLogFlag) const {
@@ -124,88 +133,150 @@ int MethodManager::GetSequenceIndexForMethod(int method) {
 }
 
 void MethodManager::UpdateMethod(int methodFlag) {
-	
-    if(IsMethodActive(METHOD_1)) if (method1bool) method1cnt++;
+    if (IsMethodActive(METHOD_1)) if (method1bool) method1cnt++;
+
     if (IsMethodActive(METHOD_3)) {
         RakNet::TimeMS currentTime = RakNet::GetTimeMS();
-        if (currentTime - method3LogTime >= 1000) // 1000ms = 1ÃÊ
-        {
-            UpdateMethod3(); //Åë°è °è»ê ¹× N_CI ¾÷µ¥ÀÌÆ®
-        	method3LogTime = currentTime;
+        if (currentTime - CongestionLogTime >= 1000) {
+            UpdateCongetstionIndex(); // CI Burst (Zero-Sum)
+            CongestionLogTime = currentTime;
         }
-	}
+    }
 }
 
 void MethodManager::EnqueuePacket(RakNet::SystemAddress target, RakNet::BitStream* bs, RakNet::TimeMS delayMs) {
-    if (!isServer || !isRunning) {
-        return;
-    }
-    
-    RakNet::TimeMS now = RakNet::GetTimeMS();
+    if (!isServer || !isRunning) return;
 
-    ScheduledPacket packet;
-    packet.executionTime = now + delayMs;
-    packet.targetAddress = target;
-
-    // BitStreamÀº ¸ÞÀÎ ·çÇÁ¿¡¼­ »ç¶óÁú ¼ö ÀÖÀ¸¹Ç·Î ¹Ýµå½Ã º¹»çÇØ¼­ ÀúÀåÇØ¾ß ÇÔ
-    packet.dataStream = new RakNet::BitStream();
+    RakNet::BitStream* copiedStream = new RakNet::BitStream();
     bs->ResetReadPointer();
-    packet.dataStream->Write(bs);
-    {
-        std::lock_guard<std::mutex> lock(queueMutex);
+    copiedStream->Write(bs);
+
+    std::lock_guard<std::mutex> lock(queueMutex);
+
+    if (IsMethodActive(METHOD_3)) {
+        if (!playerQueues.Has(target)) playerQueues.Set(target, new PlayerPacketQueue());
+        playerQueues.Get(target)->packetQ.push(copiedStream);
+    }
+    else {
+        ScheduledPacket packet;
+        packet.executionTime = RakNet::GetTimeMS() + delayMs;
+        packet.targetAddress = target;
+        packet.dataStream = copiedStream;
         taskQueue.push(packet);
     }
 
-    // ½º·¹µå°¡ ÀÚ°í ÀÖ´Ù¸é ±ú¿ö¼­ »õ·Î¿î °¡Àå ºü¸¥ ½Ã°£À» ÀÎÁöÇÏ°Ô ÇÔ
     queueCondVar.notify_one();
 }
 
 void MethodManager::ThreadLoop() {
     while (isRunning) {
-        ScheduledPacket task;
-        bool taskFound = false;
+        // Temp container for outgoing packets
+        std::vector<std::pair<RakNet::SystemAddress, RakNet::BitStream*>> outgoingPackets;
+        ScheduledPacket method1Task;
+        bool hasMethod1Task = false;
 
         {
             std::unique_lock<std::mutex> lock(queueMutex);
 
-            if (taskQueue.empty()) {
-                // Å¥°¡ ºñ¾úÀ¸¸é ÆÐÅ¶ÀÌ µé¾î¿Ã ¶§±îÁö ´ë±â
-                queueCondVar.wait(lock);
+            // [Method 3] Burst Processing
+            if (IsMethodActive(METHOD_3)) {
+                // Keep lock while iterating map
+                for (unsigned int i = 0; i < playerQueues.Size(); ++i) {
+                    RakNet::SystemAddress sa = playerQueues.GetKeyAtIndex(i);
+                    PlayerPacketQueue* pq = playerQueues[i];
+
+                    if (!pq || pq->packetQ.empty()) continue;
+
+                    PlayerCongestionState state;
+                    double burstLimit = DEFAULT_BURST_D;
+
+                    // Burst limit based on congestion state
+                    if (GetPlayerCongestionState(sa, state)) {
+                        burstLimit = state.burstMultiplier;
+                    }
+
+                    if (burstLimit <= 0.1) burstLimit = 0.1;
+
+                    pq->currentCredit += burstLimit;
+
+                    // Move packets to temp container based on credit
+                    while (pq->currentCredit >= 1.0 && !pq->packetQ.empty()) {
+                        RakNet::BitStream* bs = pq->packetQ.front();
+                        pq->packetQ.pop();
+
+                        outgoingPackets.push_back({ sa, bs });
+
+                        pq->currentCredit -= 1.0;
+                    }
+
+                    // Cap credit to prevent accumulation
+                    if (pq->currentCredit > 5.0) pq->currentCredit = 5.0;
+                }
             }
-            else {
+
+            // [Method 1] Time-based Processing
+            bool shouldWait = true;
+            if (isRunning && !taskQueue.empty()) {
                 RakNet::TimeMS now = RakNet::GetTimeMS();
                 const ScheduledPacket& top = taskQueue.top();
 
                 if (now >= top.executionTime) {
-                    // Àü¼Û ½Ã°£ÀÌ µÇ¾úÀ¸¸é ²¨³¿
-                    task = top;
+                    method1Task = top;
                     taskQueue.pop();
-                    taskFound = true;
+                    hasMethod1Task = true;
+                    shouldWait = false;
                 }
                 else {
-                    // ¾ÆÁ÷ ½Ã°£ÀÌ ¾È µÇ¾úÀ¸¸é, ³²Àº ½Ã°£¸¸Å­ ´ë±â (CPU Àý¾à)
-                    // wait_for´Â ÁöÁ¤µÈ ½Ã°£¸¸Å­ ÀÚ°Å³ª, »õ ÆÐÅ¶ÀÌ µé¾î¿À¸é ±þ
-                    auto waitDuration = std::chrono::milliseconds(top.executionTime - now);
-                    queueCondVar.wait_for(lock, waitDuration);
+                    // Time not met yet
+                    if (!outgoingPackets.empty()) {
+                        shouldWait = false;
+                    }
+                    else if (!IsMethodActive(METHOD_3)) {
+                        // Wait until next scheduled time
+                        auto waitDuration = std::chrono::milliseconds(top.executionTime - now);
+                        queueCondVar.wait_for(lock, waitDuration);
+                        shouldWait = false;
+                    }
                 }
             }
+
+            // Wait condition
+            if (shouldWait && !IsMethodActive(METHOD_3) && playerQueues.Size() == 0 && outgoingPackets.empty() && !hasMethod1Task) {
+                queueCondVar.wait(lock);
+            }
+        } // Lock released
+
+        // [Transmission Step] - Send safely without lock
+        if (isRunning) {
+            // Method 3 Packet Batch Send
+            for (auto& packetInfo : outgoingPackets) {
+                if (NetworkManager::Instance() && NetworkManager::Instance()->GetPeer()) {
+                    NetworkManager::Instance()->GetPeer()->Send(
+                        packetInfo.second, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packetInfo.first, false
+                    );
+                }
+                delete packetInfo.second;
+            }
+
+            // Method 1 Packet Send
+            if (hasMethod1Task) {
+                if (NetworkManager::Instance() && NetworkManager::Instance()->GetPeer()) {
+                    NetworkManager::Instance()->GetPeer()->Send(
+                        method1Task.dataStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, method1Task.targetAddress, false
+                    );
+                }
+                delete method1Task.dataStream;
+            }
+        }
+        else {
+            // Cleanup on exit
+            for (auto& packetInfo : outgoingPackets) delete packetInfo.second;
+            if (hasMethod1Task) delete method1Task.dataStream;
         }
 
-        // ¶ôÀÌ Ç®¸° »óÅÂ¿¡¼­ Àü¼Û (RakPeer::Send´Â Thread-SafeÇÔ)
-        if (taskFound && isRunning) {
-            // ÁÖÀÇ: NetworkManager::Instance()->GetPeer()°¡ À¯È¿ÇÑÁö È®ÀÎ ÇÊ¿ä
-            if (NetworkManager::Instance() && NetworkManager::Instance()->GetPeer()) {
-                NetworkManager::Instance()->GetPeer()->Send(
-                    task.dataStream,
-                    HIGH_PRIORITY,
-                    RELIABLE_ORDERED,
-                    0,
-                    task.targetAddress,
-                    false // broadcast false
-                );
-            }
-            // Èü¿¡ ÇÒ´çÇÑ BitStream ÇØÁ¦
-            delete task.dataStream;
+        // CPU yielding for Method 3
+        if (IsMethodActive(METHOD_3) && isRunning) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 }
@@ -213,221 +284,205 @@ void MethodManager::ThreadLoop() {
 void MethodManager::RecordSendTime(RakNet::SystemAddress sa, int sequenceIndex, RakNet::TimeMS time, int methodType) {
     std::lock_guard<std::mutex> lock(mapMutex);
     RttKey key(sa, sequenceIndex);
-
-    if (methodType == METHOD_1) {
-        method1RttMap.Set(key, time);
-    }
-    else if (methodType == METHOD_3) {
-        method3RttMap.Set(key, time);
-    }
+    if (methodType == METHOD_1) method1RttMap.Set(key, time);
+    else if (methodType == METHOD_3) method3RttMap.Set(key, time);
 }
 
 RakNet::TimeMS MethodManager::GetAndRemoveSendTime(RakNet::SystemAddress sa, int sequenceIndex, int methodType) {
     std::lock_guard<std::mutex> lock(mapMutex);
-
     RttKey key(sa, sequenceIndex);
     RakNet::TimeMS sentTime = 0;
-
     if (methodType == METHOD_1) {
-        if (method1RttMap.Has(key)) {
-            sentTime = method1RttMap.Get(key);
-            method1RttMap.Delete(key); // È®ÀÎ ÈÄ »èÁ¦ (¸Þ¸ð¸® °ü¸®)
-        }
+        if (method1RttMap.Has(key)) { sentTime = method1RttMap.Get(key); method1RttMap.Delete(key); }
     }
     else if (methodType == METHOD_3) {
-        if (method3RttMap.Has(key)) {
-            sentTime = method3RttMap.Get(key);
-            method3RttMap.Delete(key);
-        }
+        if (method3RttMap.Has(key)) { sentTime = method3RttMap.Get(key); method3RttMap.Delete(key); }
     }
-
-    return sentTime; // ¾øÀ¸¸é 0 ¹ÝÈ¯
+    return sentTime;
 }
 
 void MethodManager::SendManagedPacket(RakNet::BitStream* bs, RakNet::SystemAddress target, int methodType) {
-
-    // 1. Method 1(½ºÆù ÆÐÅ¶)Àû¿ë
     if (methodType == METHOD_1) {
         if (IsMethodActive(METHOD_1)) ExecuteMethod1(bs);
         else NetworkManager::Instance()->GetPeer()->Send(bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
         return;
     }
 
-    // 2. ³ª¸ÓÁö ÀüÃ¼ Method 3 (È¥Àâ Á¦¾î) Àû¿ë / ÀÔ·Â, ÀÌµ¿, ÃÑ¾Ë ¹ß»ç µî
     if (methodType == METHOD_3) {
         ExecuteMethod3(bs, target);
         return;
     }
-    
-    // ¾Æ¹« ¸Þ¼Òµåµµ ¾øÀ¸¸é ±×³É Àü¼Û
-	if (target == RakNet::UNASSIGNED_SYSTEM_ADDRESS) NetworkManager::Instance()->GetPeer()->Send(bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
-	else NetworkManager::Instance()->GetPeer()->Send(bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, target , false);
+
+    if (target == RakNet::UNASSIGNED_SYSTEM_ADDRESS)
+        NetworkManager::Instance()->GetPeer()->Send(bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+    else
+        NetworkManager::Instance()->GetPeer()->Send(bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, target, false);
 }
 
 void MethodManager::ExecuteMethod3(RakNet::BitStream* bs, RakNet::SystemAddress target) {
-    // ÇöÀç È¥Àâµµ(N_CI) Ã¼Å©
-    int currentCongestion = GetCongestedUserCount(); // È¤Àº °è»êµÈ N_CI
-    if (currentCongestion > 1) { // È¥Àâ »óÈ²ÀÌ¸é
-        
-        int calculatedDelay = CalculateDelayForPlayer(target);
-        //½ºÄÉÁÙ·¯¿¡ µî·Ï (ÀÌÁ¦ 1ms ´ÜÀ§ Á¤¹Ðµµ·Î Á¦¾îµÊ)
-        MethodManager::Instance()->EnqueuePacket(target, bs, calculatedDelay);
-    }
-    else {
-        // È¥ÀâÇÏÁö ¾ÊÀ¸¸é Áï½Ã Àü¼Û
-        NetworkManager::Instance()->GetPeer()->Send(bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, target, false);
-    }
+    EnqueuePacket(target, bs, 0);
 }
 
 void MethodManager::ExecuteMethod1(RakNet::BitStream* bs) {
     unsigned short numberOfSystems = NetworkManager::Instance()->GetPeer()->NumberOfConnections();
     RakNet::TimeMS now = RakNet::GetTimeMS();
-    for (unsigned short i = 0; i < numberOfSystems; i++)
-    {
+    for (unsigned short i = 0; i < numberOfSystems; i++) {
         RakNet::SystemAddress sa = NetworkManager::Instance()->GetPeer()->GetSystemAddressFromIndex(i);
-        RecordSendTime(sa, MethodManager::Instance()->method1cnt,now, METHOD_1);
+        RecordSendTime(sa, MethodManager::Instance()->method1cnt, now, METHOD_1);
         int calculatedDelay = CalculateDelayForPlayer(sa);
-		//NetLogManager::Instance()->DebugPrintf("Method 1: Calculated Delay for %s is %d ms\n", sa.ToString(), calculatedDelay);
-        
-        // ½ºÄÉÁÙ·¯¿¡ µî·Ï (ÀÌÁ¦ 1ms ´ÜÀ§ Á¤¹Ðµµ·Î Á¦¾îµÊ)
         MethodManager::Instance()->EnqueuePacket(sa, bs, calculatedDelay);
     }
 }
 
 int MethodManager::CalculateDelayForPlayer(RakNet::SystemAddress sa) {
+    // [Method 1] RTT Check
     RakNet::RakPeerInterface* peer = NetworkManager::Instance()->GetPeer();
     if (!peer) return 0;
 
-    // N_CI (È¥Àâ ÀÎµ¦½º) ¼³Á¤
-    int N_CI = 1;
-    if (IsMethodActive(METHOD_3)) {
-        N_CI = GetCongestedUserCount();
-        if (N_CI <= 0) return 0;
-    }
 
-    // 1. ÇØ´ç ÇÃ·¹ÀÌ¾î(Target)ÀÇ Æò±Õ RTT °¡Á®¿À±â (RTT_f)
+    int N_CI = GetCongestedUserCount();
+    if (N_CI < 1) N_CI = 1;
+
     int playerRTT = peer->GetAveragePing(sa);
-    if (playerRTT <= 0) playerRTT = 1; // 0À¸·Î ³ª´® ¹æÁö (ÃÖ¼Ò 1ms º¸Àå)
+    if (playerRTT <= 0) playerRTT = 1;
 
-    // 2. ÀüÃ¼ Åë°è °è»ê (Global Average, Standard Deviation)
+
     std::vector<int> allRTTs;
     unsigned short numberOfSystems = peer->NumberOfConnections();
     double sumRTT = 0;
 
     for (unsigned short i = 0; i < numberOfSystems; i++) {
         RakNet::SystemAddress tempSA = peer->GetSystemAddressFromIndex(i);
-        // ¼­¹ö ÀÚ±â ÀÚ½Å(UNASSIGNED)Àº Åë°è¿¡¼­ Á¦¿Ü (º¸Åë Å¬¶óÀÌ¾ðÆ®¸¸ °è»ê)
         if (tempSA == RakNet::UNASSIGNED_SYSTEM_ADDRESS) continue;
         int rtt = peer->GetAveragePing(tempSA);
-        if (rtt < 0) rtt = 0; // À¯È¿ÇÏÁö ¾ÊÀº ÇÎ ¹æÁö
+        if (rtt < 0) rtt = 0;
         allRTTs.push_back(rtt);
         sumRTT += rtt;
     }
     if (allRTTs.empty()) return 0;
-    double globalAvg = sumRTT / allRTTs.size(); 
-    
-    // Ç¥ÁØÆíÂ÷ (Standard Deviation, Sigma) °è»ê
+
+    double globalAvg = sumRTT / allRTTs.size();
     double varianceSum = 0;
-    for (int rtt : allRTTs) {
-        varianceSum += std::pow(rtt - globalAvg, 2);
-    }
+    for (int rtt : allRTTs) { varianceSum += std::pow(rtt - globalAvg, 2); }
     double stdDev = std::sqrt(varianceSum / allRTTs.size());
 
-    // 3. ÀÓ°è°ª(Threshold) °è»ê: (ÀüÃ¼Æò±Õ - Ç¥ÁØÆíÂ÷)
     double threshold = globalAvg - stdDev;
-    // 4. Á¶°Ç È®ÀÎ: ÇÃ·¹ÀÌ¾î RTT°¡ ÀÓ°è°ªº¸´Ù ÀÛÀ¸¸é (Áï, ³Ê¹« ºü¸£¸é) µô·¹ÀÌ ºÎ¿©
+
+
     if (playerRTT <= threshold) {
-        
-        // 5. °ø½Ä Àû¿ë: Delay = N_CI * ((GlobalAvg - StdDev) / PlayerRTT)
-         // ÇØ¼®: È¥ÀâÇÑ À¯Àú(N_CI)°¡ ¸¹À»¼ö·Ï, ¿©À¯·Î¿î À¯Àú´Â ´õ ¸¹ÀÌ ±â´Ù·ÁÁÖ¾î¾ß ÇÔ.
-        // °ø½ÄÀÇ °á°ú´Â '¹è¼ö(Ratio)'
-		
-        int c = 10; // ±âº» Áö¿¬ ´ÜÀ§ (¿¹: 10ms)
-        int maxDelay = 1000; // ÃÖ´ë µô·¹ÀÌ Á¦ÇÑ (¿¹: 1s)
+        int c = 10;
+        int maxDelay = 1000;
 
-		double calculatedDelayRatio = N_CI * (threshold / (double)playerRTT); //»óÈ²ÀÇ ½É°¢¼º * ºÒ°øÁ¤ ºñÀ²
-		//double calculatedDelaydiff = N_CI * (threshold - playerRTT);
-
-		int finalDelay = static_cast<int>(calculatedDelayRatio * c); //Method 1
-        //int finalDelay = static_cast<int>(calculatedDelaydiff);
+        // RTT Delay Calculation
+        double calculatedDelayRatio = N_CI * (threshold / (double)playerRTT);
+        int finalDelay = static_cast<int>(calculatedDelayRatio * c);
 
         if (finalDelay > maxDelay) finalDelay = maxDelay;
-		return finalDelay; 
+        return finalDelay;
     }
-
-    // Á¶°Ç¿¡ ÇØ´çÇÏÁö ¾ÊÀ¸¸é µô·¹ÀÌ ¾øÀ½
-    return 0; 
+    return 0;
 }
 
-void MethodManager::UpdateMethod3() {
+bool MethodManager::GetPlayerCongestionState(RakNet::SystemAddress sa, PlayerCongestionState& outState) {
+    std::lock_guard<std::mutex> lock(congestionMutex);
+    if (playerCongestionMap.Has(sa)) {
+        outState = playerCongestionMap.Get(sa);
+        return true;
+    }
+    return false;
+}
+
+void MethodManager::UpdateCongetstionIndex() {
     RakNet::RakPeerInterface* peer = NetworkManager::Instance()->GetPeer();
     if (!peer) return;
 
     unsigned short numberOfSystems = peer->NumberOfConnections();
     if (numberOfSystems == 0) return;
 
-    double N_c = (double)numberOfSystems;
-    int tempCongestedCount = 0; // ÀÌ¹ø ÇÁ·¹ÀÓÀÇ N_CI Ä«¿îÆ®
+    int tempCongestedCount = 0;
 
-    std::lock_guard<std::mutex> lock(congestionMutex);
+    // 2-Pass algorithm temporary storage
+    struct UserStat {
+        RakNet::SystemAddress sa;
+        double CI_f;
+    };
+    std::vector<UserStat> userStats;
 
+    // Pass 1: CI calculation and N_c count
     for (unsigned short i = 0; i < numberOfSystems; i++) {
         RakNet::SystemAddress sa = peer->GetSystemAddressFromIndex(i);
         if (sa == RakNet::UNASSIGNED_SYSTEM_ADDRESS) continue;
 
         RakNet::RakNetStatistics stats;
         if (peer->GetStatistics(sa, &stats)) {
+            // 1. Queue Length (Q_fi)
+            double Q_fi = stats.bytesInResendBuffer;
+            for (int p = 0; p < NUMBER_OF_PRIORITIES; p++) Q_fi += stats.bytesInSendBuffer[p];
 
-            // 1. Queue Length (Q_fi) °è»ê / ¿ì¼±¼øÀ§º° Å¥ÀÇ ¹ÙÀÌÆ® ÇÕ»ê
-            // ---------------------------------------------------------
-            double Q_fi = 0;
-            for (int p = 0; p < NUMBER_OF_PRIORITIES; p++) {
-                Q_fi += stats.bytesInSendBuffer[p];
-            }
-            // 2. Flow Rate (FR_fi) °è»ê
-            // RakNetStatistics.h ÂüÁ¶: Áö³­ 1ÃÊ°£ Àü¼ÛµÈ À¯Àú ¸Þ½ÃÁö ¹ÙÀÌÆ® ¼ö
+            // 2. Flow Rate (FR_fi)
             double FR_fi = (double)stats.valueOverLastSecond[USER_MESSAGE_BYTES_SENT];
 
-            // 3. CI_f (È¥Àâ ÀÎµ¦½º) °è»ê: Queue / FlowRate
-            // ´ÜÀ§: Bytes / (Bytes/sec) = Seconds (Å¥¸¦ ºñ¿ì´Â µ¥ °É¸®´Â ½Ã°£)
-            double CI_f = 0.0;
-            if (FR_fi > 0.0) {
-                CI_f = Q_fi / FR_fi;
-            }
-            else {
-                // Àü¼Û ¼Óµµ°¡ 0ÀÎµ¥ Å¥¿¡ µ¥ÀÌÅÍ°¡ ÀÖ´Ù¸é ¸Å¿ì È¥ÀâÇÔ (¹«ÇÑ´ë)
-                if (Q_fi > 0) CI_f = 100.0;
-                else CI_f = 0.0;
-            }
+            // 3. CI_f
+            double CI_f = (FR_fi > 0.0) ? (Q_fi / FR_fi) : ((Q_fi > 0) ? 100.0 : 0.0);
 
-            // 4. Burst ¹× È¥Àâ »óÅÂ ÆÇº°
-            double burstMultiplier = 1.0;
-            bool isCongested = false;
-
-            if (CI_f <= 1.0) {
-                // ºñÈ¥Àâ »óÅÂ
-                burstMultiplier = 1.0;
-                isCongested = false;
+            if (CI_f > 1.0) {
+                tempCongestedCount++;
             }
-            else {
-                // È¥Àâ »óÅÂ (CI > 1.0) -> ¸®¼Ò½º º¸Àå ÇÊ¿ä
-                // °ø½Ä: Burst_e = [1 + (1/Nc) * Max(2, CI_f)] * Burst_d
-                double maxVal = (CI_f > 2.0) ? CI_f : 2.0;
-                burstMultiplier = 1.0 + (1.0 / N_c) * maxVal;
-
-                isCongested = true;
-                tempCongestedCount++; // N_CI Áõ°¡
-            }
-
-            // »óÅÂ ÀúÀå
-            playerCongestionMap.Set(sa, { CI_f, burstMultiplier, isCongested });
+            userStats.push_back({ sa, CI_f });
         }
     }
 
-    // ÃÖÁ¾ N_CI ¾÷µ¥ÀÌÆ® (Method 1¿¡¼­ »ç¿ë)
+    // Update N_CI
     currentCongestedUserCount = tempCongestedCount;
+
+    // Pass 2: Burst Calc and Zero-Sum
+    double N_c = (tempCongestedCount > 0) ? (double)tempCongestedCount : 1.0;
+
+    double totalExcessBurst = 0.0;
+    int normalUserCount = (int)userStats.size() - tempCongestedCount;
+
+    std::vector<std::tuple<RakNet::SystemAddress, double, double, bool>> finalUpdateList;
+
+    for (const auto& u : userStats) {
+        double calculatedBurst = DEFAULT_BURST_D;
+        bool isCongested = (u.CI_f > 1.0);
+
+        if (isCongested) {
+            // Congested user: Bonus
+            double maxVal = (u.CI_f > 2.0) ? u.CI_f : 2.0;
+            calculatedBurst = (1.0 + (1.0 / N_c) * maxVal) * DEFAULT_BURST_D;
+            totalExcessBurst += (calculatedBurst - DEFAULT_BURST_D);
+        }
+
+        finalUpdateList.push_back(std::make_tuple(u.sa, u.CI_f, calculatedBurst, isCongested));
+    }
+
+    // Pass 3: Update map
+    std::lock_guard<std::mutex> lock(congestionMutex);
+
+    double penaltyPerNormalUser = 0.0;
+    if (normalUserCount > 0 && totalExcessBurst > 0.0) {
+        penaltyPerNormalUser = totalExcessBurst / (double)normalUserCount;
+    }
+    
+
+    for (const auto& item : finalUpdateList) {
+        RakNet::SystemAddress sa = std::get<0>(item);
+        double ci = std::get<1>(item);
+        double burst = std::get<2>(item);
+        bool congested = std::get<3>(item);
+
+        if (!congested) {
+            // Non-congested: Penalty
+            burst -= penaltyPerNormalUser;
+            // Min guarantee (20%)
+            if (burst < 0.2 * DEFAULT_BURST_D) burst = 0.2 * DEFAULT_BURST_D;
+        }
+
+        playerCongestionMap.Set(sa, { ci, burst, congested });
+    }
 }
 
 int MethodManager::GetCongestedUserCount() {
-	return currentCongestedUserCount;
+    return currentCongestedUserCount;
 }

@@ -38,14 +38,14 @@ enum GamePlatform {
 class NetworkManager
 {
 public:
-	// ½Ì±ÛÅæ ÆÐÅÏ (±âÁ¸ Àü¿ª º¯¼ö Á¢±Ù¼ºÀ» À¯ÁöÇÏ¸é¼­ Ä¸½¶È­)
+	// ï¿½Ì±ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ù¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¸é¼­ Ä¸ï¿½ï¿½È­)
 	static NetworkManager* Instance();
 	static void DestroyInstance();
 
 	NetworkManager();
 	~NetworkManager();
 
-	// ÃÊ±âÈ­ ¹× Á¾·á
+	// ï¿½Ê±ï¿½È­ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	void Initialize(bool isServer, bool isLocalServer, int MaxClientCnt);
 	void Activate();
 	void Shutdown();
@@ -63,12 +63,13 @@ public:
 	void StartStressTest(int durationMS);
 	void SendStressTestChunk();
 	
-	// Åë°è ÇÃ·¯±×ÀÎ Á¢±Ù (NetLogManager¿ë)
+	// ï¿½ï¿½ï¿½ ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (NetLogManagerï¿½ï¿½)
 	StatisticsHistoryPlugin* GetStatisticsPlugin() const { return statisticsPlugin; }
 	void AddPlayer(PlayerReplica* player) { playerList.Push(player, _FILE_AND_LINE_); }
 	void RemovePlayer(PlayerReplica* player) {unsigned int idx = playerList.GetIndexOf(player);if (idx != (unsigned int)-1) playerList.RemoveAtIndex(idx);}
 	DataStructures::List<PlayerReplica*>& GetPlayerList() { return playerList; };
 	int GetMaxClientCnt() const { return MaxClientCnt; }
+	int GetstressPacketsPerUpdate( ) const { return stressPacketsPerUpdate; }
 
 private:
 	static NetworkManager* instance;
@@ -81,13 +82,14 @@ private:
 
 	Topology topology;
 	DataStructures::List<PlayerReplica*> playerList;
-	CInGame* Game; // °ÔÀÓ ·ÎÁ÷ ÂüÁ¶
+	CInGame* Game; // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	PlayerReplica* playerReplica;
 	PlayerBotReplica* playerBotReplica;
 	int MaxClientCnt;
 	bool isLocalServer = false;
 	bool isStressTesting = false;
 	RakNet::TimeMS stressEndTime = 0;
+	int stressPacketsPerUpdate;
 };
 
 class Connection_RM3Irrlicht : public RakNet::Connection_RM3 {

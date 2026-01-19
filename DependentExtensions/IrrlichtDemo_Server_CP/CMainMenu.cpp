@@ -252,6 +252,7 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	box->addItem(L"Direct3D 9.0c");
 	box->addItem(L"Burning's Video 0.39");
 	box->addItem(L"Irrlicht Software Renderer 1.0");
+	box->addItem(L"NULL");
 	box->setSelected(selected);
 
 	// add button
@@ -482,6 +483,7 @@ bool CMainMenu::run(bool& outFullscreen, bool& outMusic, bool& outShadows,
 	case 2:	outDriver = video::EDT_DIRECT3D9; break;
 	case 3:	outDriver = video::EDT_BURNINGSVIDEO; break;
 	case 4:	outDriver = video::EDT_SOFTWARE; break;
+	case 5:	outDriver = video::EDT_NULL; break;
 	}
 
 #ifdef __ANDROID__

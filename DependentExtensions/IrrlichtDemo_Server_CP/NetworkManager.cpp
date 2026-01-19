@@ -37,7 +37,7 @@
 #include "NetworkManager.h"
 #include "HUDManager.h"
 #include "NetworkIDManager.h"
-#include "Replicas.h" // PlayerReplica µîÀ» À§ÇØ ÇÊ¿ä
+#include "Replicas.h" // PlayerReplica ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¿ï¿½
 #include "NetLogManager.h"
 #include "CInGame.h"
 #include "MethodManager.h"
@@ -65,26 +65,22 @@ void NetworkManager::DestroyInstance() {
 NetworkManager::NetworkManager() : rakPeer(nullptr), networkIDManager(nullptr), replicaManager3(nullptr), statisticsPlugin(nullptr), playerBotReplica(nullptr), playerReplica(nullptr) {}
 
 NetworkManager::~NetworkManager() {
-	// ¾ÈÀüÇÑ Æ÷ÀÎÅÍ »èÁ¦ ·ÎÁ÷
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 }
 
 void NetworkManager::Initialize(bool isServer, bool isLocalServer, int maxClientCnt) { 
 	topology = isServer ? Topology::SERVER : Topology::CLIENT;
 	this->isLocalServer = isLocalServer;
 	this->MaxClientCnt = maxClientCnt;
+	stressPacketsPerUpdate = 1300;
 }
 
 void NetworkManager::Activate()
 {
 	rakPeer = RakNet::RakPeerInterface::GetInstance();
 	rakPeer->SetPacketReturnDelay(INGOING_TIME_MS);
-	RakNet::SocketDescriptor sd((topology == SERVER) ? SERVER_PORT : 1234, 0);
+	RakNet::SocketDescriptor sd((topology == SERVER) ? SERVER_PORT : 0, 0);
 	sd.socketFamily = AF_INET; // Only IPV4 supports broadcast on 255.255.255.255
-
-	if (topology == CLIENT) {
-		while (IRNS2_Berkley::IsPortInUse(sd.port, sd.hostAddress, sd.socketFamily, SOCK_DGRAM) == true)
-			sd.port++;
-	}
 
 	networkIDManager = new RakNet::NetworkIDManager;
 	replicaManager3 = new ReplicaManager3Irrlicht();
@@ -129,10 +125,10 @@ void NetworkManager::Activate()
 
 	if (topology == CLIENT) {
 #if __ANDROID__
-		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //·£
+		ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //ï¿½ï¿½
 #else
-		if(isLocalServer)ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //·£
-		else ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //·£
+		if(isLocalServer)ConnectionAttemptResult car = rakPeer->Connect("127.0.0.1", SERVER_PORT, 0, 0); //ï¿½ï¿½
+		else ConnectionAttemptResult car = rakPeer->Connect(SERVER_IP, SERVER_PORT, 0, 0); //ï¿½ï¿½
 #endif // __ANDROID__
 	}
 	else if (topology == SERVER) {
@@ -172,7 +168,7 @@ void NetworkManager::Update() {
 			NetLogManager::Instance()->PrintDebug("[Server] Stress Test ENDED.\n");
 		}
 		else {
-			// ¸Å ÇÁ·¹ÀÓ¸¶´Ù Á¶±Ý¾¿ µ¥ÀÌÅÍ¸¦ ½ñ¾ÆºÎÀ½ (Áö¼ÓÀû È¥Àâ À¯¹ß)
+			// ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ý¾ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½Æºï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ È¥ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
 			MethodManager::Instance()->method3cnt++;
 			SendStressTestChunk();
 		}
@@ -183,12 +179,12 @@ void NetworkManager::StartStressTest(int durationMS) {
 	if (topology != SERVER) return;
 	isStressTesting = true;
 	stressEndTime = RakNet::GetTimeMS() + durationMS;
-	HUDManager::Instance()->PushMessage(RakNet::RakString("[Server] Stress Test STARTED for %d ms",durationMS));
-	NetLogManager::Instance()->PrintDebug("[Server] Stress Test STARTED for %d ms\n", durationMS);
+	HUDManager::Instance()->PushMessage(RakNet::RakString("[Server] Stress Test STARTED for %d ms (%d packets per frame)", durationMS, stressPacketsPerUpdate));
+	NetLogManager::Instance()->PrintDebug("[Server] Stress Test STARTED for %d ms (%d packets per frame)\n", durationMS, stressPacketsPerUpdate);
 }
 
 void NetworkManager::SendStressTestChunk() {
-	// ÇÑ ÇÁ·¹ÀÓ´ç ÆÐÅ¶ 100°³ (100KB) -> 144 ÇÁ·¹ÀÓ ±âÁØ ¾à 14.4Mbps
+	// ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó´ï¿½ ï¿½ï¿½Å¶ 100ï¿½ï¿½ (100KB) -> 144 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ 14.4Mbps
 	const int PACKET_SIZE = 1000; // 1KB
 	char dummyData[PACKET_SIZE];
 	memset(dummyData, 'S', PACKET_SIZE);
@@ -199,17 +195,17 @@ void NetworkManager::SendStressTestChunk() {
 		if (sa == RakNet::UNASSIGNED_SYSTEM_ADDRESS) continue;
 		
 		RakNet::TimeMS startTime = RakNet::GetTimeMS();
-		int method3cnt = MethodManager::Instance()->method3cnt; // ÇöÀç ÆÐÅ¶ ÀÏ·Ã¹øÈ£
+		int method3cnt = MethodManager::Instance()->method3cnt; // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å¶ ï¿½Ï·Ã¹ï¿½È£
 		MethodManager::Instance()->RecordSendTime(sa, method3cnt, startTime, METHOD_3);
 		
-		for (int j = 0; j < 100; j++) { 
+		for (int j = 0; j < stressPacketsPerUpdate; j++) { 
 			RakNet::BitStream bs;
 			bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_HEAVY_PACKET);
 			bs.Write(RakNet::GetTimeMS()); 
 			bs.Write(PACKET_SIZE);
 			bs.Write(dummyData, PACKET_SIZE);
 			bs.Write((int)j);
-			bs.Write(method3cnt); // ÆÐÅ¶ ÀÏ·Ã¹øÈ£
+			bs.Write(method3cnt); // ï¿½ï¿½Å¶ ï¿½Ï·Ã¹ï¿½È£
 			GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, sa, false);
 			//MethodManager::Instance()->SendManagedPacket(&bs, sa, METHOD_3);
 		}
@@ -218,7 +214,7 @@ void NetworkManager::SendStressTestChunk() {
 
 bool Connection_RM3Irrlicht::QuerySerializationList(DataStructures::List< RakNet::Replica3*>& replicasToSerialize) {
 	(void)replicasToSerialize;
-	//¿ì¼±¼øÀ§¿¡ µû¶ó Á¤·Ä
+	//ï¿½ì¼±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	int index = PriorityStatics::PRIORITY_MAX - 1;
 	while (index >= 0) {
 

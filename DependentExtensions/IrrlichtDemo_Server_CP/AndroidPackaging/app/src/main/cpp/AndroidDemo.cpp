@@ -328,9 +328,9 @@ void android_main(android_app* state) {
     bool isBot = false;
     int clientCount = 1;
     int winScore = 10;
-    int methodMask = METHOD_1;
-    int methodLogMask = METHOD_1;
-    int scenario = 1;
+    int methodMask = METHOD_3;
+    int methodLogMask = METHOD_3;
+    int scenario = 0;
     const char* baseDir = "/storage/emulated/0/Download";
 
     new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask, methodLogMask, scenario, false);

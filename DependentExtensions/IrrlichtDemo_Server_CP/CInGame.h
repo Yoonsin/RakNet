@@ -51,7 +51,7 @@ const float BALL_DIAMETER=20.0f;
 extern RakNet::RakNetRandom gRand;
 
 inline void InitRandom(unsigned int t) {
-	// ½Ãµå¸¦ ½Ã°£ ±â¹ÝÀ¸·Î ÁÖ¸é ¸Å¹ø ´Ù¸¥ ³­¼ö¿­
+	// ï¿½Ãµå¸¦ ï¿½Ã°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ö¸ï¿½ ï¿½Å¹ï¿½ ï¿½Ù¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	gRand.SeedMT(t);
 }
 
@@ -106,7 +106,7 @@ public:
 	bool isConnected = false;
 	bool isPlayersNameSet = false;
 	RakNet::SystemAddress serverSystemAddress;
-	int serverPlayerCnt = 1; //º¿ + ÇÃ·¹ÀÌ¾î Æ÷ÇÔ
+	int serverPlayerCnt = 1; //ï¿½ï¿½ + ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½
 
 	GamePlatform gamePlatform = GamePlatform::Shooter;	
 	core::vector3df initPos;
@@ -123,6 +123,7 @@ public:
 	bool isGameEnd; 
 	int BOT_MOVE_TIME;
 	irr::core::stringc mediaPath;
+	bool isDummy = false; // Dummy client mode flag
 
 #ifdef __ANDROID__
 	android_app* state;

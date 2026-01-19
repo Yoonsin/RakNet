@@ -302,6 +302,7 @@
     <None Include="AndroidPackaging\app\src\main\AndroidManifest.xml">
       <Filter>AndroidPackaging\app\src\main</Filter>
     </None>
+    <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="IrrlichtDemo_Server_CP.rc" />

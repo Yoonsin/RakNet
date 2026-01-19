@@ -410,6 +410,7 @@
     <Text Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".editorconfig" />
     <None Include="AndroidPackaging\app\build.gradle" />
     <None Include="AndroidPackaging\app\proguard-rules.pro" />
     <None Include="AndroidPackaging\app\src\androidTest\java\com\example\irrlichtdemoCP\ExampleInstrumentedTest.java" />

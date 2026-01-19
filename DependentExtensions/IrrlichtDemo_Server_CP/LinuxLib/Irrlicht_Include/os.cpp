@@ -95,21 +95,9 @@ namespace os
 	{
 		if (HighPerformanceTimerSupport)
 		{
-#if !defined(_WIN32_WCE) && !defined (_IRR_XBOX_PLATFORM_)
-			// Avoid potential timing inaccuracies across multiple cores by
-			// temporarily setting the affinity of this process to one core.
-			DWORD_PTR affinityMask;
-			if(MultiCore)
-				affinityMask = SetThreadAffinityMask(GetCurrentThread(), 1);
-#endif
 			LARGE_INTEGER nTime;
 			BOOL queriedOK = QueryPerformanceCounter(&nTime);
 
-#if !defined(_WIN32_WCE)  && !defined (_IRR_XBOX_PLATFORM_)
-			// Restore the true affinity.
-			if(MultiCore)
-				(void)SetThreadAffinityMask(GetCurrentThread(), affinityMask);
-#endif
 			if(queriedOK)
 				return u32((nTime.QuadPart) * 1000 / HighPerformanceFreq.QuadPart);
 

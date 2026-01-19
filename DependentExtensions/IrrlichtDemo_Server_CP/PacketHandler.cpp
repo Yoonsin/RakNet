@@ -35,7 +35,7 @@ PacketHandler::PacketHandler() {
 	testStartTime = 0;
 }
 PacketHandler::~PacketHandler() {
-	// ¾ÈÀüÇÑ Æ÷ÀÎÅÍ »èÁ¦ ·ÎÁ÷
+	// ì•ˆì „í•œ í¬ì¸í„° ì‚­ì œ ë¡œì§
 }
 
 void PacketHandler::Update() {
@@ -74,16 +74,16 @@ void PacketHandler::OnHandlePacket() {
 			CInGame::Instance()->serverSystemAddress = packet->systemAddress;
 			if (CInGame::Instance()->isConnected) {
 				RakNet::Connection_RM3* connection = NetworkManager::Instance()->GetReplicaManager()->AllocConnection(CInGame::Instance()->serverSystemAddress, NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(CInGame::Instance()->serverSystemAddress));
-				//NetworkManager::Instance()->GetReplicaManager()¿¡ ÃßÀûµÉ ¼ö ÀÖµµ·Ï ÇÒ´ç
+				//NetworkManager::Instance()->GetReplicaManager()ì— ì¶”ì ë  ìˆ˜ ìˆë„ë¡ í• ë‹¹
 				NetworkManager::Instance()->GetReplicaManager()->PushConnection(connection);
 
-				//°´Ã¼ »ı¼º
+				//ê°ì²´ ìƒì„±
 				if (CInGame::Instance()->isBot)NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerBotReplica());
 				else NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerReplica());
 			}
 
-			//SwitchNextScene() ¿¡¼­ ¿¬°áÇÏ´Â °ÍÀ¸·Î º¯°æ -> ¿Ö ÀÌ·¸°Ô ¹Ù²ÙÀÚ°í ÇßÁö?
-			//±×·¸°Ô º¯°æÇÏ¸é ¼ö½Å µô·¹ÀÌ Àû¿ë½Ã timeoutÀ¸·Î ¿¬°á ¼ö¸³ÀÌ ¾ÈµË´Ï´Ù..
+			//SwitchNextScene() ì—ì„œ ì—°ê²°í•˜ëŠ” ê²ƒìœ¼ë¡œ ë³€ê²½ -> ì™œ ì´ë ‡ê²Œ ë°”ê¾¸ìê³  í–ˆì§€?
+			//ê·¸ë ‡ê²Œ ë³€ê²½í•˜ë©´ ìˆ˜ì‹  ë”œë ˆì´ ì ìš©ì‹œ timeoutìœ¼ë¡œ ì—°ê²° ìˆ˜ë¦½ì´ ì•ˆë©ë‹ˆë‹¤..
 		}
 		break;
 		case ID_GAME_MESSAGE_BALL_REQUEST:
@@ -101,7 +101,7 @@ void PacketHandler::OnHandlePacket() {
 				BallReplica* br = new BallReplica;
 				br->position = pos;
 				br->shotDirection = target;
-				// ¿ø·¡´Â gamePlatformÀÌ º¸³½ ÀÌÀÇ ÇÃ·§ÆûÀÌ¾î¾ß ÇÔ (¿©±â¼­´Â Shooter·Î °¡Á¤µÉ ¼ö ÀÖÀ½)
+				// ì›ë˜ëŠ” gamePlatformì´ ë³´ë‚¸ ì´ì˜ í”Œë«í¼ì´ì–´ì•¼ í•¨ (ì—¬ê¸°ì„œëŠ” Shooterë¡œ ê°€ì •ë  ìˆ˜ ìˆìŒ)
 				br->shotLifetime = RakNet::GetTimeMS() + SceneManager::Instance()->shootFromOrigin(pos, target, CInGame::Instance()->gamePlatform);
 				br->bulletCount = bulletCnt;
 				NetworkManager::Instance()->GetReplicaManager()->Reference(br);
@@ -119,7 +119,7 @@ void PacketHandler::OnHandlePacket() {
 			bsIn.Read(ShooterGuid); // The player who shot
 			bsIn.Read(isDead);
 			if (isDead) {
-				//Shooter = Á×ÀÎ »ç¶÷ / Holder = Á×Àº »ç¶÷
+				//Shooter = ì£½ì¸ ì‚¬ëŒ / Holder = ì£½ì€ ì‚¬ëŒ
 				RakNet::RakNetGUID HolderGuid;
 				bsIn.Read(HolderGuid);
 				RakNet::RakString shooterName;
@@ -136,13 +136,13 @@ void PacketHandler::OnHandlePacket() {
 				else if (holderName == NetworkManager::Instance()->GetPlayerReplica()->playerName) NetworkManager::Instance()->GetPlayerReplica()->deathCnt++;
 				HUDManager::Instance()->SetPlayerNameText();
 
-				InputController::Instance()->isKeyLock = true;   // onEvent µî¿¡¼­ Å° Ã³¸® Â÷´Ü (ÀÌ¹Ì »ç¿ëÁßÀÎ ÇÃ·¡±×)
+				InputController::Instance()->isKeyLock = true;   // onEvent ë“±ì—ì„œ í‚¤ ì²˜ë¦¬ ì°¨ë‹¨ (ì´ë¯¸ ì‚¬ìš©ì¤‘ì¸ í”Œë˜ê·¸)
 				InputController::Instance()->EnableInput(!InputController::Instance()->isKeyLock);
 			}
 			else {
-				//Shooter = ºÎÈ°ÇÑ »ç¶÷
+				//Shooter = ë¶€í™œí•œ ì‚¬ëŒ
 				LifeUpdateGuid = ShooterGuid;
-				InputController::Instance()->isKeyLock = false;   // onEvent µî¿¡¼­ Å° Ã³¸® Â÷´Ü (ÀÌ¹Ì »ç¿ëÁßÀÎ ÇÃ·¡±×)
+				InputController::Instance()->isKeyLock = false;   // onEvent ë“±ì—ì„œ í‚¤ ì²˜ë¦¬ ì°¨ë‹¨ (ì´ë¯¸ ì‚¬ìš©ì¤‘ì¸ í”Œë˜ê·¸)
 				InputController::Instance()->EnableInput(!InputController::Instance()->isKeyLock);
 			}
 
@@ -157,8 +157,8 @@ void PacketHandler::OnHandlePacket() {
 					}
 
 					if (isDead == false && LifeUpdateGuid == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS) && player->isBot && (NetworkManager::Instance()->IsServer()  == false)) {
-						//³ª ¼­¹ö ¾Æ´Ô + º¿ ÇÃ·¹ÀÌ¾î°¡ ³ªÀÓ => ºÎÈ°Çß´Ù¸é?
-						//¸®½ºÆù ÈÄ ¸®½ºÆù ¿äÃ»
+						//ë‚˜ ì„œë²„ ì•„ë‹˜ + ë´‡ í”Œë ˆì´ì–´ê°€ ë‚˜ì„ => ë¶€í™œí–ˆë‹¤ë©´?
+						//ë¦¬ìŠ¤í° í›„ ë¦¬ìŠ¤í° ìš”ì²­
 						SEvent botKeyEvent;
 						botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
 						botKeyEvent.KeyInput.Key = KEY_KEY_W;
@@ -203,8 +203,8 @@ void PacketHandler::OnHandlePacket() {
 					if (NetworkManager::Instance()->GetPlayerList()[i]->creatingSystemGUID == g) {
 						NetworkManager::Instance()->GetPlayerList()[i]->playerName = name;
 
-						//¸¸¾à ÇöÀç ÇÃ·§ÆûÀÌ Android (Holder) ÀÌ°í, ´Ù¸¥ ÇÃ·§ÆûÀÌ PC (Shooter)ÀÎ °æ¿ì (±× ¹İ´ëµµ Æ÷ÇÔ)
-						//AndroidÀÇ À§Ä¡¸¦ GUI¿¡ ¶ç¿ï ¼ö ÀÖµµ·Ï ÇÑ´Ù
+						//ë§Œì•½ í˜„ì¬ í”Œë«í¼ì´ Android (Holder) ì´ê³ , ë‹¤ë¥¸ í”Œë«í¼ì´ PC (Shooter)ì¸ ê²½ìš° (ê·¸ ë°˜ëŒ€ë„ í¬í•¨)
+						//Androidì˜ ìœ„ì¹˜ë¥¼ GUIì— ë„ìš¸ ìˆ˜ ìˆë„ë¡ í•œë‹¤
 						if (NetworkManager::Instance()->GetPlayerReplica()->gamePlatform == Holder && NetworkManager::Instance()->GetPlayerList()[i]->gamePlatform == Shooter)
 							HUDManager::Instance()->SetHolderPosText(NetworkManager::Instance()->GetPlayerReplica()->position);
 						else if (NetworkManager::Instance()->GetPlayerReplica()->gamePlatform == Shooter && NetworkManager::Instance()->GetPlayerList()[i]->gamePlatform == Holder)
@@ -227,15 +227,15 @@ void PacketHandler::OnHandlePacket() {
 			bool eval1;
 			int sequenceNum;
 
-			//¸®½ºÆù ¿äÃ» º¸³½ º¿ÀÇ GUID
+			//ë¦¬ìŠ¤í° ìš”ì²­ ë³´ë‚¸ ë´‡ì˜ GUID
 			bsIn.Read(botGuid);
 			bsIn.Read(respawnPos);
 			bsIn.Read(respawnTarget);
 			bsIn.Read(eval1);
-			bsIn.Read(sequenceNum); // ¸Ş¼Òµå 1ÀÇ ÀĞ
+			bsIn.Read(sequenceNum); // ë©”ì†Œë“œ 1ì˜ ì½
 			
 			if (NetworkManager::Instance()->IsServer()) {
-				//º¸³½ ÀÌ¸¦ Á¦¿ÜÇÑ ¸ğµÎ¿¡°Ô ´Ù½Ã ºê·ÎµåÄ³½ºÆÃ
+				//ë³´ë‚¸ ì´ë¥¼ ì œì™¸í•œ ëª¨ë‘ì—ê²Œ ë‹¤ì‹œ ë¸Œë¡œë“œìºìŠ¤íŒ…
 				RakNet::BitStream bs;
 				bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_RESPAWN);
 				bs.Write(botGuid);
@@ -248,7 +248,7 @@ void PacketHandler::OnHandlePacket() {
 			}
 			else {
 				if (eval1) {
-				    //Å¬¶óÀÌ¾ğÆ®°¡ ¹Ş¾ÒÀ» ¶§ ¼­¹ö¿¡°Ô ACK Àü¼Û
+				    //í´ë¼ì´ì–¸íŠ¸ê°€ ë°›ì•˜ì„ ë•Œ ì„œë²„ì—ê²Œ ACK ì „ì†¡
 					RakNet::BitStream bs;
 					bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_ACK);
 					bs.Write(METHOD_1);
@@ -264,7 +264,7 @@ void PacketHandler::OnHandlePacket() {
 				{
 					player->isTeleport = true;
 					player->position = respawnPos;
-					//º¿ÀÌ°í ÇöÀç ¹æ¹ı 1À» ¾²´Â°Å¶ó¸é Replica Update ¹®¿¡¼­ À§Ä¡¸¦ º¯°æÇØÁÖ´Â°Ô ¾Æ´Ï¶ó ¿©±â¼­ ¹Ù·Î À§Ä¡ º¯°æ
+					//ë´‡ì´ê³  í˜„ì¬ ë°©ë²• 1ì„ ì“°ëŠ”ê±°ë¼ë©´ Replica Update ë¬¸ì—ì„œ ìœ„ì¹˜ë¥¼ ë³€ê²½í•´ì£¼ëŠ”ê²Œ ì•„ë‹ˆë¼ ì—¬ê¸°ì„œ ë°”ë¡œ ìœ„ì¹˜ ë³€ê²½
 					if (player->isBot && MethodManager::Instance()->IsMethodActive(METHOD_1)) {
 						player->model->setPosition(player->position);
 						player->model->setRotation(core::vector3df(0, player->rotationAroundYAxis, 0));
@@ -284,11 +284,11 @@ void PacketHandler::OnHandlePacket() {
 			bsIn.Read(packetSequence);
 
 			if (NetworkManager::Instance()->IsServer()) {
-				// 1. DS_Map¿¡¼­ º¸³½ ½Ã°£ ²¨³»¿À±â
+				// 1. DS_Mapì—ì„œ ë³´ë‚¸ ì‹œê°„ êº¼ë‚´ì˜¤ê¸°
 				RakNet::TimeMS sentTime = MethodManager::Instance()->GetAndRemoveSendTime(packet->systemAddress, packetSequence, methodType);
 				
-				if(methodType == METHOD_3) NetLogManager::Instance()->PrintDebug(RakNet::RakString("[Server] Stress Test Batch END / IP : %s / ROUND : %d", packet->systemAddress.ToString(false), packetSequence));
-				// 2. ±â·ÏÀÌ ÀÖ´Ù¸é RTT °è»ê (ÇöÀç½Ã°£ - º¸³½½Ã°£)
+				if(methodType == METHOD_3) NetLogManager::Instance()->PrintDebug(RakNet::RakString("[Server] Stress Test Batch END / IP : %s / ROUND : %d\n", packet->systemAddress.ToString(false), packetSequence));
+				// 2. ê¸°ë¡ì´ ìˆë‹¤ë©´ RTT ê³„ì‚° (í˜„ì¬ì‹œê°„ - ë³´ë‚¸ì‹œê°„)
 				if (sentTime != 0) {
 					RakNet::TimeMS currentTime = RakNet::GetTimeMS(); RakNet::TimeMS appRTT = currentTime - sentTime;
 					if (MethodManager::Instance()->IsMethodLogActive(methodType)) NetLogManager::Instance()->LogRTT(methodType, packet->systemAddress, appRTT, packetSequence);
@@ -308,28 +308,28 @@ void PacketHandler::OnHandlePacket() {
 			bsIn.IgnoreBytes(packetSize); // Dummy Data Skip
 
 			int packetIndex;
-			bsIn.Read(packetIndex); //ÆĞÅ¶ ¹øÈ£ ÀĞ±â (0 ~ 99)
+			bsIn.Read(packetIndex); //íŒ¨í‚· ë²ˆí˜¸ ì½ê¸° (0 ~ 99)
 			int packetSequence;
-			bsIn.Read(packetSequence); //ÆĞÅ¶ ÀÏ·Ã¹øÈ£ ÀĞ±â
+			bsIn.Read(packetSequence); //íŒ¨í‚· ì¼ë ¨ë²ˆí˜¸ ì½ê¸°
 
-			// 1. ½ÃÀÛ ÆĞÅ¶ (0¹ø)
+			// 1. ì‹œì‘ íŒ¨í‚· (0ë²ˆ)
 			if (packetIndex == 0) {
 				testStartTime = RakNet::GetTimeMS();
-				NetLogManager::Instance()->PrintDebug("Batch Start\n");
+				//NetLogManager::Instance()->PrintDebug("Batch Start\n");
 				//HUDManager::Instance()->PushMessage(RakNet::RakString("Batch Start"));
 			}
 
-			// 2. Á¾·á ÆĞÅ¶ (99¹ø) -> ¿©±â¼­ ÃøÁ¤ Á¾·á
-			if (packetIndex == 99) {
+			// 2. ì¢…ë£Œ íŒ¨í‚· (99ë²ˆ) -> ì—¬ê¸°ì„œ ì¸¡ì • ì¢…ë£Œ
+			if ( packetIndex == NetworkManager::Instance()->GetstressPacketsPerUpdate() - 1 ) {
 				RakNet::TimeMS endTime = RakNet::GetTimeMS();
 				RakNet::TimeMS duration = endTime - testStartTime;
 				if (testStartTime > 0) {
 					testRountCount++;
-					NetLogManager::Instance()->PrintDebug("Batch Complete / Round %d", testRountCount);
+					//NetLogManager::Instance()->PrintDebug("Batch Complete / Round %d\n", testRountCount);
 					//HUDManager::Instance()->PushMessage(RakNet::RakString("Batch Complete / Round %d", testRountCount));
 					testStartTime = 0; 
 
-					//¼­¹ö¿¡ ACK Àü¼Û
+					//ì„œë²„ì— ACK ì „ì†¡
 					RakNet::BitStream bs;
 					bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_ACK);
 					bs.Write(METHOD_3);
@@ -369,15 +369,15 @@ void PacketHandler::MakeRespawnPacket(RakNet::BitStream* bs) {
 	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos);
 	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
 	bs->Write(MethodManager::Instance()->method1bool);
-	bs->Write(MethodManager::Instance()->method1cnt); //ÆĞÅ¶ ÀÏ·Ã¹øÈ£
+	bs->Write(MethodManager::Instance()->method1cnt); //íŒ¨í‚· ì¼ë ¨ë²ˆí˜¸
 }
 
 
 void PacketHandler::OnUpdateReplica() {
 	if (SceneManager::Instance()->currentScene >= 1)
 	{
-		//(¼­¹ö º¿À» Á¦¿ÜÇÑ) ¸ğµç ÇÃ·¹ÀÌ¾î°¡ »ı¼ºµÇ¸é ¼­¹ö Ãø¿¡¼­ ÀÌ¸§À» ÇÒ´ç
-		//Å¬¶ó Ãø¿¡¼­ ÀÌ¸§À» ÇÒ´çÇÏ´Â°Ô ´õ ÆíÇÏ³ª ÇöÀç ¸ğ¹ÙÀÏ¿¡¼­ ÀÌ¸§À» ÇÒ´çÇÏ±â ¾î·Á¿î ¹®Á¦°¡ ÀÖ¾î¼­ ¼­¹ö Ãø¿¡¼­ ÇÒ´ç.
+		//(ì„œë²„ ë´‡ì„ ì œì™¸í•œ) ëª¨ë“  í”Œë ˆì´ì–´ê°€ ìƒì„±ë˜ë©´ ì„œë²„ ì¸¡ì—ì„œ ì´ë¦„ì„ í• ë‹¹
+		//í´ë¼ ì¸¡ì—ì„œ ì´ë¦„ì„ í• ë‹¹í•˜ëŠ”ê²Œ ë” í¸í•˜ë‚˜ í˜„ì¬ ëª¨ë°”ì¼ì—ì„œ ì´ë¦„ì„ í• ë‹¹í•˜ê¸° ì–´ë ¤ìš´ ë¬¸ì œê°€ ìˆì–´ì„œ ì„œë²„ ì¸¡ì—ì„œ í• ë‹¹.
 		if (NetworkManager::Instance()->IsServer() && CInGame::Instance()->isPlayersNameSet == false && NetworkManager::Instance()->GetMaxClientCnt() == NetworkManager::Instance()->GetPlayerList().Size() - CInGame::Instance()->serverPlayerCnt) {
 			CInGame::Instance()->isPlayersNameSet = true;
 			int playerCnt = 1; int botCnt = 1;
@@ -404,7 +404,7 @@ void PacketHandler::OnUpdateReplica() {
 
 			NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS,true);
 
-			//¼­¹ö Ãø ÀÌ¸§Àº ¿©±â¼­ ÇÒ´ç
+			//ì„œë²„ ì¸¡ ì´ë¦„ì€ ì—¬ê¸°ì„œ í• ë‹¹
 			const char* charStr = serverNames.C_String();
 			wchar_t wcharStr[128];
 			mbstowcs(wcharStr, charStr, sizeof(wcharStr) / sizeof(wchar_t));
@@ -413,17 +413,17 @@ void PacketHandler::OnUpdateReplica() {
 		}
 
 		RakNet::TimeMS curTime = RakNet::GetTimeMS();
-		//°ÔÀÓ ½ÃÀÛ È®ÀÎ
+		//ê²Œì„ ì‹œì‘ í™•ì¸
 		if (NetworkManager::Instance()->IsServer() && CInGame::Instance()->gameStartTime <= curTime && CInGame::Instance()->isGameStart == false && CInGame::Instance()->gameStartTime != 0) {
 			CInGame::Instance()->isGameStart = true;
 			HUDManager::Instance()->PushMessage(RakNet::RakString("Game Start!"));
 
-			//¸ğµç ÇÃ·¹ÀÌ¾î¿¡°Ô °ÔÀÓ ½ÃÀÛ ¾Ë¸®±â
+			//ëª¨ë“  í”Œë ˆì´ì–´ì—ê²Œ ê²Œì„ ì‹œì‘ ì•Œë¦¬ê¸°
 			RakNet::BitStream bs;
 			bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_GAME_MATCH);
 			bs.Write(GameMatchState::GAME_MATCH_START);
 			NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
-			CInGame::Instance()->gameStartTime = curTime; //°ÔÀÓ ½ÃÀÛ ½Ã°£ ±â·Ï
+			CInGame::Instance()->gameStartTime = curTime; //ê²Œì„ ì‹œì‘ ì‹œê°„ ê¸°ë¡
 
 #if QOS_SUPPORTED 
 			sem.setKey(888); sem.setupSemaphore(0);
@@ -432,7 +432,7 @@ void PacketHandler::OnUpdateReplica() {
 #endif
 		}
 
-		// °´Ã¼ ¾÷µ¥ÀÌÆ®
+		// ê°ì²´ ì—…ë°ì´íŠ¸
 		bool isTimeRecorded = false;
 		for (unsigned int idx = 0; idx < NetworkManager::Instance()->GetReplicaManager()->GetReplicaCount(); idx++) {
 			((BaseIrrlichtReplica*)(NetworkManager::Instance()->GetReplicaManager()->GetReplicaAtIndex(idx)))->Update(curTime);
@@ -443,15 +443,15 @@ void PacketHandler::OnUpdateReplica() {
 		}
 
 		// -----------------------------------------------------------
-		// 3. [FoS] ÆĞÅ¶ ¿À´õ¸µ Å¥ °Ë»ç ¹× Ã³¸® (METHOD_2)
+		// 3. [FoS] íŒ¨í‚· ì˜¤ë”ë§ í ê²€ì‚¬ ë° ì²˜ë¦¬ (METHOD_2)
 		// -----------------------------------------------------------
 		if (NetworkManager::Instance()->IsServer() && MethodManager::Instance()->IsMethodActive(METHOD_2))
 		{
-			// [Step A] ¸ğµç ÇÃ·¹ÀÌ¾îÀÇ RTO(Wj) °»½Å
+			// [Step A] ëª¨ë“  í”Œë ˆì´ì–´ì˜ RTO(Wj) ê°±ì‹ 
 			for (unsigned int idx = 0; idx < NetworkManager::Instance()->GetPlayerList().Size(); idx++)
 			{
 				PlayerReplica* player = NetworkManager::Instance()->GetPlayerList()[idx];
-				// ¼­¹ö ·ÎÄÃ º¿Àº Á¦¿Ü.. ¿Ö ¾ÈµÊ?
+				// ì„œë²„ ë¡œì»¬ ë´‡ì€ ì œì™¸.. ì™œ ì•ˆë¨?
 				if (player->creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 					continue;
 
@@ -474,22 +474,22 @@ void PacketHandler::OnUpdateReplica() {
 				if (player->Wj_RTO > 3000) player->Wj_RTO = 3000;
 			}
 
-			// [Step B] Å¥ Ã³¸® ·çÇÁ
+			// [Step B] í ì²˜ë¦¬ ë£¨í”„
 			while (MethodManager::Instance()->orderPq.Size() >= 1)
 			{
-				// Å¥ÀÇ Çìµå ¸Ş½ÃÁö È®ÀÎ (¾ÆÁ÷ Pop ÇÏÁö ¾ÊÀ½)
+				// íì˜ í—¤ë“œ ë©”ì‹œì§€ í™•ì¸ (ì•„ì§ Pop í•˜ì§€ ì•ŠìŒ)
 				const orderData& M_k = MethodManager::Instance()->orderPq.Peek(0);
 				RakNet::TimeMS U_i = MethodManager::Instance()->umTimeMap[M_k.um_cnt];
 				RakNet::TimeMS delta_k = M_k.reactionTime;
 
-				// max(Wj) °è»ê ÃÖÀûÈ­
-				// : M_k¿Í µ¿ÀÏÇÑ UM¿¡ ´ëÇØ, ÀÌ¹Ì Å¥¿¡ ¸Ş½ÃÁö°¡ µµÂøÇØ ÀÖ´Â ÇÃ·¹ÀÌ¾î ¸ñ·Ï(Set)À» ¸¸µì´Ï´Ù.
-				//   ÀÌµéÀº ÀÌ¹Ì "¹İÀÀ"ÇßÀ¸¹Ç·Î(¼ø¼­ º¸ÀåµÊ), ´ë±â ½Ã°£(Wj)À» Àû¿ëÇÒ ÇÊ¿ä°¡ ¾ø½À´Ï´Ù.
+				// max(Wj) ê³„ì‚° ìµœì í™”
+				// : M_kì™€ ë™ì¼í•œ UMì— ëŒ€í•´, ì´ë¯¸ íì— ë©”ì‹œì§€ê°€ ë„ì°©í•´ ìˆëŠ” í”Œë ˆì´ì–´ ëª©ë¡(Set)ì„ ë§Œë“­ë‹ˆë‹¤.
+				//   ì´ë“¤ì€ ì´ë¯¸ "ë°˜ì‘"í–ˆìœ¼ë¯€ë¡œ(ìˆœì„œ ë³´ì¥ë¨), ëŒ€ê¸° ì‹œê°„(Wj)ì„ ì ìš©í•  í•„ìš”ê°€ ì—†ìŠµë‹ˆë‹¤.
 				std::set<RakNet::RakNetGUID> submittedPlayers;
 
-				// Å¥ ÀüÃ¼¸¦ ¼øÈ¸ÇÏ¸ç ÇöÀç um_cnt¿Í °°Àº ¸Ş½ÃÁö¸¦ º¸³½ ÇÃ·¹ÀÌ¾î ½Äº°
+				// í ì „ì²´ë¥¼ ìˆœíšŒí•˜ë©° í˜„ì¬ um_cntì™€ ê°™ì€ ë©”ì‹œì§€ë¥¼ ë³´ë‚¸ í”Œë ˆì´ì–´ ì‹ë³„
 				for (unsigned int q_idx = 0; q_idx < MethodManager::Instance()->orderPq.Size(); ++q_idx) {
-					// DS_Heap.h¿¡ Ãß°¡ÇÑ GetNode() »ç¿ë
+					// DS_Heap.hì— ì¶”ê°€í•œ GetNode() ì‚¬ìš©
 					const auto& node = MethodManager::Instance()->orderPq.GetNode(q_idx);
 					if (node.data.um_cnt == M_k.um_cnt) {
 						submittedPlayers.insert(node.data.playerGUID);
@@ -501,11 +501,11 @@ void PacketHandler::OnUpdateReplica() {
 				{
 					PlayerReplica* player_j = NetworkManager::Instance()->GetPlayerList()[p_idx];
 
-					// Á¦¿Ü ´ë»ó: ¼­¹ö ÀÚ½Å, ¸Ş½ÃÁö M_kÀÇ ¹ß½ÅÀÚ
+					// ì œì™¸ ëŒ€ìƒ: ì„œë²„ ìì‹ , ë©”ì‹œì§€ M_kì˜ ë°œì‹ ì
 					if (player_j->creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) continue;
 					if (player_j->creatingSystemGUID == M_k.playerGUID) continue;
 
-					// [ÃÖÀûÈ­] ÀÌ¹Ì ÇØ´ç UM¿¡ ´ëÇÑ ¸Ş½ÃÁö°¡ Å¥¿¡ µµÂøÇÑ ÇÃ·¹ÀÌ¾î´Â ±â´Ù¸®Áö ¾ÊÀ½
+					// [ìµœì í™”] ì´ë¯¸ í•´ë‹¹ UMì— ëŒ€í•œ ë©”ì‹œì§€ê°€ íì— ë„ì°©í•œ í”Œë ˆì´ì–´ëŠ” ê¸°ë‹¤ë¦¬ì§€ ì•ŠìŒ
 					if (submittedPlayers.find(player_j->creatingSystemGUID) != submittedPlayers.end())
 						continue;
 
@@ -514,25 +514,25 @@ void PacketHandler::OnUpdateReplica() {
 					}
 				}
 
-				// [Step C] ¹è´Ş ½Ã°£(Process Time) °è»ê ¹× Ã³¸®
-				// ³í¹® °ø½Ä: D(Mk) = Ui + max(Wj) + delta_k
-				// ¿©±â¼­ max(Wj)´Â ¾ÆÁ÷ ÀÀ´äÇÏÁö ¾ÊÀº ÀáÀçÀû ÇÃ·¹ÀÌ¾îµéÀÇ ÃÖ´ë ´ë±â½Ã°£ÀÔ´Ï´Ù.
+				// [Step C] ë°°ë‹¬ ì‹œê°„(Process Time) ê³„ì‚° ë° ì²˜ë¦¬
+				// ë…¼ë¬¸ ê³µì‹: D(Mk) = Ui + max(Wj) + delta_k
+				// ì—¬ê¸°ì„œ max(Wj)ëŠ” ì•„ì§ ì‘ë‹µí•˜ì§€ ì•Šì€ ì ì¬ì  í”Œë ˆì´ì–´ë“¤ì˜ ìµœëŒ€ ëŒ€ê¸°ì‹œê°„ì…ë‹ˆë‹¤.
 				RakNet::TimeMS calculated_processTime = U_i + max_Wj + delta_k;
 
-				// DataStructures::HeapÀº ³»ºÎ µ¥ÀÌÅÍÀÇ Á÷Á¢ ¼öÁ¤À» ÅëÇÑ ÀçÁ¤·ÄÀ» Áö¿øÇÏÁö ¾ÊÀ¸¹Ç·Î,
-				// processTimeÀº °è»ê ¿ëµµ·Î¸¸ ¾²°í Å¥ ³»ºÎ µ¥ÀÌÅÍ¸¦ ¼öÁ¤ÇÏÁö ¾Ê´Â °ÍÀÌ ¾ÈÀüÇÏÁö¸¸,
-				// ¿©±â¼­´Â ·ÎÁ÷»ó ¸Å¹ø °è»êÇÏ¿© ºñ±³ÇÏ¹Ç·Î ±»ÀÌ M_k.processTime¿¡ ÀúÀåÇÒ ÇÊ¿ä´Â ¾ø½À´Ï´Ù.
-				// (µğ¹ö±ëÀ» À§ÇØ ÀúÀåÇÑ´Ù¸é const_cast°¡ ÇÊ¿äÇÒ ¼ö ÀÖÀ½, ¿©±â¼± Áö¿ªº¯¼ö »ç¿ë)
+				// DataStructures::Heapì€ ë‚´ë¶€ ë°ì´í„°ì˜ ì§ì ‘ ìˆ˜ì •ì„ í†µí•œ ì¬ì •ë ¬ì„ ì§€ì›í•˜ì§€ ì•Šìœ¼ë¯€ë¡œ,
+				// processTimeì€ ê³„ì‚° ìš©ë„ë¡œë§Œ ì“°ê³  í ë‚´ë¶€ ë°ì´í„°ë¥¼ ìˆ˜ì •í•˜ì§€ ì•ŠëŠ” ê²ƒì´ ì•ˆì „í•˜ì§€ë§Œ,
+				// ì—¬ê¸°ì„œëŠ” ë¡œì§ìƒ ë§¤ë²ˆ ê³„ì‚°í•˜ì—¬ ë¹„êµí•˜ë¯€ë¡œ êµ³ì´ M_k.processTimeì— ì €ì¥í•  í•„ìš”ëŠ” ì—†ìŠµë‹ˆë‹¤.
+				// (ë””ë²„ê¹…ì„ ìœ„í•´ ì €ì¥í•œë‹¤ë©´ const_castê°€ í•„ìš”í•  ìˆ˜ ìˆìŒ, ì—¬ê¸°ì„  ì§€ì—­ë³€ìˆ˜ ì‚¬ìš©)
 
 				if (curTime >= calculated_processTime)
 				{
-					// Ã³¸® ½Ã°£ µµ´Ş -> Å¥¿¡¼­ Á¦°Å ÈÄ ·ÎÁ÷ ½ÇÇà
+					// ì²˜ë¦¬ ì‹œê°„ ë„ë‹¬ -> íì—ì„œ ì œê±° í›„ ë¡œì§ ì‹¤í–‰
 					orderData top = MethodManager::Instance()->orderPq.Pop(0);
 
-					// [Ãß°¡] ¿©±â¼­ Áßº¹ Ã¼Å©¸¦ ÇÏ´Â °ÍÀÌ °¡Àå ±ò²ûÇÕ´Ï´Ù.
+					// [ì¶”ê°€] ì—¬ê¸°ì„œ ì¤‘ë³µ ì²´í¬ë¥¼ í•˜ëŠ” ê²ƒì´ ê°€ì¥ ê¹”ë”í•©ë‹ˆë‹¤.
 					PlayerReplica* sender = nullptr;
 
-					// (ÇÃ·¹ÀÌ¾î Ã£±â ·ÎÁ÷...)
+					// (í”Œë ˆì´ì–´ ì°¾ê¸° ë¡œì§...)
 					for (unsigned int i = 0; i < NetworkManager::Instance()->GetPlayerList().Size(); ++i) {
 						if (NetworkManager::Instance()->GetPlayerList()[i]->creatingSystemGUID == top.playerGUID) {
 							sender = NetworkManager::Instance()->GetPlayerList()[i];
@@ -541,25 +541,25 @@ void PacketHandler::OnUpdateReplica() {
 					}
 
 					if (sender) {
-						// ÀÌ¹Ì Ã³¸®µÈ ¾×¼ÇÀÌ¸é °Ç³Ê¶Ü (No-Op)
+						// ì´ë¯¸ ì²˜ë¦¬ëœ ì•¡ì…˜ì´ë©´ ê±´ë„ˆëœ€ (No-Op)
 						if (top.am_cnt <= sender->lastProcessedAmCnt) {
 							continue;
 						}
-						sender->lastProcessedAmCnt = top.am_cnt; // ÃÖ½Å ¹øÈ£ °»½Å
+						sender->lastProcessedAmCnt = top.am_cnt; // ìµœì‹  ë²ˆí˜¸ ê°±ì‹ 
 					}
-					top.ingoingTime = curTime - top.ingoingTime; // ½ÇÁ¦ Ã³¸®±îÁö °É¸° Áö¿¬ ½Ã°£
+					top.ingoingTime = curTime - top.ingoingTime; // ì‹¤ì œ ì²˜ë¦¬ê¹Œì§€ ê±¸ë¦° ì§€ì—° ì‹œê°„
 					CollisionManager::Instance()->BulletHitDetected(top.playerGUID, top.ingoingTime);
 				}
 				else
 				{
-					// ¾ÆÁ÷ Ã³¸® ½Ã°£ÀÌ ¾È µÊ -> Á¤·ÄµÈ Å¥ÀÌ¹Ç·Î µÚÀÇ ¸Ş½ÃÁöµµ Ã³¸® ºÒ°¡ -> ·çÇÁ Á¾·á
+					// ì•„ì§ ì²˜ë¦¬ ì‹œê°„ì´ ì•ˆ ë¨ -> ì •ë ¬ëœ íì´ë¯€ë¡œ ë’¤ì˜ ë©”ì‹œì§€ë„ ì²˜ë¦¬ ë¶ˆê°€ -> ë£¨í”„ ì¢…ë£Œ
 					break;
 				}
 			}
 		}
 
 		// -----------------------------------------------------------
-		// 4. °ÔÀÓ Á¾·á ¹× QoS Ã³¸®
+		// 4. ê²Œì„ ì¢…ë£Œ ë° QoS ì²˜ë¦¬
 		// -----------------------------------------------------------
 		if (CInGame::Instance()->isGameEnd) {
 			if (NetworkManager::Instance()->IsServer()) {
