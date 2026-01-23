@@ -63,7 +63,7 @@ public:
     void Initialize(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE d);
     void Activate();
     void LoadMap(const char* mapName);
-    void Update(); // ÆÄÆ¼Å¬ ¾÷µ¥ÀÌÆ® µî
+    void Update(); // íŒŒí‹°í´ ì—…ë°ì´íŠ¸ ë“±
     void Cleanup();
     void createLoadingScreen();
     void loadSceneData();
@@ -71,7 +71,7 @@ public:
     void createParticleImpacts();
     const core::aabbox3df& GetSyndeyBoundingBox(void) const;
     void CalculateSyndeyBoundingBox(void);
-    RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, GamePlatform platform); // ·¹ÀÌÄ³½ºÆÃ (»ç°İ ÆÇÁ¤¿ë)
+    RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, GamePlatform platform); // ë ˆì´ìºìŠ¤íŒ… (ì‚¬ê²© íŒì •ìš©)
     RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint, GamePlatform platform);
 
     scene::ISceneNodeAnimatorCameraFPS* fpsCamAnim = nullptr;
@@ -91,7 +91,7 @@ private:
     static SceneManager* instance;
     scene::ISceneManager* smgr;
 
-    // ¸Ê & Ãæµ¹ °ü·Ã
+    // ë§µ & ì¶©ëŒ ê´€ë ¨
     scene::IMetaTriangleSelector* metaSelector;
     scene::ITriangleSelector* mapSelector;
     scene::ITriangleSelector* playerSelector;
@@ -104,7 +104,7 @@ private:
     gui::IGUIInOutFader* inOutFader;
     video::SColor backColor;
 
-    // ÆÄÆ¼Å¬ °ü¸® ±¸Á¶Ã¼ ¹× ¹è¿­
+    // íŒŒí‹°í´ ê´€ë¦¬ êµ¬ì¡°ì²´ ë° ë°°ì—´
     struct SParticleImpact {
         u32 when;
         core::vector3df pos;

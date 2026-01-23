@@ -25,7 +25,7 @@ InputController::InputController() : isKeyLock(false), wasKeyLock(false), isRota
 }
 
 InputController::~InputController() {
-	// 안전한 포인터 삭제 로직
+	// 
 }
 
 bool InputController::OnEvent(const SEvent& event) {
@@ -185,16 +185,16 @@ bool InputController::OnEvent(const SEvent& event) {
 		return false;
 
 	if (isKeyLock && !wasKeyLock) {
-		FlushMovementKeys();   // 잠금 켜질 때 즉시 정지
+		FlushMovementKeys();   // 
 		wasKeyLock = true;
 	}
 	else if (!isKeyLock && wasKeyLock) {
-		wasKeyLock = false;    // 잠금 해제됨
+		wasKeyLock = false;    //  
 	}
 
-	//잠금 중에는 입력 기록/전달을 차단 (화이트리스트 키만 허용)
+	// 
 	if (isKeyLock) {
-		// 허용할 키(예: ESC, F9, R)만 통과
+		// 
 		if (event.EventType == EET_KEY_INPUT_EVENT) {
 			const auto key = event.KeyInput.Key;
 			const bool down = event.KeyInput.PressedDown;
@@ -205,14 +205,14 @@ bool InputController::OnEvent(const SEvent& event) {
 				key == KEY_KEY_R;
 
 			if (!allow) {
-				// 눌림은 무시, 떼는 입력은 내부 상태만 false로 정리
+				// 
 				if (!down) KeyIsDown[key] = false;
-				return true;   // 이벤트 소비
+				return true;   // 
 			}
 		}
-		// 마우스(회전/사격)도 차단
+		// 
 		if (event.EventType == EET_MOUSE_INPUT_EVENT) {
-			return true;       // 이벤트 소비
+			return true;       // 
 		}
 	}
 
@@ -227,7 +227,7 @@ bool InputController::OnEvent(const SEvent& event) {
 		// user wants to quit.
 //		if (currentScene < 3)
 //			timeForThisScene = 0;
-//		else
+//		//else
 			//CInGame::Instance()->GetDevice()->closeDevice();
 
 		// RakNet: Escape to get the mouse back
@@ -243,9 +243,9 @@ bool InputController::OnEvent(const SEvent& event) {
 	}
 	else if (
 			// RakNet: Use space to jump, not shoot
-	//		(event.EventType == EET_KEY_INPUT_EVENT &&
-	//		event.KeyInput.Key == KEY_SPACE &&
-	//		event.KeyInput.PressedDown == false) ||
+	//	(event.EventType == EET_KEY_INPUT_EVENT &&
+	//	 event.KeyInput.Key == KEY_SPACE &&
+	//	 event.KeyInput.PressedDown == false) ||
 			(event.EventType == EET_MOUSE_INPUT_EVENT &&
 			event.MouseInput.Event == EMIE_LMOUSE_LEFT_UP) &&
 			//currentScene == 3
@@ -295,20 +295,20 @@ bool InputController::OnEvent(const SEvent& event) {
 			CInGame::Instance()->Respawn(CInGame::Instance()->initPos, CInGame::Instance()->initTarget);
 		}
 		isKeyLock = false;
-		FlushMovementKeys(); //리셋 시에도 모든 이동키 해제
+		FlushMovementKeys(); // 
 		}
 	}
 	else  if (event.EventType == EET_KEY_INPUT_EVENT && event.KeyInput.Key == KEY_KEY_T && event.KeyInput.PressedDown == false)
 	{
 		if (NetworkManager::Instance()->IsServer()) {
-			NetworkManager::Instance()->StartStressTest(10000); // 10초간 지속
+			NetworkManager::Instance()->StartStressTest(1000); // 2000 loops
 		}
 	}
 	else if (CInGame::Instance()->GetDevice()->getSceneManager() != nullptr &&
 			CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera())
 	{
 		if (isKeyLock)
-			return true; // 여기서 바로 빠져나가면 기존 방향으로 계속 이동하지 않음
+			return true; // 
 
 		if (event.EventType == EET_MOUSE_INPUT_EVENT) {
 			//CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
@@ -372,8 +372,8 @@ void InputController::FlushMovementKeys()
 	ev.KeyInput.PressedDown = false;
 
 	for (EKEY_CODE k : keys) {
-		KeyIsDown[k] = false;      // 내부 키 상태 해제
-		ev.KeyInput.Key = k;       // 카메라에도 KeyUp 전달
+		KeyIsDown[k] = false;      // 
+		ev.KeyInput.Key = k;       // 
 		if (auto* cam = CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera())
 			cam->OnEvent(ev);
 	}

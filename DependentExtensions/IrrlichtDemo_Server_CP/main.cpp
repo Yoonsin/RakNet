@@ -34,12 +34,13 @@ int main(int argc, char* argv[])
 	bool isServer = false; 
 	bool isLocalServer = false;
 	bool isLogged = true;
+	bool isHUDVisible = false;
 	bool isBot = false;
 	int clientCount = 2;
 	int winScore = 3;
 	int methodMask = METHOD_3;
 	int methodLogMask = METHOD_3;
-	int scenario = 0;
+	ScenarioNum scenario = ScenarioNum::SCENARIO_MOVE_BOT_FIXED;
 
 #ifndef _IRR_WINDOWS_
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
@@ -89,7 +90,14 @@ int main(int argc, char* argv[])
 		else if (strcmp(token, "-scenario") == 0) {
 			token = strtok(nullptr, " ");
 			if (token != nullptr) {
-				scenario = atoi(token);
+				int d = atoi(token);
+				switch ( d ){
+				case 0: scenario = ScenarioNum::SCENARIO_NONE; break;
+				case 1: scenario = ScenarioNum::SCENARIO_RESPAWN_BOT; break;
+				case 2: scenario = ScenarioNum::SCENARIO_MOVE_BOT_RANDOM; break;
+				case 3: scenario = ScenarioNum::SCENARIO_MOVE_BOT_FIXED; break;
+				case 4: scenario = ScenarioNum::SCENARIO_STAND_BOT; break;
+				}
 			}
 		}
 		else if (strcmp(token, "-console") == 0) {
@@ -100,6 +108,9 @@ int main(int argc, char* argv[])
 		}
 		else if (strcmp(token, "-local") == 0) {
 			isLocalServer = true;
+		}
+		else if (strcmp(token, "-noHUD") == 0) {
+			isHUDVisible = false;
 		}
 		else if (strcmp(token, "-driver") == 0) {
 			token = strtok(nullptr, " ");
@@ -122,7 +133,7 @@ int main(int argc, char* argv[])
 
 	if (skipMenu) {
 		if (isServer) platform = GamePlatform::Server;
-		new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask, methodLogMask, scenario, isLocalServer);
+		new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask, methodLogMask, scenario, isLocalServer, isHUDVisible);
 		CInGame::Instance()->Run();
 		CInGame::DestroyInstance();
 	}
@@ -132,7 +143,7 @@ int main(int argc, char* argv[])
 			//#endif
 		{
 			if (isServer) platform = GamePlatform::Server;
-			new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask, methodLogMask, scenario, isLocalServer);
+			new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask, methodLogMask, scenario, isLocalServer, isHUDVisible);
 			CInGame::Instance()->Run();
 			CInGame::DestroyInstance();
 		}
@@ -176,7 +187,28 @@ int main(int argc, char* argv[])
 		}
 		else if (strcmp(argv[i], "-scenario") == 0) {
 			if (i + 1 < argc) {
-				scenario = atoi(argv[i + 1]);
+				int d = atoi(argv[i + 1]);
+				switch ( d ) {
+				case 0: scenario = ScenarioNum::SCENARIO_NONE; break;
+				case 1: scenario = ScenarioNum::SCENARIO_RESPAWN_BOT; break;
+				case 2: scenario = ScenarioNum::SCENARIO_MOVE_BOT_RANDOM; break;
+				case 3: scenario = ScenarioNum::SCENARIO_MOVE_BOT_FIXED; break;
+				case 4: scenario = ScenarioNum::SCENARIO_STAND_BOT; break;
+				}
+				i++;
+			}
+		}
+		else if (strcmp(argv[i], "-driver") == 0 ) {
+			if ( i + 1 < argc ) {
+				int d = atoi(argv[i + 1]);
+				switch ( d ) {
+				case 0: driverType = video::EDT_OPENGL; break;
+					//case 1: driverType = video::EDT_DIRECT3D8; break;
+				case 2: driverType = video::EDT_DIRECT3D9; break;
+				case 3: driverType = video::EDT_BURNINGSVIDEO; break;
+				case 4: driverType = video::EDT_SOFTWARE; break;
+				case 5: driverType = video::EDT_NULL; break;
+				}
 				i++;
 			}
 		}
@@ -184,7 +216,7 @@ int main(int argc, char* argv[])
 
 	const char* baseDir = "/home/parts/stats";
 
-	new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir,isBot, winScore, methodMask, methodLogMask, scenario, isLocalServer);
+	new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir,isBot, winScore, methodMask, methodLogMask, scenario, isLocalServer, isHUDVisible);
 	CInGame::Instance()->Run();
 	CInGame::DestroyInstance();
 #endif // _WIN32

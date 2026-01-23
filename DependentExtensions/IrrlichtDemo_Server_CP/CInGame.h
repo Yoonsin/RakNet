@@ -87,7 +87,7 @@ public:
 	static CInGame* Instance();
 	static void DestroyInstance();
 	CInGame();
-	CInGame(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base, bool isBot, int winScore,int methodMask, int methodLogMask, int scenario, bool isLocalS);
+	CInGame(bool fullscreen, bool music, bool shadows, bool additive, bool vsync, bool aa, video::E_DRIVER_TYPE driver, core::stringw &_playerName, bool isServer, GamePlatform platform, bool isLogged, int logCnt, const char* base, bool isBot, int winScore,int methodMask, int methodLogMask, ScenarioNum scenario, bool isLocalS, bool isHUDVisible = true);
 	~CInGame();
 	void Run();
 	void Activate();
@@ -112,9 +112,9 @@ public:
 	core::vector3df initPos;
 	core::vector3df initTarget;
 
-	RakNet::TimeMS botMoveTime = 2000;
-	RakNet::TimeMS preT = 0;
-	RakNet::TimeMS gameStartTime = 0;
+	RakNet::TimeMS botMoveTime;
+	RakNet::TimeMS preT;
+	RakNet::TimeMS gameStartTime;
 	int dir;
 	bool isShoot;
 	bool isBot;

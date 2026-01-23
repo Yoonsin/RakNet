@@ -19,25 +19,26 @@ public:
     static NetLogManager* Instance();
     static void DestroyInstance();
 
-    // ÃÊ±âÈ­ (·Î±× È°¼ºÈ­ ¿©ºÎ, ÃÖ´ë ÀúÀå °³¼ö ¼³Á¤)
+    // ì´ˆê¸°í™” (ë¡œê·¸ í™œì„±í™” ì—¬ë¶€, ìµœëŒ€ ì €ì¥ ê°œìˆ˜ ì„¤ì •)
     void Initialize(bool enableLog, int maxLogCount, const char* base);
 
-    // [ÇÙ½É] RTT ·Î±× ±â·Ï ÇÔ¼ö (Method ¹øÈ£, ´ë»ó ÁÖ¼Ò, RTT °ª)
+    // [í•µì‹¬] RTT ë¡œê·¸ ê¸°ë¡ í•¨ìˆ˜ (Method ë²ˆí˜¸, ëŒ€ìƒ ì£¼ì†Œ, RTT ê°’)
     void LogRTT(int methodType, const RakNet::SystemAddress& sa, int rtt, int Sequence = -1 );
 
-    // ÀÏ¹İ ¸Ş½ÃÁö ·Î±× ±â·Ï (printf Ã³·³ »ç¿ë)
+    // ì¼ë°˜ ë©”ì‹œì§€ ë¡œê·¸ ê¸°ë¡ (printf ì²˜ëŸ¼ ì‚¬ìš©)
     void LogMessage(int methodType, const char* format, ...);
 
-    // ½×ÀÎ ·Î±×¸¦ CSV ÆÄÀÏ·Î ÀúÀå
+    // ìŒ“ì¸ ë¡œê·¸ë¥¼ CSV íŒŒì¼ë¡œ ì €ì¥
     void SaveLogsToCSV(int methodIndex);
 
-    // µğ¹ö±× Ã¢ Áï½Ã Ãâ·Â (È­¸é Ç¥½Ã¿ë)
+    // ë””ë²„ê·¸ ì°½ ì¦‰ì‹œ ì¶œë ¥ (í™”ë©´ í‘œì‹œìš©)
     void PrintDebug(const char* format, ...);
 
 	void Shutdown();
 
 	bool IsLogging() const { return isLoggingEnabled; }
 
+    void PrintPlayerStat();
 private:
     NetLogManager();
     ~NetLogManager();
@@ -48,10 +49,10 @@ private:
     int maxLogEntries;
     const char* baseDir;
 
-    // ·Î±× ¹öÆÛ: [MethodIndex][LogStringList]
-    // ¿¹: logBuffers[1] Àº Method 1ÀÇ ·Î±× ¸®½ºÆ®
+    // ë¡œê·¸ ë²„í¼: [MethodIndex][LogStringList]
+    // ì˜ˆ: logBuffers[1] ì€ Method 1ì˜ ë¡œê·¸ ë¦¬ìŠ¤íŠ¸
     DataStructures::List<DataStructures::List<RakNet::RakString>> logBuffers;
 
-    // µ¿½Ã Á¢±Ù ¹æÁö¿ë ¹ÂÅØ½º
+    // ë™ì‹œ ì ‘ê·¼ ë°©ì§€ìš© ë®¤í…ìŠ¤
     std::mutex logMutex;
 };

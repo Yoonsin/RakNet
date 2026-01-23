@@ -110,7 +110,7 @@ void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream* constructionB
 	//debugBox->EnableDrawTriangles(true);
 	//scene::ITriangleSelector* selector = CreateSelectorFromTransformedBox(SceneManager::Instance()->GetSyndeyBoundingBox(), model->getAbsoluteTransformation(), sm, creatingSystemGUID);
 	//model->setTriangleSelector(selector);
-	//selector->drop();  // ÂüÁ¶ Ä«¿îÆ® °ü¸®
+	//selector->drop();  // ì°¸ì¡° ì¹´ìš´íŠ¸ ê´€ë¦¬
 	//debugBox->SetSelector(model->getTriangleSelector());
 
 	model->setPosition(position);
@@ -119,11 +119,12 @@ void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream* constructionB
 	model->setMD2Animation(scene::EMAT_STAND);
 
 	curAnim = scene::EMAT_STAND;
-	model->setMaterialTexture(0, CInGame::Instance()->GetDevice()->getVideoDriver()->getTexture(CInGame::Instance()->mediaPath + "sydney.bmp"));
-	model->setMaterialFlag(video::EMF_LIGHTING, true);
-	model->addShadowVolumeSceneNode();
-	model->setAutomaticCulling(scene::EAC_BOX);
-	model->setVisible(true);
+	//model->setMaterialTexture(0, CInGame::Instance()->GetDevice()->getVideoDriver()->getTexture(CInGame::Instance()->mediaPath + "sydney.bmp"));
+	//model->setMaterialFlag(video::EMF_LIGHTING, true);
+	//model->addShadowVolumeSceneNode();
+	//model->setAutomaticCulling(scene::EAC_BOX);
+	
+	(isBot)? model->setVisible(true) : model->setVisible(false);
 	model->setAnimationEndCallback(this);
 	wchar_t playerNameWChar[1024];
 	mbstowcs(playerNameWChar, playerName.C_String(), 1023);
@@ -148,7 +149,7 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters* ser
 	serializeParameters->outputBitstream[0].Write(gamePlatform);
 
 	if (NetworkManager::Instance()->GetTopology() == SERVER) {
-		//¼­¹ö¿¡¼­´Â Àü´Ş¸¸
+		//ì„œë²„ì—ì„œëŠ” ì „ë‹¬ë§Œ
 		serializeParameters->outputBitstream[0].Write(true);
 		serializeParameters->outputBitstream[0].Write(shootPosition);
 		serializeParameters->outputBitstream[0].Write(shootDirection);
@@ -169,13 +170,13 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters* ser
 		}
 	}
 
-	//¼­¹ö¿¡¼­´Â Àü´Ş¸¸2
+	//ì„œë²„ì—ì„œëŠ” ì „ë‹¬ë§Œ2
 	serializeParameters->outputBitstream[0].Write((NetworkManager::Instance()->GetTopology() == SERVER) ? fps : CInGame::Instance()->GetDevice()->getVideoDriver()->getFPS());
 
 	//timeStamp
 	//serializeParameters->messageTimestamp = RakNet::GetTimeMS();
 	//return RM3SR_BROADCAST_IDENTICALLY; 
-	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //°ªÀÌ ¾È¹Ù²î¾îµµ °è¼Ó µ¿±âÈ­µÊ
+	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //ê°’ì´ ì•ˆë°”ë€Œì–´ë„ ê³„ì† ë™ê¸°í™”ë¨
 }
 void PlayerReplica::Deserialize(RakNet::DeserializeParameters* deserializeParameters)
 {
@@ -212,7 +213,7 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters* deserializeParame
 void PlayerReplica::Update(RakNet::TimeMS curTime)
 {
 	if (NetworkManager::Instance()->GetTopology() == SERVER) {
-		//ºÎÈ° È®ÀÎ
+		//ë¶€í™œ í™•ì¸
 		bool tmp = IsDead();
 		if (wasDead && !tmp) {
 			RakNet::BitStream bs;
@@ -224,13 +225,13 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 			if (isBot) {
 				if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 				{
-					//¼­¹ö º¿ÀÌ¸é Áï½Ã ¸®½ºÆù
+					//ì„œë²„ ë´‡ì´ë©´ ì¦‰ì‹œ ë¦¬ìŠ¤í°
 					CInGame::Instance()->SetResetBot();
 					CInGame::Instance()->Respawn(respawnPos, respawnTarget);
 					CInGame::Instance()->botMoveTime = RakNet::GetTimeMS() + CInGame::Instance()->BOT_MOVE_TIME;
 				}
 
-				//¸®½ºÆù ¿äÃ» º¸³»±â
+				//ë¦¬ìŠ¤í° ìš”ì²­ ë³´ë‚´ê¸°
 				RakNet::BitStream bs;
 				bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_RESPAWN);
 				bs.Write(creatingSystemGUID);
@@ -238,7 +239,7 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 				bs.Write(respawnTarget);
 
 				if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
-					//¼­¹ö º¿Àº ¹Ù·Î ºê·Îµå Ä³½ºÆ®
+					//ì„œë²„ ë´‡ì€ ë°”ë¡œ ë¸Œë¡œë“œ ìºìŠ¤íŠ¸
 					NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 				}
 			}
@@ -274,8 +275,8 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		if (!isBot && !isCreatedCamera) return;
 		if (IsDead()) return;
 
-		//botÀÌ ¾Æ´Ï¸é isCreatedCamera ÇÊ¿ä
-		//bot ÀÌ¸é isCreatedCamera ÇÊ¿ä ¾øÀ½ (ÃÑÀ» ¾È½î¹Ç·Î)
+		//botì´ ì•„ë‹ˆë©´ isCreatedCamera í•„ìš”
+		//bot ì´ë©´ isCreatedCamera í•„ìš” ì—†ìŒ (ì´ì„ ì•ˆì˜ë¯€ë¡œ)
 		core::matrix4 transform;
 		transform.setTranslation(position);
 
@@ -288,18 +289,18 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 		transform *= rotation;
 		transform *= scale;
 
-		//TODO : shootPosition, shootDirection ¸ğµÎ position Ã³·³ º¸Á¤À» ÇØÁÙ ÇÊ¿ä°¡ ÀÖÀ½
-		//TODO : Áö±İÀº ¼­¹ö º¿ÀÌ ÃÑÀ» ¾È½÷¼­ shoot °ü·Ã º¯¼ö°¡ 0,0,0 À¸·Î ÃÊ±âÈ­µÇ¾î ÀÖÀ½. ´Ù¸¸ ³ªÁß¿¡ ÃÑÀ» ½ğ´Ù¸é serialize~deserialize ½Ã¿¡ °ª ÃÊ±âÈ­ ÇÊ¿ä
+		//TODO : shootPosition, shootDirection ëª¨ë‘ position ì²˜ëŸ¼ ë³´ì •ì„ í•´ì¤„ í•„ìš”ê°€ ìˆìŒ
+		//TODO : ì§€ê¸ˆì€ ì„œë²„ ë´‡ì´ ì´ì„ ì•ˆì´ì„œ shoot ê´€ë ¨ ë³€ìˆ˜ê°€ 0,0,0 ìœ¼ë¡œ ì´ˆê¸°í™”ë˜ì–´ ìˆìŒ. ë‹¤ë§Œ ë‚˜ì¤‘ì— ì´ì„ ìœë‹¤ë©´ serialize~deserialize ì‹œì— ê°’ ì´ˆê¸°í™” í•„ìš”
 
 		FrameState frame{ curTime - (NetworkManager::Instance()->GetPeer()->GetAveragePing(creatingSystemGUID) / 2), transform, shootPosition, shootDirection };
 		fq->Push(frame, _FILE_AND_LINE_);
-		//¸Ç ¾Õ¿¡ ³²¾ÆÀÖ´Â ÇÁ·¹ÀÓºÎÅÍ Â÷·Ê´ë·Î °Ë»ç -> ÇöÀç ½Ã°£ÀÌ¶û 1ÃÊ ÀÌ»ó Â÷ÀÌ³ª¸é ¹ö¸²
+		//ë§¨ ì•ì— ë‚¨ì•„ìˆëŠ” í”„ë ˆì„ë¶€í„° ì°¨ë¡€ëŒ€ë¡œ ê²€ì‚¬ -> í˜„ì¬ ì‹œê°„ì´ë‘ 1ì´ˆ ì´ìƒ ì°¨ì´ë‚˜ë©´ ë²„ë¦¼
 		while (!fq->IsEmpty() && frame.timeStamp - fq->Peek().timeStamp > HISTORY_DURATION_MS)
 			fq->Pop();
 	}
 
 	// Is a locally created object?
-	// ÀÌµ¿ Àû¿ë
+	// ì´ë™ ì ìš©
 	if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
 			NetworkManager::Instance()->GetPlayerReplica()->position = CInGame::Instance()->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
@@ -315,7 +316,7 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 			isMoving = InputController::Instance()->IsMovementKeyDown();
 			// Ack, makes the screen messed up and the mouse move off the window
 			// Find another way to keep the dead player from moving
-			// ¼­¹ö º¿ Àû¿ëÇÏ¸é ÀÌµ¿½Ã Æ¨±â´Â ¹®Á¦ ¹ß»ı
+			// ì„œë²„ ë´‡ ì ìš©í•˜ë©´ ì´ë™ì‹œ íŠ•ê¸°ëŠ” ë¬¸ì œ ë°œìƒ
 			if (NetworkManager::Instance()->GetTopology() != SERVER) InputController::Instance()->EnableInput((NetworkManager::Instance()->GetTopology() == SERVER) ? IsDead() == false : isDead == false);
 
 			//DebugPrintf("Player position : %f, %f, %f / isKeyLock : %d / wasKeyLock : %d \n", position.X, position.Y, position.Z, CInGame::Instance()->isKeyLock, CInGame::Instance()->wasKeyLock);
@@ -331,13 +332,13 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	//Debug Frame
 	//DrawDebugFrame(CInGame::Instance()->GetSyndeyBoundingBox(),position, rotationAroundYAxis, CInGame::Instance()->GetSceneManager(), creatingSystemGUID, 500);
 
-	//¿ø°İ¿¡¼­ º¸´Â º¿ + ¸®½ºÆù ¸í·É ¹Ş¾ÒÀ» ¶§ 
+	//ì›ê²©ì—ì„œ ë³´ëŠ” ë´‡ + ë¦¬ìŠ¤í° ëª…ë ¹ ë°›ì•˜ì„ ë•Œ 
 	if (isBot)
 	{
-		//method 1 ÀÏ ¶§´Â ÀÌµ¿À» ¾Æ¿¹ ¾ÈÇÔ
+		//method 1 ì¼ ë•ŒëŠ” ì´ë™ì„ ì•„ì˜ˆ ì•ˆí•¨
 		if (MethodManager::Instance()->IsMethodActive(METHOD_1)) return;
 
-		//µü ÇÑ¹ø º¸°£¾øÀÌ °­Á¦ ÀÌµ¿ÇÔ
+		//ë”± í•œë²ˆ ë³´ê°„ì—†ì´ ê°•ì œ ì´ë™í•¨
 		if (isTeleport) {
 			model->setPosition(position);
 			model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
@@ -386,7 +387,7 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	//Print HolderPos
 	if (isBot && (MethodManager::Instance()->isMethodZero())) {
 
-		//º¸°£µÈ À§Ä¡
+		//ë³´ê°„ëœ ìœ„ì¹˜
 		HUDManager::Instance()->SetHolderPosText(model->getPosition());
 		core::vector3df pos = model->getPosition();
 
@@ -500,7 +501,7 @@ RM3SerializationResult PlayerBotReplica::Serialize(RakNet::SerializeParameters* 
 	//timeStamp
 	//serializeParameters->messageTimestamp = RakNet::GetTimeMS();
 	//return RM3SR_BROADCAST_IDENTICALLY; 
-	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //°ªÀÌ ¾È¹Ù²î¾îµµ °è¼Ó µ¿±âÈ­µÊ
+	return RM3SR_BROADCAST_IDENTICALLY_FORCE_SERIALIZATION; //ê°’ì´ ì•ˆë°”ë€Œì–´ë„ ê³„ì† ë™ê¸°í™”ë¨
 }
 void PlayerBotReplica::Deserialize(RakNet::DeserializeParameters* deserializeParameters)
 {
@@ -579,10 +580,10 @@ void BallReplica::SerializeConstruction(RakNet::BitStream* constructionBitstream
 	if (NetworkManager::Instance()->GetTopology() == SERVER) return;
 
 	RakNet::TimeMS actionTime = RakNet::GetTimeMS();
-	// am_cnt´Â ÇÑ ¹ø¸¸
+	// am_cntëŠ” í•œ ë²ˆë§Œ
 	constructionBitstream->Write(++MethodManager::Instance()->am_cnt);
 
-	// (°£´ÜÇÑ ¹öÀü) ¸ÊÀÇ ¸ğµç Ç×¸ñ¿¡ ´ëÇØ (um_id, delta) Æ©ÇÃÀ» Àü¼Û
+	// (ê°„ë‹¨í•œ ë²„ì „) ë§µì˜ ëª¨ë“  í•­ëª©ì— ëŒ€í•´ (um_id, delta) íŠœí”Œì„ ì „ì†¡
 	int tupleCount = MethodManager::Instance()->umReceptionTimes.Size();
 	constructionBitstream->Write(tupleCount);
 
@@ -614,7 +615,7 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstre
 
 	if (NetworkManager::Instance()->GetTopology() != SERVER || (MethodManager::Instance()->IsMethodActive(METHOD_2) == false)) return true;
 
-	// ÀÌ º¯¼öµéÀº ·çÇÁ ¹Û¿¡¼­ ÇÑ ¹ø¸¸ ¼±¾ğÇÕ´Ï´Ù.
+	// ì´ ë³€ìˆ˜ë“¤ì€ ë£¨í”„ ë°–ì—ì„œ í•œ ë²ˆë§Œ ì„ ì–¸í•©ë‹ˆë‹¤.
 	int am_cnt; int tupleCount;
 	constructionBitstream->Read(am_cnt);
 	constructionBitstream->Read(tupleCount);
@@ -629,12 +630,12 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstre
 		constructionBitstream->Read(um_cnt);
 		constructionBitstream->Read(rt);
 
-		// (i, delta) Æ©ÇÃ¸¶´Ù Å¥¿¡ »ğÀÔ
+		// (i, delta) íŠœí”Œë§ˆë‹¤ íì— ì‚½ì…
 		uint64_t weight = ((uint64_t)um_cnt << 32) | (uint64_t)rt;
 		orderData data = { um_cnt, am_cnt, 0, rt, ingoingTime, 0, guid, false };
 
-		// --- AM ½ÃÄö½º(¼ø¼­) °Ë»ç ·ÎÁ÷ ---
-		// ÀÌ AMÀ» º¸³½ ÇÃ·¹ÀÌ¾î¸¦ Ã£À½
+		// --- AM ì‹œí€€ìŠ¤(ìˆœì„œ) ê²€ì‚¬ ë¡œì§ ---
+		// ì´ AMì„ ë³´ë‚¸ í”Œë ˆì´ì–´ë¥¼ ì°¾ìŒ
 		PlayerReplica* senderPlayer = nullptr;
 		for (unsigned int p_idx = 0; p_idx < NetworkManager::Instance()->GetPlayerList().Size(); ++p_idx) {
 			if (NetworkManager::Instance()->GetPlayerList()[p_idx]->creatingSystemGUID == data.playerGUID) {
@@ -647,12 +648,12 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstre
 		{
 			if (data.am_cnt == senderPlayer->nextExpectedAmCnt)
 			{
-				// 1. ¼ø¼­°¡ ¸ÂÀ½
+				// 1. ìˆœì„œê°€ ë§ìŒ
 				data.isSequenced = true;
 				senderPlayer->nextExpectedAmCnt++;
-				MethodManager::Instance()->orderPq.Push(weight, data, __FILE__, __LINE__); // Å¥¿¡ Áï½Ã »ğÀÔ
+				MethodManager::Instance()->orderPq.Push(weight, data, __FILE__, __LINE__); // íì— ì¦‰ì‹œ ì‚½ì…
 
-				// 2. (¼±ÅÃÀû) ¹öÆÛ¿¡ ÀÖ´ø ´ÙÀ½ ¼ø¼­ÀÇ ¸Ş½ÃÁöµéµµ Ã³¸®
+				// 2. (ì„ íƒì ) ë²„í¼ì— ìˆë˜ ë‹¤ìŒ ìˆœì„œì˜ ë©”ì‹œì§€ë“¤ë„ ì²˜ë¦¬
 				while (senderPlayer->outOfOrderAmBuffer.Has(senderPlayer->nextExpectedAmCnt))
 				{
 					orderData bufferedData = senderPlayer->outOfOrderAmBuffer.Get(senderPlayer->nextExpectedAmCnt);
@@ -660,28 +661,28 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstre
 
 					bufferedData.isSequenced = true;
 					uint64_t bufferedWeight = ((uint64_t)bufferedData.um_cnt << 32) | (uint64_t)bufferedData.reactionTime;
-					MethodManager::Instance()->orderPq.Push(bufferedWeight, bufferedData, __FILE__, __LINE__); // ¹öÆÛ -> Å¥·Î ÀÌµ¿
+					MethodManager::Instance()->orderPq.Push(bufferedWeight, bufferedData, __FILE__, __LINE__); // ë²„í¼ -> íë¡œ ì´ë™
 
 					senderPlayer->nextExpectedAmCnt++;
 				}
 			}
 			else if (data.am_cnt > senderPlayer->nextExpectedAmCnt)
 			{
-				// 2. ¼ø¼­°¡ ¾î±ß³² (¹Ì·¡ÀÇ ÆĞÅ¶ÀÌ ¸ÕÀú ¿È)
+				// 2. ìˆœì„œê°€ ì–´ê¸‹ë‚¨ (ë¯¸ë˜ì˜ íŒ¨í‚·ì´ ë¨¼ì € ì˜´)
 				data.isSequenced = false;
-				// (¼±ÅÃÀû) ÀÏ´Ü ¹öÆÛ¿¡ º¸°ü. Å¥¿¡´Â ³ÖÁö ¾ÊÀ½.
+				// (ì„ íƒì ) ì¼ë‹¨ ë²„í¼ì— ë³´ê´€. íì—ëŠ” ë„£ì§€ ì•ŠìŒ.
 				senderPlayer->outOfOrderAmBuffer.Set(data.am_cnt, data);
 			}
 			else
 			{
 				// 3. (data.am_cnt < senderPlayer->nextExpectedAmCnt)
-				// ÀÌ¹Ì Ã³¸®µÈ ÆĞÅ¶ (´Ê°Ô ¿Â Áßº¹ ÆĞÅ¶). ¹«½Ã.
+				// ì´ë¯¸ ì²˜ë¦¬ëœ íŒ¨í‚· (ëŠ¦ê²Œ ì˜¨ ì¤‘ë³µ íŒ¨í‚·). ë¬´ì‹œ.
 			}
 		}
-		// --- AM ½ÃÄö½º °Ë»ç ·ÎÁ÷ ³¡ ---
+		// --- AM ì‹œí€€ìŠ¤ ê²€ì‚¬ ë¡œì§ ë ---
 	}
 
-	// (TimeStamp ·ÎÁ÷Àº ÁÖ¼® Ã³¸®µÊ)
+	// (TimeStamp ë¡œì§ì€ ì£¼ì„ ì²˜ë¦¬ë¨)
 	//long long timeStampMS;
 	//constructionBitstream->Read(timeStampMS);
 
@@ -710,7 +711,7 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream* constructionBit
 		return;
 	}
 
-	//method 2¸¦ ¾µ ¶§´Â Ãæµ¹ °Ë»ç ÇÏÁö ¾ÊÀ½
+	//method 2ë¥¼ ì“¸ ë•ŒëŠ” ì¶©ëŒ ê²€ì‚¬ í•˜ì§€ ì•ŠìŒ
 	if (MethodManager::Instance()->IsMethodActive(METHOD_2))
 		return;
 

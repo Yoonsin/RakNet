@@ -20,13 +20,14 @@ void HUDManager::DestroyInstance() {
     }
 }
 
-HUDManager::HUDManager() : driver(nullptr), guienv(nullptr), font(nullptr) {}
+HUDManager::HUDManager() : driver(nullptr), guienv(nullptr), font(nullptr), isVisible(true) {}
 HUDManager::~HUDManager() {
-    // Irrlicht GUI ¿ä¼Ò´Â guienv->clear()³ª drop()À¸·Î Á¤¸®µÇ¹Ç·Î 
-    // ¿©±â¼­ Æ¯º°È÷ deleteÇÒ °ÍÀº º¸Åë ¾ø½À´Ï´Ù.
+    // Irrlicht GUI ï¿½ï¿½Ò´ï¿½ guienv->clear()ï¿½ï¿½ drop()ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ç¹Ç·ï¿½ 
+    // ï¿½ï¿½ï¿½â¼­ Æ¯ï¿½ï¿½ï¿½ï¿½ deleteï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
 }
-void HUDManager::Initialize() {
+void HUDManager::Initialize(bool isHUDVisible) {
 	joy_stick = jump_button = fire_button = exit_button = statusText = killLogText = myNameText = holderPosText =  nullptr;
+	isVisible = isHUDVisible;
 }
 
 void HUDManager::Activate() {
@@ -70,9 +71,12 @@ void HUDManager::Activate() {
 	holderPosText->setBackgroundColor(video::SColor(255, 0, 0, 0));
 
 	crosshairTex = driver->getTexture(CInGame::Instance()->mediaPath + "crossHair_white.png");
+
+	HUDManager::Instance( )->SetVisible(isVisible);
 }
 
 void HUDManager::Update() {
+	if (!isVisible) return;
 	if (crosshairTex) DrawCrosshair();
 
 	static s32 lastfps = 0;
@@ -120,14 +124,14 @@ void HUDManager::SetHolderPosText(const core::vector3df& pos) {
 
 void HUDManager::DrawCrosshair() {
     core::dimension2d<u32> size = driver->getScreenSize();
-    const core::dimension2du orig = crosshairTex->getOriginalSize(); // 118¡¿118
-    core::rect<s32> srcRect(0, 0, (s32)orig.Width, (s32)orig.Height); // <= ÀÌ°É »ç¿ë
+    const core::dimension2du orig = crosshairTex->getOriginalSize(); // 118ï¿½ï¿½118
+    core::rect<s32> srcRect(0, 0, (s32)orig.Width, (s32)orig.Height); // <= ï¿½Ì°ï¿½ ï¿½ï¿½ï¿½
 
     s32 minPixel;
     if (size.Width <= size.Height) minPixel = size.Width;
     else minPixel = size.Height;
 
-    // ¿øÇÏ´Â ½ºÄÉÀÏ ÇÈ¼¿(¿¹: 64¡¿64, ¶Ç´Â È­¸é ÂªÀº º¯ÀÇ 10%)
+    // ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½È¼ï¿½(ï¿½ï¿½: 64ï¿½ï¿½64, ï¿½Ç´ï¿½ È­ï¿½ï¿½ Âªï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ 10%)
     const s32 target = (s32)(minPixel * 0.10f);
     //const s32 target = 128;
     const s32 posX = (size.Width - target) / 2;
@@ -181,7 +185,7 @@ RakNet::RakString HUDManager::GetCurrentKillLogMessage(void)
 		RakNet::RakString msg = killLogMessages[i].message;
 		RakNet::TimeMS time = killLogMessages[i].timeStamp;
 
-		if (time + 5000 < RakNet::GetTimeMS()) // 5ÃÊ ÀÌ»ó Áö³­ ¸Þ½ÃÁö´Â »èÁ¦
+		if (time + 5000 < RakNet::GetTimeMS()) // 5ï¿½ï¿½ ï¿½Ì»ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Þ½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 		{
 			killLogMessages.Pop();
 			ItemCnt--;
@@ -202,6 +206,19 @@ void HUDManager::SetPlayerNameText() {
 	myNameText->setText(wcharStr);
 }
 
+void HUDManager::SetVisible(bool visible) {
+	this->isVisible = visible;
+	
+	if (statusText) statusText->setVisible(visible);
+	if (killLogText) killLogText->setVisible(visible);
+	if (myNameText) myNameText->setVisible(visible);
+	if (holderPosText) holderPosText->setVisible(visible);
+	if (joy_stick) joy_stick->setVisible(visible);
+	if (jump_button) jump_button->setVisible(visible);
+	if (fire_button) fire_button->setVisible(visible);
+	if (exit_button) exit_button->setVisible(visible);
+}
+
 void HUDManager::InitMobileHUD() {
 #ifdef __ANDROID__
 	// set game UI
@@ -210,7 +227,7 @@ void HUDManager::InitMobileHUD() {
 	int offset = 50;
 	int offset2 = 150;
 	core::rect<int> jumpPos(size.Width - 150 - offset - offset2, size.Height - 300 - offset, size.Width - offset2, size.Height - 150);
-	CInGame::Instance()->GetDevice()->getGUIEnvironment()->addButton(jumpPos, 0, AppSkin::GUI_JUMP, L"RESET"); //µð¹ö±× ¿ëÀ¸·Î Á¡ÇÁ -> ¸®¼ÂÀ¸·Î ¼öÁ¤
+	CInGame::Instance()->GetDevice()->getGUIEnvironment()->addButton(jumpPos, 0, AppSkin::GUI_JUMP, L"RESET"); //ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ -> ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 
 	core::rect<int> firePos(size.Width - 150 - offset - offset2, size.Height - 550 - offset, size.Width - offset2, size.Height - 400);
 	CInGame::Instance()->GetDevice()->getGUIEnvironment()->addButton(firePos, 0, AppSkin::GUI_FIRE, L"FIRE");

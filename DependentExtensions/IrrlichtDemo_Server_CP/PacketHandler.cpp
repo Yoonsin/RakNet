@@ -47,7 +47,7 @@ void PacketHandler::OnHandlePacket() {
 	RakNet::TimeMS curTime = RakNet::GetTimeMS();
 	RakNet::RakString targetName;
 
-	for (packet = NetworkManager::Instance()->GetPeer()->Receive(); packet; NetworkManager::Instance()->GetPeer()->DeallocatePacket(packet), packet = NetworkManager::Instance()->GetPeer()->Receive())
+	for (packet = NetworkManager::Instance( )->GetPeer( )->Receive( ); packet; NetworkManager::Instance()->GetPeer()->DeallocatePacket(packet), packet = NetworkManager::Instance( )->GetPeer( )->Receive( ) )
 	{
 		targetName = packet->systemAddress.ToString(true);
 		switch (packet->data[0])
@@ -287,7 +287,7 @@ void PacketHandler::OnHandlePacket() {
 				// 1. DS_Map에서 보낸 시간 꺼내오기
 				RakNet::TimeMS sentTime = MethodManager::Instance()->GetAndRemoveSendTime(packet->systemAddress, packetSequence, methodType);
 				
-				if(methodType == METHOD_3) NetLogManager::Instance()->PrintDebug(RakNet::RakString("[Server] Stress Test Batch END / IP : %s / ROUND : %d\n", packet->systemAddress.ToString(false), packetSequence));
+				if(methodType == METHOD_3 && packetSequence % 100 == 0) NetLogManager::Instance()->PrintDebug(RakNet::RakString("[Server] Stress Test Batch END / IP : %s / ROUND : %d\n", packet->systemAddress.ToString(false), packetSequence));
 				// 2. 기록이 있다면 RTT 계산 (현재시간 - 보낸시간)
 				if (sentTime != 0) {
 					RakNet::TimeMS currentTime = RakNet::GetTimeMS(); RakNet::TimeMS appRTT = currentTime - sentTime;
@@ -325,8 +325,7 @@ void PacketHandler::OnHandlePacket() {
 				RakNet::TimeMS duration = endTime - testStartTime;
 				if (testStartTime > 0) {
 					testRountCount++;
-					//NetLogManager::Instance()->PrintDebug("Batch Complete / Round %d\n", testRountCount);
-					//HUDManager::Instance()->PushMessage(RakNet::RakString("Batch Complete / Round %d", testRountCount));
+					if(testRountCount%100 == 0)NetLogManager::Instance()->PrintDebug("Batch Complete / Round %d\n", testRountCount);
 					testStartTime = 0; 
 
 					//서버에 ACK 전송
@@ -337,6 +336,7 @@ void PacketHandler::OnHandlePacket() {
 					NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 				}
 			}
+
 		}
 		break;
 		case ID_GAME_MESSAGE_GAME_MATCH:
@@ -368,7 +368,7 @@ void PacketHandler::MakeRespawnPacket(RakNet::BitStream* bs) {
 	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->creatingSystemGUID);
 	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos);
 	bs->Write(NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget);
-	bs->Write(MethodManager::Instance()->method1bool);
+	bs->Write(MethodManager::Instance()->botRespawnFlag);
 	bs->Write(MethodManager::Instance()->method1cnt); //패킷 일련번호
 }
 

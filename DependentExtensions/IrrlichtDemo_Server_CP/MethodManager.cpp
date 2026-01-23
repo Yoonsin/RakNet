@@ -70,8 +70,8 @@ MethodManager::MethodManager() {
     currentMethodsLogBitmask = 0;
     currentCongestedUserCount = 0;
     reactionTime = 0;
-    scenarioNum = 0;
-    method1bool = false;
+    scenarioNum = SCENARIO_NONE;
+    botRespawnFlag = false;
     method1cnt = 0;
     method3cnt = 0;
     CongestionLogTime = 0;
@@ -90,13 +90,11 @@ MethodManager::~MethodManager() {
     }
 }
 
-void MethodManager::Initialize(int methodMask, int methodLogMask, int scenario, bool isServer) {
+void MethodManager::Initialize(int methodMask, int methodLogMask, ScenarioNum scenario, bool isServer) {
     currentMethodsBitmask = methodMask;
     currentMethodsLogBitmask = methodLogMask;
     scenarioNum = scenario;
     this->isServer = isServer;
-
-    if (scenarioNum == 1) CInGame::Instance()->BOT_MOVE_TIME = 1000;
 
     if (this->isServer) {
         isRunning = true;
@@ -133,7 +131,7 @@ int MethodManager::GetSequenceIndexForMethod(int method) {
 }
 
 void MethodManager::UpdateMethod(int methodFlag) {
-    if (IsMethodActive(METHOD_1)) if (method1bool) method1cnt++;
+    if (IsMethodActive(METHOD_1)) if (botRespawnFlag) method1cnt++;
 
     if (IsMethodActive(METHOD_3)) {
         RakNet::TimeMS currentTime = RakNet::GetTimeMS();

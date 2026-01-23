@@ -11,7 +11,7 @@
 #include <vector>
 #include <atomic>
 
-// ºñÆ® ÇÃ·¡±× »ó¼ö
+// ë¹„íŠ¸ í”Œë˜ê·¸ ìƒìˆ˜
 // (1 << 0) = 1
 // (1 << 1) = 2
 // (1 << 2) = 4
@@ -19,41 +19,41 @@ constexpr int METHOD_1 = 1;
 constexpr int METHOD_2 = 2;
 constexpr int METHOD_3 = 4;
 
-// [Method 1¿ë] RTT Á¤º¸¸¦ À§ÇÑ Å° ±¸Á¶Ã¼
+// [Method 1ìš©] RTT ì •ë³´ë¥¼ ìœ„í•œ í‚¤ êµ¬ì¡°ì²´
 struct RttKey {
 	RakNet::SystemAddress systemAddress;
-	int sequenceIndex; // ¸î ¹øÂ° ÆĞÅ¶ÀÎÁö ½Äº° (Áßº¹ ¹æÁö)
+	int sequenceIndex; // ëª‡ ë²ˆì§¸ íŒ¨í‚·ì¸ì§€ ì‹ë³„ (ì¤‘ë³µ ë°©ì§€)
 	RttKey() : sequenceIndex(0) { systemAddress = RakNet::UNASSIGNED_SYSTEM_ADDRESS; }
 	RttKey(RakNet::SystemAddress sa, int seq) : systemAddress(sa), sequenceIndex(seq) {}
 };
 int RttKeyComparison(const RttKey& key1, const RttKey& key2);
 
-// [Method 1¿ë] Áö¿¬ Àü¼ÛÀ» À§ÇÑ ½ºÄÉÁÙ¸µ ÆĞÅ¶ ±¸Á¶Ã¼
+// [Method 1ìš©] ì§€ì—° ì „ì†¡ì„ ìœ„í•œ ìŠ¤ì¼€ì¤„ë§ íŒ¨í‚· êµ¬ì¡°ì²´
 struct ScheduledPacket {
-	RakNet::TimeMS executionTime; // Àü¼ÛµÇ¾î¾ß ÇÒ Àı´ë ½Ã°£
-	RakNet::SystemAddress targetAddress; // ¸ñÀûÁö ÁÖ¼Ò
-	RakNet::BitStream* dataStream; // ÆĞÅ¶ µ¥ÀÌÅÍ (»çº»)
+	RakNet::TimeMS executionTime; // ì „ì†¡ë˜ì–´ì•¼ í•  ì ˆëŒ€ ì‹œê°„
+	RakNet::SystemAddress targetAddress; // ëª©ì ì§€ ì£¼ì†Œ
+	RakNet::BitStream* dataStream; // íŒ¨í‚· ë°ì´í„° (ì‚¬ë³¸)
 
-	// ¿ì¼±¼øÀ§ Å¥ Á¤·Ä¿ë (½Ã°£ÀÌ ºü¸¥ ¼ø¼­´ë·Î)
+	// ìš°ì„ ìˆœìœ„ í ì •ë ¬ìš© (ì‹œê°„ì´ ë¹ ë¥¸ ìˆœì„œëŒ€ë¡œ)
 	bool operator>(const ScheduledPacket& other) const {
 		return executionTime > other.executionTime;
 	}
 };
 
-// [Method 3¿ë] ÇÃ·¹ÀÌ¾îº° ÆĞÅ¶ Å¥ ¹× Burst Å©·¹µ÷
+// [Method 3ìš©] í”Œë ˆì´ì–´ë³„ íŒ¨í‚· í ë° Burst í¬ë ˆë”§
 struct PlayerPacketQueue {
 	std::queue<RakNet::BitStream*> packetQ;
-	double currentCredit = 0.0; // ÇöÀç Àü¼Û °¡´ÉÇÑ ´©Àû Å©·¹µ÷
+	double currentCredit = 0.0; // í˜„ì¬ ì „ì†¡ ê°€ëŠ¥í•œ ëˆ„ì  í¬ë ˆë”§
 };
 
-// ÇÃ·¹ÀÌ¾îº° È¥Àâµµ »óÅÂ Á¤º¸
+// í”Œë ˆì´ì–´ë³„ í˜¼ì¡ë„ ìƒíƒœ ì •ë³´
 struct PlayerCongestionState {
 	double congestionIndex; // CI_f
-	double burstMultiplier; // ÃÖÁ¾ °è»êµÈ Burst °ª
-	bool isCongested;       // CI > 1.0 ¿©ºÎ
+	double burstMultiplier; // ìµœì¢… ê³„ì‚°ëœ Burst ê°’
+	bool isCongested;       // CI > 1.0 ì—¬ë¶€
 };
 
-// [Method 2¿ë] Á¤·Ä µ¥ÀÌÅÍ¸¦ À§ÇÑ ±¸Á¶Ã¼ (±âÁ¸ À¯Áö)
+// [Method 2ìš©] ì •ë ¬ ë°ì´í„°ë¥¼ ìœ„í•œ êµ¬ì¡°ì²´ (ê¸°ì¡´ ìœ ì§€)
 struct orderData {
 	int um_cnt;
 	int am_cnt;
@@ -65,13 +65,21 @@ struct orderData {
 	bool isSequenced;
 };
 
+enum ScenarioNum {
+	SCENARIO_NONE,			//ë´‡ ì—†ìŒ / ììœ ë¡œìš´ í–‰ë™ ê°€ëŠ¥
+	SCENARIO_RESPAWN_BOT,   // ê°™ì€ ì¥ì†Œì—ì„œ ë¦¬ìŠ¤í°ì„ ëŠì„ì—†ì´ ë°˜ë³µí•˜ëŠ” ë´‡ / í”Œë ˆì´ì–´ ì‚¬ê²© ë¶ˆê°€ 
+	SCENARIO_MOVE_BOT_RANDOM,      // ëœë¤í•œ ë°©í–¥/ì†ë„ ì´ë™ -> ë¦¬ìŠ¤í° ë°˜ë³µí•˜ëŠ” ë´‡ /í”Œë ˆì´ì–´ ì‚¬ê²© ë¶ˆê°€
+	SCENARIO_MOVE_BOT_FIXED,        // ê³ ì •ëœ ë°©í–¥/ì†ë„ ì´ë™ (ì™”ë‹¤ê°”ë‹¤ë§Œ) -> ë¦¬ìŠ¤í° ë°˜ë³µí•˜ëŠ” ë´‡ / í”Œë ˆì´ì–´ ì‚¬ê²© ë¶ˆê°€
+	SCENARIO_STAND_BOT      // ê°€ë§Œíˆ ì„œìˆëŠ” ë´‡ (ì‚¬ê²©ì‹œì—ë§Œ ë¦¬ìŠ¤í°) / í”Œë ˆì´ì–´ ì‚¬ê²© ê°€ëŠ¥ 
+};
+
 class MethodManager
 {
 public:
 	static MethodManager* Instance();
 	static void DestroyInstance();
 
-	void Initialize(int methodMask, int methodLogMask, int scenario, bool isServer);
+	void Initialize(int methodMask, int methodLogMask, ScenarioNum scenario, bool isServer);
 	void Activate();
 	void UpdateMethod(int methodFlag);
 
@@ -79,19 +87,19 @@ public:
 	bool IsMethodLogActive(int methodLogFlag) const;
 	bool isMethodZero() const { return currentMethodsBitmask == 0; }
 
-	// ÆĞÅ¶ Àü¼Û ÀÎÅÍÆäÀÌ½º
+	// íŒ¨í‚· ì „ì†¡ ì¸í„°í˜ì´ìŠ¤
 	void SendManagedPacket(RakNet::BitStream* bs, RakNet::SystemAddress target, int methodType);
 	void EnqueuePacket(RakNet::SystemAddress target, RakNet::BitStream* bs, RakNet::TimeMS delayMs);
 
-	// ³»ºÎ ·ÎÁ÷ (Method 1: Delay / Method 3: Burst)
+	// ë‚´ë¶€ ë¡œì§ (Method 1: Delay / Method 3: Burst)
 	void ExecuteMethod1(RakNet::BitStream* bs);
 	void ExecuteMethod3(RakNet::BitStream* bs, RakNet::SystemAddress target);
 
-	// ¾Ë°í¸®Áò ·ÎÁ÷
-	int CalculateDelayForPlayer(RakNet::SystemAddress sa); // Method 1 Àü¿ë
-	void UpdateCongetstionIndex(); // Method 3 Àü¿ë (Zero-Sum Burst)
+	// ì•Œê³ ë¦¬ì¦˜ ë¡œì§
+	int CalculateDelayForPlayer(RakNet::SystemAddress sa); // Method 1 ì „ìš©
+	void UpdateCongetstionIndex(); // Method 3 ì „ìš© (Zero-Sum Burst)
 
-	// À¯Æ¿¸®Æ¼ ¹× Getter/Setter
+	// ìœ í‹¸ë¦¬í‹° ë° Getter/Setter
 	void RecordSendTime(RakNet::SystemAddress sa, int sequenceIndex, RakNet::TimeMS time, int methodType);
 	RakNet::TimeMS GetAndRemoveSendTime(RakNet::SystemAddress sa, int sequenceIndex, int methodType);
 	int GetCongestedUserCount();
@@ -99,8 +107,8 @@ public:
 	static int ConvertMethodToIndex(int method);
 	int GetSequenceIndexForMethod(int method);
 
-	// Public ¸â¹ö º¯¼ö
-	bool method1bool;
+	// Public ë©¤ë²„ ë³€ìˆ˜
+	bool botRespawnFlag;
 	int method1cnt;
 	int method3cnt;
 	int currentCongestedUserCount;
@@ -108,9 +116,9 @@ public:
 	DataStructures::Map<RttKey, RakNet::TimeMS, RttKeyComparison> method1RttMap;
 	DataStructures::Map<RttKey, RakNet::TimeMS, RttKeyComparison> method3RttMap;
 	std::mutex mapMutex;
-	int scenarioNum;
+	ScenarioNum scenarioNum;
 
-	// Method 2 °ü·Ã º¯¼ö (±âÁ¸ À¯Áö)
+	// Method 2 ê´€ë ¨ ë³€ìˆ˜ (ê¸°ì¡´ ìœ ì§€)
 	int um_cnt;
 	int am_cnt;
 	int sumScore;
@@ -130,10 +138,10 @@ private:
 	RakNet::TimeMS CongestionLogTime;
 	bool isServer;
 
-	// [Method 1] ½Ã°£ ±â¹İ ¿ì¼±¼øÀ§ Å¥
+	// [Method 1] ì‹œê°„ ê¸°ë°˜ ìš°ì„ ìˆœìœ„ í
 	std::priority_queue<ScheduledPacket, std::vector<ScheduledPacket>, std::greater<ScheduledPacket>> taskQueue;
 
-	// [Method 3] ÇÃ·¹ÀÌ¾îº° ¶ó¿îµå ·Îºó Å¥
+	// [Method 3] í”Œë ˆì´ì–´ë³„ ë¼ìš´ë“œ ë¡œë¹ˆ í
 	DataStructures::Map<RakNet::SystemAddress, PlayerPacketQueue*> playerQueues;
 
 	std::mutex queueMutex;

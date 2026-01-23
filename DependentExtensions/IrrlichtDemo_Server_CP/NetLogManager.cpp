@@ -1,3 +1,4 @@
+#include "CInGame.h"
 #include "NetLogManager.h"
 #include "MethodManager.h"
 #include "NetworkManager.h"
@@ -93,6 +94,18 @@ void NetLogManager::Shutdown() {
 		if (MethodManager::Instance()->IsMethodActive(METHOD_1) && MethodManager::Instance()->IsMethodLogActive(METHOD_1))NetLogManager::Instance()->SaveLogsToCSV(METHOD_1);
 		if (MethodManager::Instance()->IsMethodActive(METHOD_3) && MethodManager::Instance()->IsMethodLogActive(METHOD_3))NetLogManager::Instance()->SaveLogsToCSV(METHOD_3);
 	}
+}
+
+void NetLogManager::PrintPlayerStat() {
+	
+	scene::ISceneManager* sm; 
+	scene::ICameraSceneNode* camera;
+	sm = CInGame::Instance()->GetDevice()->getSceneManager();
+	if(sm != nullptr) camera = sm->getActiveCamera();
+	if(camera == nullptr) return;
+
+	PrintDebug("Player Pos : (%.2f, %.2f, %.2f)\n", camera->getPosition().X, camera->getPosition().Y, camera->getPosition().Z);
+	PrintDebug("Player At : (%.2f, %.2f, %.2f)\n", camera->getTarget().X, camera->getTarget().Y, camera->getTarget().Z);
 }
 
 void NetLogManager::SaveLogsToCSV(int methodType) {

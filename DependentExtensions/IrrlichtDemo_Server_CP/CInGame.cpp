@@ -31,6 +31,7 @@ CSemaphore sem;
 #include "RakNetSmartPtr.h"
 #include "RandSync.h"
 #include <chrono>
+#include <thread>
 #include <set>
 #ifdef __ANDROID__
 #include "android_tools.h"
@@ -57,14 +58,14 @@ void CInGame::DestroyInstance() {
 
 CInGame::CInGame(){}
 
-CInGame::CInGame(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw& _playerName, bool isS, GamePlatform plat, bool isLog, int ClientCnt, const char* base, bool _isBot, int _winScore, int methodMask, int methodLogMask, int scenario, bool isLocalS)
+CInGame::CInGame(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRIVER_TYPE d, core::stringw& _playerName, bool isS, GamePlatform plat, bool isLog, int ClientCnt, const char* base, bool _isBot, int _winScore, int methodMask, int methodLogMask, ScenarioNum scenario, bool isLocalS, bool _isHUDVisible)
 {
 	if (instance == nullptr) instance = this;
 
 	device = 0;
 	bulletCount = 0;
 	gameStartTime = 0;
-	BOT_MOVE_TIME = 1000;
+	BOT_MOVE_TIME = 1200;
 	playerName = _playerName;
 	gamePlatform = plat;
 	isBot = _isBot;
@@ -75,12 +76,16 @@ CInGame::CInGame(bool f, bool m, bool s, bool a, bool v, bool fsaa, video::E_DRI
 	isGameEnd = false;
 	driverType = d;
 	if (driverType == video::EDT_NULL) isDummy = true;
-	
+	botMoveTime = 0;
+	preT = 0;
+	gameStartTime = 0;
+	dir = 0;
+
 	SceneManager::Instance()->Initialize(f,m,s,a,v,fsaa,d); 
 	NetworkManager::Instance()->Initialize(isS, isLocalS, ClientCnt);
 	NetLogManager::Instance()->Initialize(isLog, 30000, base); 
 	MethodManager::Instance()->Initialize(methodMask, methodLogMask, scenario, isS); 
-	HUDManager::Instance()->Initialize(); 
+	HUDManager::Instance()->Initialize(_isHUDVisible);
 }
 
 CInGame::~CInGame()
@@ -105,7 +110,8 @@ void CInGame::Activate()
 	device = createDeviceEx(param);
 
 #else
-	core::dimension2d<u32> resolution(640, 480);
+	//core::dimension2d<u32> resolution(640, 480); //mini
+	core::dimension2d<u32> resolution(1440, 900); //16:10 (WSXGA)
 	irr::SIrrlichtCreationParameters params;
 	params.DriverType = driverType;
 	params.WindowSize = resolution;
@@ -194,20 +200,34 @@ void CInGame::Run()
 	NetworkManager::Instance()->Activate(); // RakNet startup
 	SceneManager::Instance()->Activate();
 	SceneManager::Instance()->CalculateSyndeyBoundingBox();
+	
+	const std::chrono::milliseconds targetFrameTime(16);
 	while (device->run())
 	{
+		auto start = std::chrono::steady_clock::now();
 		Update();
 		SceneManager::Instance()->Update(); //load next scene if necessary
 		NetworkManager::Instance()->Update();
 		PacketHandler::Instance()->Update();
 		// 1�ʸ��� ��Ʈ��ũ ��� �α� ��� (Method 3�� Ȱ��ȭ�� ���)
 		if (GetGamePlatform() == Server && MethodManager::Instance()->IsMethodActive(METHOD_3)) MethodManager::Instance()->UpdateMethod(METHOD_3);
+
+		if ( isDummy ) {
+			auto end = std::chrono::steady_clock::now();
+			auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+			if (elapsed < targetFrameTime) {
+			std::this_thread::sleep_for(targetFrameTime - elapsed);
+			}
+		}
+		//For Debug
+		//NetLogManager::Instance()->PrintPlayerStat();
 	}
 	ShutDown();
 }
 
 void CInGame::Update() {
-	if (isGameStart && MethodManager::Instance()->scenarioNum == 1) MoveBot();
+	int scenario = MethodManager::Instance( )->scenarioNum;
+	if (isGameStart && (scenario == SCENARIO_RESPAWN_BOT || scenario == SCENARIO_MOVE_BOT_RANDOM || scenario == SCENARIO_MOVE_BOT_FIXED)) MoveBot();
 	if (isShoot) { shoot(); isShoot = false; }
 }
 
@@ -243,16 +263,16 @@ void CInGame::MoveBot()
 			SEvent botKeyEvent;
 			botKeyEvent.EventType = EET_KEY_INPUT_EVENT;
 			botKeyEvent.KeyInput.Key = KEY_KEY_W;
+			int scenario = MethodManager::Instance( )->scenarioNum;
 			if (botMoveTime >= t) {
-				if (dir != 0 && MethodManager::Instance()->isMethodZero()) {
-					
+				if (dir != 0 && (scenario == SCENARIO_MOVE_BOT_RANDOM || scenario == SCENARIO_MOVE_BOT_FIXED)) {
 					botKeyEvent.KeyInput.PressedDown =  true;
 					InputController::Instance()->SetKeyDown(botKeyEvent.KeyInput.Key, true);
 					device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
 				}
 			}
 			else {
-				if (dir != 0 && MethodManager::Instance()->isMethodZero()) {
+				if (dir != 0 && ( scenario == SCENARIO_MOVE_BOT_RANDOM || scenario == SCENARIO_MOVE_BOT_FIXED )) {
 					botKeyEvent.KeyInput.PressedDown = false;
 					InputController::Instance()->SetKeyDown(botKeyEvent.KeyInput.Key, false);
 					device->getSceneManager()->getActiveCamera()->OnEvent(botKeyEvent);
@@ -282,8 +302,12 @@ void CInGame::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform p
 	}
 		break;
 	case GamePlatform::Shooter: {
-		initPos = core::vector3df(-586.961609, 217.020020, -285.148346);
-		initTarget = core::vector3df(99.891418, 183.134460, -289.131927);
+		//Distant
+		//initPos = core::vector3df(-586.961609, 217.020020, -285.148346);
+		//initTarget = core::vector3df(99.891418, 183.134460, -289.131927);
+		//Near
+		initPos = core::vector3df(-321.72, 217.01, -286.69);
+		initTarget = core::vector3df(160.16, 193.23, -289.48);
 	}
 		  break;
 	case GamePlatform::Server: {
@@ -295,7 +319,6 @@ void CInGame::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform p
 		break;
 	}
 
-	//���̸� �� ������ġ�� (�ӽ�)
 	if (isBot) {
 		initPos = core::vector3df(-118.683563, 224.552368, -493.077454);
 		initTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
@@ -306,14 +329,19 @@ void CInGame::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform p
 }
 void CInGame::SetResetBot() {
 	if (!NetworkManager::Instance()->GetPlayerBotReplica()) return;
+	int scenario = MethodManager::Instance( )->scenarioNum;
 
 	//Direction
 	//-1 : Left, 0 : Down , 1 : Right
-	//�� �� : ������ġ
-	dir = RandomInt(-1, 1);
-	if (MethodManager::Instance()->IsMethodActive(METHOD_1)) dir = 2;
-	if (MethodManager::Instance()->IsMethodActive(METHOD_2)) dir = 3;
-
+	if ( scenario == SCENARIO_MOVE_BOT_FIXED ) {
+		if ( dir == 0 ) dir = -1;
+		else if ( dir == -1 ) dir = 1;
+		else if ( dir == 1 ) dir = -1;
+	}
+	if (scenario == SCENARIO_RESPAWN_BOT) dir = 2;
+	if (scenario == SCENARIO_STAND_BOT) dir = 3;
+	if (scenario == SCENARIO_MOVE_BOT_RANDOM )dir = RandomInt(-1, 1);
+	
 	//Spawn Postion
 	switch (dir)
 	{
@@ -332,21 +360,21 @@ void CInGame::SetResetBot() {
 	}
 		  break;
 	case 2: {
-		if (MethodManager::Instance()->method1bool) {
-			//������ ��
+		if (MethodManager::Instance()->botRespawnFlag) {
+			//왼쪽 스폰 (Case -1과 좌표 동일)
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos = core::vector3df(-118.683563, 224.552368, -493.077454);
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget = core::vector3df(-118.502869, 229.367813, 61.550100);
 		}
 		else {
-			//���� ��ġ
+			//고정 위치 (Case 0 영역의 특정 지점)
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos = core::vector3df(-46.856121, 217.035385, -292.425385);
 			NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget = core::vector3df(-518.377686, 332.969666, -276.827545);
 		}
-		MethodManager::Instance()->method1bool = !MethodManager::Instance()->method1bool;
+		MethodManager::Instance()->botRespawnFlag = !MethodManager::Instance()->botRespawnFlag;
 	}
 		break;
 	case 3: {
-		//���� �׾��� ������ ��Ȱ
+		//방금 죽은 위치에서 부활 (제자리 부활)
 		NetworkManager::Instance()->GetPlayerBotReplica()->respawnPos = NetworkManager::Instance()->GetPlayerBotReplica()->position;
 		NetworkManager::Instance()->GetPlayerBotReplica()->respawnTarget = core::vector3df(-518.377686, 332.969666, -276.827545);
 	}
@@ -355,8 +383,8 @@ void CInGame::SetResetBot() {
 		break;
 	}
 
-	//�޼ҵ� 2���� ���� ���� ������
-	if (MethodManager::Instance()->IsMethodActive(METHOD_2)) return;
+	//봇이 그냥 서있는 경우나 고정된 속도면 Return
+	if (scenario == SCENARIO_STAND_BOT || scenario == SCENARIO_MOVE_BOT_FIXED) return;
 	if (SceneManager::Instance()->fpsCamAnim) SceneManager::Instance()->fpsCamAnim->setMoveSpeed(RandomFloat(0.1f, 0.5f));
 
 	//Gravity
@@ -371,7 +399,6 @@ void CInGame::Respawn(core::vector3df& pos, core::vector3df& target)
 
 	GetSceneManager()->getActiveCamera()->setPosition(pos);
 	GetSceneManager()->getActiveCamera()->setTarget(target);
-	
 	if(SceneManager::Instance()->fpsCamAnim) SceneManager::Instance()->fpsCamAnim->setReset(true);
 	if(SceneManager::Instance()->fpsCamResponse) SceneManager::Instance()->fpsCamResponse->setReset(true);
 }

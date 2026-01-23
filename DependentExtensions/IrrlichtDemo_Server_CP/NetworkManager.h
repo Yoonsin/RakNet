@@ -9,6 +9,11 @@
 #include "irrlicht.h"
 #include "StatisticsHistory.h"
 #include <vector>
+#include <thread>
+#include <atomic>
+#include <chrono>
+#include <queue>
+#include <mutex>
 
 using namespace std;
 using namespace irr;
@@ -29,7 +34,7 @@ enum Topology {
 enum GamePlatform {
 	Shooter,
 	Holder,
-	Server,
+	Server, //Linux
 	Android,
 	Window,
 };
@@ -38,14 +43,14 @@ enum GamePlatform {
 class NetworkManager
 {
 public:
-	// �̱��� ���� (���� ���� ���� ���ټ��� �����ϸ鼭 ĸ��ȭ)
+	// ̱  (   ټ ϸ鼭 ĸȭ)
 	static NetworkManager* Instance();
 	static void DestroyInstance();
 
 	NetworkManager();
 	~NetworkManager();
 
-	// �ʱ�ȭ �� ����
+	// ʱȭ  
 	void Initialize(bool isServer, bool isLocalServer, int MaxClientCnt);
 	void Activate();
 	void Shutdown();
@@ -60,16 +65,17 @@ public:
 
 	Topology GetTopology() const { return topology; }
 	bool IsServer() const { return topology == Topology::SERVER; }
-	void StartStressTest(int durationMS);
+	void StartStressTest(int targetLoops);
 	void SendStressTestChunk();
 	
-	// ��� �÷����� ���� (NetLogManager��)
+	//(NetLogManager)
 	StatisticsHistoryPlugin* GetStatisticsPlugin() const { return statisticsPlugin; }
 	void AddPlayer(PlayerReplica* player) { playerList.Push(player, _FILE_AND_LINE_); }
 	void RemovePlayer(PlayerReplica* player) {unsigned int idx = playerList.GetIndexOf(player);if (idx != (unsigned int)-1) playerList.RemoveAtIndex(idx);}
 	DataStructures::List<PlayerReplica*>& GetPlayerList() { return playerList; };
 	int GetMaxClientCnt() const { return MaxClientCnt; }
 	int GetstressPacketsPerUpdate( ) const { return stressPacketsPerUpdate; }
+
 
 private:
 	static NetworkManager* instance;
@@ -82,13 +88,16 @@ private:
 
 	Topology topology;
 	DataStructures::List<PlayerReplica*> playerList;
-	CInGame* Game; // ���� ���� ����
+	CInGame* Game; //   
 	PlayerReplica* playerReplica;
 	PlayerBotReplica* playerBotReplica;
 	int MaxClientCnt;
 	bool isLocalServer = false;
-	bool isStressTesting = false;
-	RakNet::TimeMS stressEndTime = 0;
+	
+	std::thread* stressThread = nullptr;
+	std::atomic<bool> isStressTesting{ false };
+	void StressTestLoop(int targetLoops);
+
 	int stressPacketsPerUpdate;
 };
 
@@ -111,4 +120,3 @@ public:
 };
 
 static const float INTERP_TIME_MS = 100.0f;
-

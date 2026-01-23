@@ -15,7 +15,7 @@ struct SParticleImpact
     core::vector3df outVector;
 };
 
-// ¸Þ½ÃÁö °ü¸®¿ë
+// ï¿½Þ½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 struct MessageInfo {
     core::stringw content;
     u32 timeOut;
@@ -31,7 +31,7 @@ class HUDManager
 public:
     static HUDManager* Instance();
     static void DestroyInstance();
-    void Initialize();
+    void Initialize(bool isHUDVisible);
     void Activate();
     void Update();
     //void UpdateStats(int fps, const char* pingStr, const char* packetLossStr);
@@ -42,6 +42,7 @@ public:
     void SetPlayerNameText();
     const char* GetCurrentMessage(void);
     void InitMobileHUD();
+    void SetVisible(bool visible);
     RakNet::RakString GetCurrentKillLogMessage(void);
     DataStructures::Queue<KillLog> killLogMessages;
     gui::IGUIStaticText* statusText;
@@ -53,14 +54,15 @@ public:
     gui::IGUIElement* fire_button;
     gui::IGUIElement* exit_button;
 private:
-    HUDManager(); // private »ý¼ºÀÚ
+    HUDManager(); // private ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     ~HUDManager();
     static HUDManager* instance;
     
+    bool isVisible;
     video::IVideoDriver* driver;
     IGUIEnvironment* guienv;
     IGUIFont* font;
-    IGUIListBox* messageBox; // EditBox ´ë½Å ListBox°¡ ·Î±× Ãâ·Â¿¡ ´õ ÀûÇÕÇÒ ¼ö ÀÖÀ½ (±âÁ¸ EditBox À¯Áöµµ °¡´É)
+    IGUIListBox* messageBox; // EditBox ï¿½ï¿½ï¿½ ListBoxï¿½ï¿½ ï¿½Î±ï¿½ ï¿½ï¿½Â¿ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ EditBox ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
     video::ITexture* crosshairTex;
     core::array<SParticleImpact> Impacts;
 

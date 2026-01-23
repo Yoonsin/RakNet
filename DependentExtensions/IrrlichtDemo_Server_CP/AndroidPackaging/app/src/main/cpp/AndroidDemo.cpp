@@ -322,18 +322,20 @@ void android_main(android_app* state) {
     bool aa = false;
     core::stringw playerName;
     bool isServer = false;
+    bool isLocalServer = false;
     video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
-	GamePlatform platform = GamePlatform::Holder;
+	GamePlatform platform = GamePlatform::Shooter;
     bool isLogged = true;
     bool isBot = false;
     int clientCount = 1;
     int winScore = 10;
     int methodMask = METHOD_3;
     int methodLogMask = METHOD_3;
-    int scenario = 0;
+    ScenarioNum scenario = SCENARIO_MOVE_BOT_FIXED;
+	bool isHUDVisible = false;
     const char* baseDir = "/storage/emulated/0/Download";
 
-    new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask, methodLogMask, scenario, false);
+    new CInGame(fullscreen, music, shadows, additive, vsync, aa, driverType, playerName, isServer, platform, isLogged, clientCount, baseDir, isBot, winScore, methodMask, methodLogMask, scenario, isLocalServer, isHUDVisible);
     CInGame::Instance()->state = state;
     CInGame::Instance()->Run();
     CInGame::DestroyInstance();
