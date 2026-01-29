@@ -1,4 +1,4 @@
-﻿{
+{
   "configurations": [
     {
       "name": "x64-Debug",
@@ -16,7 +16,7 @@
       "generator": "Ninja",
       "configurationType": "Debug",
       "cmakeExecutable": "cmake",
-      "remoteCopySourcesExclusionList": [ ".vs", ".git", "out", "AndroidPackaging", ".pdb" ],
+      "remoteCopySourcesExclusionList": [ ".vs", ".git", "out", "AndroidPackaging", "build", "bin", "obj", "x64", "Debug", "Release", "*.sdf", "*.pdb", "*.ipch", "*.user" ],
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",

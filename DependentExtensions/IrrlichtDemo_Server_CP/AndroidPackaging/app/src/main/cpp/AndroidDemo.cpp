@@ -325,7 +325,7 @@ void android_main(android_app* state) {
     bool isLocalServer = false;
     video::E_DRIVER_TYPE driverType = video::EDT_OGLES2;
 	GamePlatform platform = GamePlatform::Shooter;
-    bool isLogged = true;
+    bool isLogged = false;
     bool isBot = false;
     int clientCount = 1;
     int winScore = 10;

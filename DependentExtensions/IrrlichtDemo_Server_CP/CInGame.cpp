@@ -110,8 +110,8 @@ void CInGame::Activate()
 	device = createDeviceEx(param);
 
 #else
-	//core::dimension2d<u32> resolution(640, 480); //mini
-	core::dimension2d<u32> resolution(1440, 900); //16:10 (WSXGA)
+	core::dimension2d<u32> resolution(640, 480); //mini
+	//core::dimension2d<u32> resolution(1440, 900); //16:10 (WSXGA)
 	irr::SIrrlichtCreationParameters params;
 	params.DriverType = driverType;
 	params.WindowSize = resolution;
@@ -211,6 +211,7 @@ void CInGame::Run()
 		PacketHandler::Instance()->Update();
 		// 1�ʸ��� ��Ʈ��ũ ��� �α� ��� (Method 3�� Ȱ��ȭ�� ���)
 		if (GetGamePlatform() == Server && MethodManager::Instance()->IsMethodActive(METHOD_3)) MethodManager::Instance()->UpdateMethod(METHOD_3);
+		NetLogManager::Instance()->Update();
 
 		if ( isDummy ) {
 			auto end = std::chrono::steady_clock::now();
@@ -219,8 +220,6 @@ void CInGame::Run()
 			std::this_thread::sleep_for(targetFrameTime - elapsed);
 			}
 		}
-		//For Debug
-		//NetLogManager::Instance()->PrintPlayerStat();
 	}
 	ShutDown();
 }
@@ -246,7 +245,6 @@ void CInGame::shoot()
 	camAt.normalize();
 
 	BallReplica *br = new BallReplica;
-	br->demo=this;
 	br->position=camPosition;
 	br->shotDirection=camAt;
 	br->shotLifetime=RakNet::GetTimeMS() + SceneManager::Instance()->shootFromOrigin(camPosition, camAt, gamePlatform);

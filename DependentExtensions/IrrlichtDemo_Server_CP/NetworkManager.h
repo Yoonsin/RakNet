@@ -75,7 +75,7 @@ public:
 	DataStructures::List<PlayerReplica*>& GetPlayerList() { return playerList; };
 	int GetMaxClientCnt() const { return MaxClientCnt; }
 	int GetstressPacketsPerUpdate( ) const { return stressPacketsPerUpdate; }
-
+	std::atomic<bool> isStressTesting{ false };
 
 private:
 	static NetworkManager* instance;
@@ -95,9 +95,7 @@ private:
 	bool isLocalServer = false;
 	
 	std::thread* stressThread = nullptr;
-	std::atomic<bool> isStressTesting{ false };
 	void StressTestLoop(int targetLoops);
-
 	int stressPacketsPerUpdate;
 };
 

@@ -214,9 +214,9 @@ void HUDManager::SetVisible(bool visible) {
 	if (myNameText) myNameText->setVisible(visible);
 	if (holderPosText) holderPosText->setVisible(visible);
 	if (joy_stick) joy_stick->setVisible(visible);
-	if (jump_button) jump_button->setVisible(visible);
-	if (fire_button) fire_button->setVisible(visible);
-	if (exit_button) exit_button->setVisible(visible);
+	//if (jump_button) jump_button->setVisible(visible);
+	//if (fire_button) fire_button->setVisible(visible);
+	//if (exit_button) exit_button->setVisible(visible);
 }
 
 void HUDManager::InitMobileHUD() {

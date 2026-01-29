@@ -3,28 +3,20 @@
   "WorkspaceRootPath": "C:\\GitHub\\RakNet\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\Source\\StatisticsHistory.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Source\\StatisticsHistory.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\Source\\ReliabilityLayer.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Source\\ReliabilityLayer.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\CMakeSettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:CMakeSettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\Source\\RakNetStatistics.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Source\\RakNetStatistics.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\CMakeSettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:CMakeSettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\Source\\StatisticsHistory.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Source\\StatisticsHistory.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\Lib\\LibStatic\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Lib\\LibStatic\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\GitHub\\RakNet\\Source\\ReliabilityLayer.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Source\\ReliabilityLayer.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Parts\\AppData\\Local\\Microsoft\\Linux\\HeaderCache\\1.0\\-779549207\\usr\\include\\c\u002B\u002B\\13\\bits\\basic_string.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
@@ -65,6 +57,19 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "CMakeSettings.json",
+              "DocumentMoniker": "C:\\GitHub\\RakNet\\CMakeSettings.json",
+              "RelativeDocumentMoniker": "CMakeSettings.json",
+              "ToolTip": "C:\\GitHub\\RakNet\\CMakeSettings.json",
+              "RelativeToolTip": "CMakeSettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-01-28T07:46:18.31Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "StatisticsHistory.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\StatisticsHistory.cpp",
               "RelativeDocumentMoniker": "Source\\StatisticsHistory.cpp",
@@ -72,38 +77,23 @@
               "RelativeToolTip": "Source\\StatisticsHistory.cpp",
               "ViewState": "AgIAAOECAAAAAAAAAAAlwO0CAAAjAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-11-26T12:39:08.446Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-26T12:39:08.446Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
               "Title": "RakNetStatistics.h",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\RakNetStatistics.h",
               "RelativeDocumentMoniker": "Source\\RakNetStatistics.h",
               "ToolTip": "C:\\GitHub\\RakNet\\Source\\RakNetStatistics.h",
               "RelativeToolTip": "Source\\RakNetStatistics.h",
-              "ViewState": "AgIAADMAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAGYAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-11-26T12:38:42.723Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-26T12:38:42.723Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "CMakeSettings.json",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\CMakeSettings.json",
-              "RelativeDocumentMoniker": "CMakeSettings.json",
-              "ToolTip": "C:\\GitHub\\RakNet\\CMakeSettings.json",
-              "RelativeToolTip": "CMakeSettings.json",
-              "ViewState": "AgIAAA8AAAAAAAAAAAAAACMAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-08-07T07:06:07.76Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 4,
               "Title": "basic_string.h",
               "DocumentMoniker": "C:\\Users\\Parts\\AppData\\Local\\Microsoft\\Linux\\HeaderCache\\1.0\\-779549207\\usr\\include\\c\u002B\u002B\\13\\bits\\basic_string.h",
               "RelativeDocumentMoniker": "..\\..\\Users\\Parts\\AppData\\Local\\Microsoft\\Linux\\HeaderCache\\1.0\\-779549207\\usr\\include\\c\u002B\u002B\\13\\bits\\basic_string.h",
@@ -111,12 +101,11 @@
               "RelativeToolTip": "..\\..\\Users\\Parts\\AppData\\Local\\Microsoft\\Linux\\HeaderCache\\1.0\\-779549207\\usr\\include\\c\u002B\u002B\\13\\bits\\basic_string.h",
               "ViewState": "AgIAAJ4NAAAAAAAAAAAAwK4NAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-05-23T03:31:14.561Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-23T03:31:14.561Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "ReliabilityLayer.cpp",
               "DocumentMoniker": "C:\\GitHub\\RakNet\\Source\\ReliabilityLayer.cpp",
               "RelativeDocumentMoniker": "Source\\ReliabilityLayer.cpp",
@@ -124,44 +113,16 @@
               "RelativeToolTip": "Source\\ReliabilityLayer.cpp",
               "ViewState": "AgIAAIsNAAAAAAAAAAAkwJoNAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2025-05-23T03:30:54.558Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-23T03:30:54.558Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 5,
-              "Title": "CMakeLists.txt",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\Lib\\LibStatic\\CMakeLists.txt",
-              "RelativeDocumentMoniker": "Lib\\LibStatic\\CMakeLists.txt",
-              "ToolTip": "C:\\GitHub\\RakNet\\Lib\\LibStatic\\CMakeLists.txt",
-              "RelativeToolTip": "Lib\\LibStatic\\CMakeLists.txt",
-              "ViewState": "AgIAABUAAAAAAAAAAAAAACEAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
-              "WhenOpened": "2025-05-23T03:24:59.164Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "CMakeLists.txt",
-              "DocumentMoniker": "C:\\GitHub\\RakNet\\CMakeLists.txt",
-              "RelativeDocumentMoniker": "CMakeLists.txt",
-              "ToolTip": "C:\\GitHub\\RakNet\\CMakeLists.txt",
-              "RelativeToolTip": "CMakeLists.txt",
-              "ViewState": "AgIAACEAAAAAAAAAAAAAADcAAAAdAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
-              "WhenOpened": "2025-04-03T07:06:45.693Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
               "Title": "CMake \uAC1C\uC694 \uD398\uC774\uC9C0",
               "DocumentMoniker": "CMake \uAC1C\uC694 \uD398\uC774\uC9C0",
               "ToolTip": "CMake \uAC1C\uC694 \uD398\uC774\uC9C0",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2025-04-03T06:55:36.417Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-03T06:55:36.417Z"
             },
             {
               "$type": "Bookmark",

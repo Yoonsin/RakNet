@@ -47,7 +47,9 @@ void PacketHandler::OnHandlePacket() {
 	RakNet::TimeMS curTime = RakNet::GetTimeMS();
 	RakNet::RakString targetName;
 
-	for (packet = NetworkManager::Instance( )->GetPeer( )->Receive( ); packet; NetworkManager::Instance()->GetPeer()->DeallocatePacket(packet), packet = NetworkManager::Instance( )->GetPeer( )->Receive( ) )
+	RakPeerInterface * peer = NetworkManager::Instance( )->GetPeer( );
+	if ( peer == nullptr ) return;
+	for (packet = peer->Receive( ); packet; peer->DeallocatePacket(packet), packet = peer->Receive( ) )
 	{
 		targetName = packet->systemAddress.ToString(true);
 		switch (packet->data[0])
@@ -77,9 +79,11 @@ void PacketHandler::OnHandlePacket() {
 				//NetworkManager::Instance()->GetReplicaManager()에 추적될 수 있도록 할당
 				NetworkManager::Instance()->GetReplicaManager()->PushConnection(connection);
 
-				//객체 생성
-				if (CInGame::Instance()->isBot)NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerBotReplica());
-				else NetworkManager::Instance()->GetReplicaManager()->Reference(NetworkManager::Instance()->GetPlayerReplica());
+				// Start Client Object Replication
+				if ( MethodManager::Instance( )->scenarioNum != SCENARIO_MOVE_BOT_FIXED ) {
+					if ( CInGame::Instance( )->isBot ) NetworkManager::Instance( )->GetReplicaManager( )->Reference(NetworkManager::Instance( )->GetPlayerBotReplica( ));
+					else NetworkManager::Instance( )->GetReplicaManager( )->Reference(NetworkManager::Instance( )->GetPlayerReplica( ));
+				}
 			}
 
 			//SwitchNextScene() 에서 연결하는 것으로 변경 -> 왜 이렇게 바꾸자고 했지?
@@ -286,9 +290,7 @@ void PacketHandler::OnHandlePacket() {
 			if (NetworkManager::Instance()->IsServer()) {
 				// 1. DS_Map에서 보낸 시간 꺼내오기
 				RakNet::TimeMS sentTime = MethodManager::Instance()->GetAndRemoveSendTime(packet->systemAddress, packetSequence, methodType);
-				
-				if(methodType == METHOD_3 && packetSequence % 100 == 0) NetLogManager::Instance()->PrintDebug(RakNet::RakString("[Server] Stress Test Batch END / IP : %s / ROUND : %d\n", packet->systemAddress.ToString(false), packetSequence));
-				// 2. 기록이 있다면 RTT 계산 (현재시간 - 보낸시간)
+				//2. 기록이 있다면 RTT 계산 (현재시간 - 보낸시간)
 				if (sentTime != 0) {
 					RakNet::TimeMS currentTime = RakNet::GetTimeMS(); RakNet::TimeMS appRTT = currentTime - sentTime;
 					if (MethodManager::Instance()->IsMethodLogActive(methodType)) NetLogManager::Instance()->LogRTT(methodType, packet->systemAddress, appRTT, packetSequence);
@@ -306,37 +308,6 @@ void PacketHandler::OnHandlePacket() {
 			int packetSize;
 			bsIn.Read(packetSize); // Dummy Data Size
 			bsIn.IgnoreBytes(packetSize); // Dummy Data Skip
-
-			int packetIndex;
-			bsIn.Read(packetIndex); //패킷 번호 읽기 (0 ~ 99)
-			int packetSequence;
-			bsIn.Read(packetSequence); //패킷 일련번호 읽기
-
-			// 1. 시작 패킷 (0번)
-			if (packetIndex == 0) {
-				testStartTime = RakNet::GetTimeMS();
-				//NetLogManager::Instance()->PrintDebug("Batch Start\n");
-				//HUDManager::Instance()->PushMessage(RakNet::RakString("Batch Start"));
-			}
-
-			// 2. 종료 패킷 (99번) -> 여기서 측정 종료
-			if ( packetIndex == NetworkManager::Instance()->GetstressPacketsPerUpdate() - 1 ) {
-				RakNet::TimeMS endTime = RakNet::GetTimeMS();
-				RakNet::TimeMS duration = endTime - testStartTime;
-				if (testStartTime > 0) {
-					testRountCount++;
-					if(testRountCount%100 == 0)NetLogManager::Instance()->PrintDebug("Batch Complete / Round %d\n", testRountCount);
-					testStartTime = 0; 
-
-					//서버에 ACK 전송
-					RakNet::BitStream bs;
-					bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_PLAYER_ACK);
-					bs.Write(METHOD_3);
-					bs.Write(packetSequence);
-					NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
-				}
-			}
-
 		}
 		break;
 		case ID_GAME_MESSAGE_GAME_MATCH:
@@ -348,6 +319,16 @@ void PacketHandler::OnHandlePacket() {
 
 			if (matchState == GameMatchState::GAME_MATCH_START) CInGame::Instance()->isGameStart = true;
 			else if (matchState == GameMatchState::GAME_MATCH_END) CInGame::Instance()->isGameEnd = true;
+		}
+		break;
+		case ID_GAME_MESSAGE_STRESS_TEST_PENDING:
+		{
+			HUDManager::Instance()->PushMessage(RakNet::RakString("Stress Test Starting in 5 seconds..."));
+			NetLogManager::Instance()->PrintDebug("[Client] Stress Test Pending... Logging Enabled.\n");
+			if ( !CInGame::Instance( )->isDummy ) {
+				NetLogManager::Instance( )->SetLogging(true);
+				NetLogManager::Instance( )->isServerStatLogging = true;
+			}
 		}
 		break;
 		}
@@ -425,6 +406,8 @@ void PacketHandler::OnUpdateReplica() {
 			NetworkManager::Instance()->GetPeer()->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 			CInGame::Instance()->gameStartTime = curTime; //게임 시작 시간 기록
 
+			// Start Stress Test Logic when all players connected
+			NetworkManager::Instance( )->StartStressTest(1000);
 #if QOS_SUPPORTED 
 			sem.setKey(888); sem.setupSemaphore(0);
 			write_shm.setKey(777); write_shm.setupSharedMemory(1200); write_shm.attachSharedMemory();

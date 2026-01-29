@@ -55,11 +55,11 @@ public:
 	/// Called from CInGame::UpdateRakNet
 	virtual void Update(RakNet::TimeMS curTime);
 
-	// Set when the object is constructed
-	CInGame* demo;
 	// real is written on the owner peer, read on the remote peer
 	irr::core::vector3df position;
 	RakNet::TimeMS creationTime;
+
+	int curSeqNum; int lastSeqNum;
 
 	bool IsServer() const { return NetworkManager::Instance()->IsServer(); }
 };
@@ -146,13 +146,13 @@ public:
 	irr::core::vector3df respawnTarget;
 
 	// In PlayerReplica class (server-side only)
-	float SRTT;       // Smoothed RTT (Æò±Õ RTT)
-	float RTTVAR;     // RTT Variation (RTT º¯µ¿Æø)
-	RakNet::TimeMS Wj_RTO;   // ÃÖÁ¾ °è»êµÈ Wait Timeout (RTO)
-	bool isRtoInitialized; // ÃÊ±âÈ­ ÇÃ·¡±×
-	int nextExpectedAmCnt; // AM ½ÃÄö½º ¼ø¼­
-	int lastProcessedAmCnt = -1; // ¸¶Áö¸·À¸·Î Ã³¸®µÈ AM ½ÃÄö½º
-	DataStructures::Map<int, orderData> outOfOrderAmBuffer; // (¼±ÅÃÀû) ¼ø¼­°¡ ¾î±ß³­ AMÀ» ÀÓ½Ã º¸°üÇÒ ¹öÆÛ
+	float SRTT;       // Smoothed RTT (í‰ê·  RTT)
+	float RTTVAR;     // RTT Variation (RTT ë³€ë™í­)
+	RakNet::TimeMS Wj_RTO;   // ìµœì¢… ê³„ì‚°ëœ Wait Timeout (RTO)
+	bool isRtoInitialized; // ì´ˆê¸°í™” í”Œë˜ê·¸
+	int nextExpectedAmCnt; // AM ì‹œí€€ìŠ¤ ìˆœì„œ
+	int lastProcessedAmCnt = -1; // ë§ˆì§€ë§‰ìœ¼ë¡œ ì²˜ë¦¬ëœ AM ì‹œí€€ìŠ¤
+	DataStructures::Map<int, orderData> outOfOrderAmBuffer; // (ì„ íƒì ) ìˆœì„œê°€ ì–´ê¸‹ë‚œ AMì„ ì„ì‹œ ë³´ê´€í•  ë²„í¼
 };
 class PlayerBotReplica : public PlayerReplica
 {
@@ -172,9 +172,9 @@ public:
 	virtual void Deserialize(RakNet::DeserializeParameters* deserializeParameters);
 
 	void CreateBotModel();
-	irr::scene::IAnimatedMeshSceneNode* botModel; // bot Àü¿ë Model
+	irr::scene::IAnimatedMeshSceneNode* botModel; // bot ì „ìš© Model
 
-	virtual PriorityStatics GetPriorityStatics(void) const { return PRIORITY_LOW; } //TODO : UM ¸¶Áö¸· - ÀÌ°Ç ¼­¹ö¸¸ º¿ °¡Áö°í º¿ÀÌ 1°³ÀÏ ¶§¸¸À» °¡Á¤ÇßÀ» ¶§ÀÓ
+	virtual PriorityStatics GetPriorityStatics(void) const { return PRIORITY_LOW; } //TODO : UM ë§ˆì§€ë§‰ - ì´ê±´ ì„œë²„ë§Œ ë´‡ ê°€ì§€ê³  ë´‡ì´ 1ê°œì¼ ë•Œë§Œì„ ê°€ì •í–ˆì„ ë•Œì„
 };
 class BallReplica : public BaseIrrlichtReplica
 {

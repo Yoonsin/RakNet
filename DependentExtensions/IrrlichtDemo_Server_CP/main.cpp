@@ -33,8 +33,8 @@ int main(int argc, char* argv[])
 
 	bool isServer = false; 
 	bool isLocalServer = false;
-	bool isLogged = true;
-	bool isHUDVisible = false;
+	bool isLogged = false;
+	bool isHUDVisible = true;
 	bool isBot = false;
 	int clientCount = 2;
 	int winScore = 3;

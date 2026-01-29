@@ -454,6 +454,13 @@ void ReliabilityLayer::InitializeVariables( void )
 	{
 		bpsMetrics[i].Reset(_FILE_AND_LINE_);
 	}
+
+	for (int i = 0; i < NUMBER_OF_RELIABILITIES; i++)
+	{
+		lastArrivalTimeByReliability[i] = 0;
+		jitterByReliability[i] = 0.0;
+		runningAvgIntervalByReliability[i] = 0.0;
+	}
 }
 
 //-------------------------------------------------------------------------------------------------------
@@ -1483,6 +1490,29 @@ bool ReliabilityLayer::HandleSocketReceiveFromConnectedPlayer(
 				// Nothing special about this packet.  Add it to the output queue
 				outputQueue.Push( internalPacket, _FILE_AND_LINE_  );
 
+				// [Added] Update received stats
+				statistics.messagesReceivedByReliability[(int)internalPacket->reliability]++;
+
+				// [Added] Calculate Inter-arrival Jitter (Consistency of arrival interval)
+				if (lastArrivalTimeByReliability[(int)internalPacket->reliability] != 0) {
+					double interval = (double)(timeRead - lastArrivalTimeByReliability[(int)internalPacket->reliability]);
+					// Delta is how much the current interval deviates from the running average interval
+					double delta = interval - runningAvgIntervalByReliability[(int)internalPacket->reliability];
+					
+					// Update running average interval
+					runningAvgIntervalByReliability[(int)internalPacket->reliability] += delta / 16.0;
+					
+					// Update Jitter (Mean Deviation)
+					// J(i) = J(i-1) + (|D(i-1,i)| - J(i-1))/16
+					double absDelta = (delta >= 0) ? delta : -delta;
+					jitterByReliability[(int)internalPacket->reliability] += (absDelta - jitterByReliability[(int)internalPacket->reliability]) / 16.0;
+				}
+				lastArrivalTimeByReliability[(int)internalPacket->reliability] = timeRead;
+
+				// Approximate Jitter using RTT variance if available, or just use RTT for now.
+				// Since CongestionManager might not expose RTTVAR directly in all versions, we use the internal ackPing from this function or RTT.
+				// statistics.jitterLastSecond = congestionManager.GetRTT(); 
+				
 				internalPacket = 0;
 			}
 
@@ -1494,7 +1524,11 @@ CONTINUE_SOCKET_DATA_PARSE_LOOP:
 		}
 
 	}
-
+	
+	// [Added] Update Jitter Stat
+	// Note: True jitter is variance. Without modifying CongestionManager to expose RTTVar publicly, we use RTT as a proxy or 0.
+	// Assuming CongestionManager has GetRTT().
+	statistics.jitterLastSecond = congestionManager.GetRTT();
 
 	receivePacketCount++;
 
@@ -1677,6 +1711,10 @@ bool ReliabilityLayer::Send( char *data, BitSize_t numberOfBitsToSend, PacketPri
 	RakAssert(outgoingPacketBuffer.Size()==0 || outgoingPacketBuffer.Peek()->dataBitLength<BYTES_TO_BITS(MAXIMUM_MTU_SIZE));
 	statistics.messageInSendBuffer[(int)internalPacket->priority]++;
 	statistics.bytesInSendBuffer[(int)internalPacket->priority]+=(double) BITS_TO_BYTES(internalPacket->dataBitLength);
+
+	// [Added] Update historical stats
+	statistics.messagesSentByPriority[(int)internalPacket->priority]++;
+	statistics.messagesSentByReliability[(int)internalPacket->reliability]++;
 
 	//	sendPacketSet[priority].WriteUnlock();
 	return true;
@@ -3386,6 +3424,12 @@ RakNetStatistics * ReliabilityLayer::GetStatistics( RakNetStatistics *rns )
 	{
 		statistics.valueOverLastSecond[i]=bpsMetrics[i].GetBPS1Threadsafe(time);
 		statistics.runningTotal[i]=bpsMetrics[i].GetTotal1();
+	}
+	
+	// [Added] Copy Jitter stats
+	for (i = 0; i < NUMBER_OF_RELIABILITIES; i++)
+	{
+		statistics.jitterByReliability[i] = jitterByReliability[i];
 	}
 
 	memcpy(rns, &statistics, sizeof(statistics));

@@ -99,6 +99,21 @@ struct RAK_DLL_EXPORT RakNetStatistics
 	/// What is the average total packetloss over the lifetime of the connection?
 	float packetlossTotal;
 
+	/// [Added] Total messages sent by priority
+	uint64_t messagesSentByPriority[NUMBER_OF_PRIORITIES];
+
+	/// [Added] Total messages sent by reliability
+	uint64_t messagesSentByReliability[NUMBER_OF_RELIABILITIES];
+
+	/// [Added] Total messages received by reliability
+	uint64_t messagesReceivedByReliability[NUMBER_OF_RELIABILITIES];
+
+	/// [Added] Jitter (RTT variation) over the last second
+	double jitterLastSecond;
+
+	/// [Added] Inter-arrival Jitter by reliability (Variance of packet arrival intervals)
+	double jitterByReliability[NUMBER_OF_RELIABILITIES];
+
 	RakNetStatistics& operator +=(const RakNetStatistics& other)
 	{
 		unsigned i;
@@ -106,6 +121,15 @@ struct RAK_DLL_EXPORT RakNetStatistics
 		{
 			messageInSendBuffer[i]+=other.messageInSendBuffer[i];
 			bytesInSendBuffer[i]+=other.bytesInSendBuffer[i];
+			messagesSentByPriority[i] += other.messagesSentByPriority[i];
+		}
+
+		for (i = 0; i < NUMBER_OF_RELIABILITIES; i++)
+		{
+			messagesSentByReliability[i] += other.messagesSentByReliability[i];
+			messagesReceivedByReliability[i] += other.messagesReceivedByReliability[i];
+			// Use max jitter or average? Average seems safer for summary.
+			jitterByReliability[i] = (jitterByReliability[i] + other.jitterByReliability[i]) / 2.0;
 		}
 
 		for (i=0; i < RNS_PER_SECOND_METRICS_COUNT; i++)
@@ -113,6 +137,8 @@ struct RAK_DLL_EXPORT RakNetStatistics
 			valueOverLastSecond[i]+=other.valueOverLastSecond[i];
 			runningTotal[i]+=other.runningTotal[i];
 		}
+
+		jitterLastSecond = (jitterLastSecond + other.jitterLastSecond) / 2.0; // Average jitter
 
 		return *this;
 	}

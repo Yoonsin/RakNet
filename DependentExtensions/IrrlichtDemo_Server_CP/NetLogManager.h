@@ -1,6 +1,7 @@
 #pragma once
 #include "RakNetTypes.h"
 #include "DS_List.h"
+#include "DS_Map.h"
 #include "RakString.h"
 #include <mutex>
 
@@ -37,8 +38,23 @@ public:
 	void Shutdown();
 
 	bool IsLogging() const { return isLoggingEnabled; }
+	void SetLogging(bool enable) { isLoggingEnabled = enable; }
 
+    void PrintServerStat( );
+    
     void PrintPlayerStat();
+
+    void Update( );
+
+    void LogThroughput(uint32_t bytesPerSecond);
+    void LogJitter(int intervalMS);
+    void LogPacketLoss(int lostCount, int lostBytes, int lastSeq, int curSeq);
+    void SaveNetworkStats();
+    RakNet::RakString GetUniqueFilePath(const char* baseDir, const char* fileName);
+
+    std::atomic<bool> isServerStatLogging;
+    std::atomic<bool> isPerClientStatLogging; // 개별 클라이언트 통계 활성화 여부
+
 private:
     NetLogManager();
     ~NetLogManager();
@@ -53,6 +69,16 @@ private:
     // 예: logBuffers[1] 은 Method 1의 로그 리스트
     DataStructures::List<DataStructures::List<RakNet::RakString>> logBuffers;
 
+
+    DataStructures::List<RakNet::RakString> serverStatLogs;
+    DataStructures::Map<RakNet::SystemAddress, DataStructures::List<RakNet::RakString>> clientStatLogs; // 클라이언트별 통계 로그
+
+    DataStructures::List<RakNet::RakString> throughputLogs;
+    DataStructures::List<RakNet::RakString> jitterLogs;
+    DataStructures::List<RakNet::RakString> packetLossLogs;
+
     // 동시 접근 방지용 뮤텍스
     std::mutex logMutex;
+
+    RakNet::TimeMS lastStatLogTime;
 };

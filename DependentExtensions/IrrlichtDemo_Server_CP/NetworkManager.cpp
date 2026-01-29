@@ -88,7 +88,11 @@ void NetworkManager::Activate()
 	replicaManager3->SetNetworkIDManager(networkIDManager);
 	replicaManager3->SetAutoManageConnections(false, true);
 	replicaManager3->SetAutoSerializeInterval(30);
-	replicaManager3->SetDefaultPacketReliability(PacketReliability::UNRELIABLE);
+	//ReplicaManager Option
+	replicaManager3->SetDefaultPacketReliability(PacketReliability::UNRELIABLE_SEQUENCED);
+	replicaManager3->SetDefaultOrderingChannel(1);
+	replicaManager3->SetDefaultPacketPriority(PacketPriority::HIGH_PRIORITY);
+	
 	rakPeer->AttachPlugin(replicaManager3);
 
 	static const int MAX_PLAYERS = 32;
@@ -116,8 +120,10 @@ void NetworkManager::Activate()
 		playerReplica = playerBotReplica;
 	}
 	else {
-		playerReplica = new PlayerReplica;
-		playerReplica->gamePlatform = CInGame::Instance()->gamePlatform;
+		if ( MethodManager::Instance( )->scenarioNum != ScenarioNum::SCENARIO_MOVE_BOT_FIXED ) {
+			playerReplica = new PlayerReplica;
+			playerReplica->gamePlatform = CInGame::Instance( )->gamePlatform;
+		}
 	}
 
 	//Draw debug 
@@ -134,14 +140,11 @@ void NetworkManager::Activate()
 #endif // __ANDROID__
 	}
 	else if (topology == SERVER) {
-
 	}
-
 }
 
 void NetworkManager::Shutdown()
 {
-
 	isStressTesting = false;
 	if (stressThread) {
 		if (stressThread->joinable()) {
@@ -164,12 +167,16 @@ void NetworkManager::Shutdown()
 	delete replicaManager3;
 	
 	if (CInGame::Instance()->isBot) {
-		playerBotReplica->PreDestruction(0);
-		delete playerBotReplica;
+		if ( playerBotReplica != nullptr ) {
+			playerBotReplica->PreDestruction(0);
+			delete playerBotReplica;
+		}
 	}
 	else {
-		playerReplica->PreDestruction(0);
-		delete playerReplica;
+		if ( playerReplica != nullptr ) {
+			playerReplica->PreDestruction(0);
+			delete playerReplica;
+		}
 	}
 
 }
@@ -183,6 +190,7 @@ void NetworkManager::StartStressTest(int targetLoops) {
 	if (isStressTesting) return; // Already running
 
 	isStressTesting = true;
+	NetLogManager::Instance()->isServerStatLogging = true;
 	
 	if (stressThread) {
 		if (stressThread->joinable()) stressThread->join();
@@ -190,11 +198,20 @@ void NetworkManager::StartStressTest(int targetLoops) {
 		stressThread = nullptr;
 	}
 
+	// Send Pending Notification
+	RakNet::BitStream bs;
+	bs.Write((RakNet::MessageID)ID_GAME_MESSAGE_STRESS_TEST_PENDING);
+	rakPeer->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+	NetLogManager::Instance()->PrintDebug("[Server] Stress Test Pending... Starting in 5 seconds.\n");
 	stressThread = new std::thread(&NetworkManager::StressTestLoop, this, targetLoops);
 }
 
 void NetworkManager::StressTestLoop(int targetLoops) {
 	//NetLogManager::Instance()->PrintDebug("[Server] Stress Test STARTED for %d Frame Round (%d packets per frame)", targetLoops, stressPacketsPerUpdate);
+	
+	// Wait 5 seconds
+	std::this_thread::sleep_for(std::chrono::seconds(5));
+	NetLogManager::Instance()->PrintDebug("[Server] Stress Test STARTED!\n");
 
 	int currentCount = 0;
 	// Target roughly 60Hz transmission rate regardless of game FPS
@@ -214,9 +231,14 @@ void NetworkManager::StressTestLoop(int targetLoops) {
 			std::this_thread::sleep_for(interval - elapsed);
 		}
 	}
-
+	
 	isStressTesting = false;
-	NetLogManager::Instance()->PrintDebug("[Server] Stress Test ENDED. Finished %d loops.\n", currentCount);
+	NetLogManager::Instance( )->PrintDebug("[Server] Stress Test ENDED. Wait 2 Minute...\n");
+	// Wait 2 minute
+	std::this_thread::sleep_for(std::chrono::seconds(60*2));
+	NetLogManager::Instance( )->isServerStatLogging = false;
+	CInGame::Instance( )->isGameEnd = true;
+	NetLogManager::Instance( )->PrintDebug("[Server] Stress Test FINISHED. %d loops.\n", currentCount);
 }
 
 void NetworkManager::SendStressTestChunk() {
@@ -240,9 +262,7 @@ void NetworkManager::SendStressTestChunk() {
 			bs.Write(RakNet::GetTimeMS()); 
 			bs.Write(PACKET_SIZE);
 			bs.Write(dummyData, PACKET_SIZE);
-			bs.Write((int)j);
-			bs.Write(method3cnt); // Ŷ Ϸùȣ
-			GetPeer()->Send(&bs, HIGH_PRIORITY, UNRELIABLE, 0, sa, false); //RELIABLE_ORDERED
+			GetPeer()->Send(&bs, PacketPriority::LOW_PRIORITY, UNRELIABLE, 0, sa, false); 
 			//MethodManager::Instance()->SendManagedPacket(&bs, sa, METHOD_3);
 		}
 	}

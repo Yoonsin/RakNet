@@ -581,6 +581,11 @@ private:
 	BPSTracker bpsMetrics[RNS_PER_SECOND_METRICS_COUNT];
 	CCTimeType lastBpsClear;
 
+	// [Added] Inter-arrival jitter tracking
+	CCTimeType lastArrivalTimeByReliability[NUMBER_OF_RELIABILITIES];
+	double jitterByReliability[NUMBER_OF_RELIABILITIES];
+	double runningAvgIntervalByReliability[NUMBER_OF_RELIABILITIES];
+
 #if LIBCAT_SECURITY==1
 public:
 	cat::AuthenticatedEncryption* GetAuthenticatedEncryption(void) { return &auth_enc; }

@@ -16,7 +16,7 @@
       "generator": "Ninja",
       "configurationType": "Debug",
       "cmakeExecutable": "cmake",
-      "remoteCopySourcesExclusionList": [ ".vs", ".git", "out" ],
+      "remoteCopySourcesExclusionList": [ ".vs", ".git", "out", "build", "bin", "obj", "x64", "Debug", "Release", "*.sdf", "*.pdb", "*.ipch", "*.user" ],
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
@@ -30,7 +30,7 @@
       "remoteCopySources": true,
       "rsyncCommandArgs": "-t --delete",
       "remoteCopyBuildOutput": true,
-      "remoteCopySourcesMethod": "rsync"
+      "remoteCopySourcesMethod": "sftp"
     }
   ]
 }

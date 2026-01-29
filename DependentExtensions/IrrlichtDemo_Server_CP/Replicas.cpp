@@ -16,6 +16,7 @@ using namespace irr;
 
 BaseIrrlichtReplica::BaseIrrlichtReplica()
 {
+	curSeqNum = 0; lastSeqNum = -1;
 }
 BaseIrrlichtReplica::~BaseIrrlichtReplica()
 {
@@ -32,10 +33,18 @@ bool BaseIrrlichtReplica::DeserializeConstruction(RakNet::BitStream* constructio
 }
 RM3SerializationResult BaseIrrlichtReplica::Serialize(RakNet::SerializeParameters* serializeParameters)
 {
+	serializeParameters->outputBitstream[0].Write(curSeqNum++);
 	return RM3SR_BROADCAST_IDENTICALLY;
 }
 void BaseIrrlichtReplica::Deserialize(RakNet::DeserializeParameters* deserializeParameters)
 {
+	int recvSeqNum;
+	deserializeParameters->serializationBitstream[0].Read(recvSeqNum);
+
+	//Drop & OutOfOrder detection (State update only)
+	if (recvSeqNum > lastSeqNum) {
+		lastSeqNum = recvSeqNum;
+	}
 }
 void BaseIrrlichtReplica::Update(RakNet::TimeMS curTime)
 {
