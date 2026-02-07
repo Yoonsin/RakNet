@@ -33,19 +33,19 @@ endif()
 
 # 소스 파일들
 file(GLOB IRR_SOURCES
-    CInGame.cpp
-    CMainMenu.cpp
-    CollisionManager.cpp
-    HUDManager.cpp
-    InputController.cpp
-    MethodManager.cpp
-    NetLogManager.cpp    
-    NetworkManager.cpp
-    PacketHandler.cpp
-    Replicas.cpp
-    SceneManager.cpp
-    main.cpp
-    shared_mem.cpp
+    Source/CInGame.cpp
+    Source/CMainMenu.cpp
+    Source/CollisionManager.cpp
+    Source/HUDManager.cpp
+    Source/InputController.cpp
+    Source/MethodManager.cpp
+    Source/NetLogManager.cpp    
+    Source/NetworkManager.cpp
+    Source/PacketHandler.cpp
+    Source/Replicas.cpp
+    Source/SceneManager.cpp
+    Source/main.cpp
+    Utility/shared_mem.cpp
 )
 
 # 실행 파일 만들기

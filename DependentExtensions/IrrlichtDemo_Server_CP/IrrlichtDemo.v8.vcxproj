@@ -276,42 +276,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\miniupnpc-1.5\connecthostport.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\igd_desc_parse.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\minisoap.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\miniupnpc.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\miniwget.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\minixml.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\upnpcommands.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\upnperrors.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\upnpreplyparse.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="AndroidPackaging\app\src\main\cpp\AndroidDemo.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</ExcludedFromBuild>
@@ -330,59 +294,20 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="CInGame.cpp" />
-    <ClCompile Include="CMainMenu.cpp" />
-    <ClCompile Include="CollisionManager.cpp" />
-    <ClCompile Include="HUDManager.cpp" />
-    <ClCompile Include="InputController.cpp" />
-    <ClCompile Include="main.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="MethodManager.cpp" />
-    <ClCompile Include="NetLogManager.cpp" />
-    <ClCompile Include="NetworkManager.cpp" />
-    <ClCompile Include="PacketHandler.cpp" />
-    <ClCompile Include="Replicas.cpp" />
-    <ClCompile Include="SceneManager.cpp" />
+    <ClCompile Include="Source\CInGame.cpp" />
+    <ClCompile Include="Source\CMainMenu.cpp" />
+    <ClCompile Include="Source\CollisionManager.cpp" />
+    <ClCompile Include="Source\HUDManager.cpp" />
+    <ClCompile Include="Source\InputController.cpp" />
+    <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\MethodManager.cpp" />
+    <ClCompile Include="Source\NetLogManager.cpp" />
+    <ClCompile Include="Source\NetworkManager.cpp" />
+    <ClCompile Include="Source\PacketHandler.cpp" />
+    <ClCompile Include="Source\Replicas.cpp" />
+    <ClCompile Include="Source\SceneManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\miniupnpc-1.5\connecthostport.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\igd_desc_parse.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\minisoap.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\miniupnpc.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\miniwget.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\minixml.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\upnpcommands.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\upnperrors.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\upnpreplyparse.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-x86_64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_native_app_glue.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</ExcludedFromBuild>
@@ -391,19 +316,17 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="CInGame.h" />
-    <ClInclude Include="CMainMenu.h" />
-    <ClInclude Include="CollisionManager.h" />
-    <ClInclude Include="HUDManager.h" />
-    <ClInclude Include="InputController.h" />
-    <ClInclude Include="MethodManager.h" />
-    <ClInclude Include="NetLogManager.h" />
-    <ClInclude Include="NetworkManager.h" />
-    <ClInclude Include="PacketHandler.h" />
-    <ClInclude Include="Replicas.h" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="resource1.h" />
-    <ClInclude Include="SceneManager.h" />
+    <ClInclude Include="Source\CInGame.h" />
+    <ClInclude Include="Source\CMainMenu.h" />
+    <ClInclude Include="Source\CollisionManager.h" />
+    <ClInclude Include="Source\HUDManager.h" />
+    <ClInclude Include="Source\InputController.h" />
+    <ClInclude Include="Source\MethodManager.h" />
+    <ClInclude Include="Source\NetLogManager.h" />
+    <ClInclude Include="Source\NetworkManager.h" />
+    <ClInclude Include="Source\PacketHandler.h" />
+    <ClInclude Include="Source\Replicas.h" />
+    <ClInclude Include="Source\SceneManager.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="AndroidPackaging\app\src\main\CMakeLists.txt" />

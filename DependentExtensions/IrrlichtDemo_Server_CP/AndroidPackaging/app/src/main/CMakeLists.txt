@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.10)  # 최소 CMake 버전 설정
+cmake_minimum_required(VERSION 3.10)  # 최소 CMake 버전 설정
 project(IrrlichtDemo_Server_CP)  # 🔹 프로젝트 이름 설정
 
 set(CMAKE_SYSTEM_NAME Android)
@@ -37,17 +37,17 @@ add_library( # Sets the name of the library.
              # Sets the library as a shared library.
              SHARED
  
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/CInGame.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/CMainMenu.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/CollisionManager.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/HUDManager.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/InputController.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/MethodManager.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/NetLogManager.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/NetworkManager.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/PacketHandler.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Replicas.cpp
-             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/SceneManager.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/CInGame.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/CMainMenu.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/CollisionManager.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/HUDManager.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/InputController.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/MethodManager.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/NetLogManager.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/NetworkManager.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/PacketHandler.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/Replicas.cpp
+             C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source/SceneManager.cpp
              C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/cpp/AndroidDemo.cpp
              C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/cpp/android_tools.cpp
 )
@@ -58,6 +58,7 @@ include_directories(C:/GitHub/CommonLibraries/Irrlicht/include/)
 include_directories(C:/GitHub/CommonLibraries/IrrlichtExtensions/)
 include_directories(C:/GitHub/CommonLibraries/Common/)
 include_directories(C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/)
+include_directories(C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/Source)
 include_directories(C:/GitHub/RakNet/Source/)
 include_directories(C:/GitHub/RakNet/DependentExtensions/IrrlichtDemo_Server_CP/AndroidPackaging/app/src/main/cpp/)
 

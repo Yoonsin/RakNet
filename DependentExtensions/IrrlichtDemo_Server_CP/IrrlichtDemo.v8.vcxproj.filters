@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="miniupnpc-1.5">
-      <UniqueIdentifier>{e1aacc8e-238c-4ac0-9a23-ca573efbc569}</UniqueIdentifier>
-    </Filter>
     <Filter Include="AndroidPackaging">
       <UniqueIdentifier>{715963a1-7282-4eaf-8534-abb25398a364}</UniqueIdentifier>
     </Filter>
@@ -102,35 +99,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\miniupnpc-1.5\connecthostport.c">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\igd_desc_parse.c">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\minisoap.c">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\miniupnpc.c">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\miniwget.c">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\minixml.c">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\upnpcommands.c">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\upnperrors.c">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClCompile>
-    <ClCompile Include="..\miniupnpc-1.5\upnpreplyparse.c">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClCompile>
-    <ClCompile Include="CMainMenu.cpp" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="AndroidPackaging\app\src\main\cpp\JniBindings.cpp">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClCompile>
@@ -143,64 +111,37 @@
     <ClCompile Include="AndroidPackaging\app\src\main\cpp\android_tools.cpp">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClCompile>
-    <ClCompile Include="CInGame.cpp" />
-    <ClCompile Include="NetworkManager.cpp" />
-    <ClCompile Include="Replicas.cpp" />
-    <ClCompile Include="NetLogManager.cpp" />
-    <ClCompile Include="InputController.cpp" />
-    <ClCompile Include="HUDManager.cpp" />
-    <ClCompile Include="PacketHandler.cpp" />
-    <ClCompile Include="CollisionManager.cpp" />
-    <ClCompile Include="SceneManager.cpp" />
-    <ClCompile Include="MethodManager.cpp" />
+    <ClCompile Include="Source\CInGame.cpp" />
+    <ClCompile Include="Source\CMainMenu.cpp" />
+    <ClCompile Include="Source\CollisionManager.cpp" />
+    <ClCompile Include="Source\HUDManager.cpp" />
+    <ClCompile Include="Source\InputController.cpp" />
+    <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\MethodManager.cpp" />
+    <ClCompile Include="Source\NetLogManager.cpp" />
+    <ClCompile Include="Source\NetworkManager.cpp" />
+    <ClCompile Include="Source\PacketHandler.cpp" />
+    <ClCompile Include="Source\Replicas.cpp" />
+    <ClCompile Include="Source\SceneManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\miniupnpc-1.5\connecthostport.h">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\igd_desc_parse.h">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\minisoap.h">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\miniupnpc.h">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\miniwget.h">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\minixml.h">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\upnpcommands.h">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\upnperrors.h">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClInclude>
-    <ClInclude Include="..\miniupnpc-1.5\upnpreplyparse.h">
-      <Filter>miniupnpc-1.5</Filter>
-    </ClInclude>
-    <ClInclude Include="CInGame.h" />
-    <ClInclude Include="CMainMenu.h" />
-    <ClInclude Include="resource.h" />
     <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_native_app_glue.h">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClInclude>
     <ClInclude Include="AndroidPackaging\app\src\main\cpp\android_tools.h">
       <Filter>AndroidPackaging\app\src\main\cpp</Filter>
     </ClInclude>
-    <ClInclude Include="NetworkManager.h" />
-    <ClInclude Include="Replicas.h" />
-    <ClInclude Include="NetLogManager.h" />
-    <ClInclude Include="InputController.h" />
-    <ClInclude Include="resource1.h" />
-    <ClInclude Include="HUDManager.h" />
-    <ClInclude Include="PacketHandler.h" />
-    <ClInclude Include="CollisionManager.h" />
-    <ClInclude Include="SceneManager.h" />
-    <ClInclude Include="MethodManager.h" />
+    <ClInclude Include="Source\CInGame.h" />
+    <ClInclude Include="Source\CMainMenu.h" />
+    <ClInclude Include="Source\CollisionManager.h" />
+    <ClInclude Include="Source\HUDManager.h" />
+    <ClInclude Include="Source\InputController.h" />
+    <ClInclude Include="Source\MethodManager.h" />
+    <ClInclude Include="Source\NetLogManager.h" />
+    <ClInclude Include="Source\NetworkManager.h" />
+    <ClInclude Include="Source\PacketHandler.h" />
+    <ClInclude Include="Source\Replicas.h" />
+    <ClInclude Include="Source\SceneManager.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="readme.txt" />
