@@ -66,6 +66,7 @@ void MethodManager::DestroyInstance() {
 }
 
 MethodManager::MethodManager() {
+    if ( instance == nullptr ) instance = this;
     currentMethodsBitmask = 0;
     currentMethodsLogBitmask = 0;
     currentCongestedUserCount = 0;

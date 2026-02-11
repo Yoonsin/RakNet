@@ -3,6 +3,7 @@
 #include "SceneManager.h"
 #include "CInGame.h"
 #include "NetLogManager.h"
+#include "Replicas.h"
 
 using namespace RakNet;
 using namespace irr;
@@ -21,6 +22,7 @@ void InputController::DestroyInstance() {
 }
 
 InputController::InputController() : isKeyLock(false), wasKeyLock(false), isRotate(false), TouchID(-1) {
+	if ( instance == nullptr ) instance = this;
 	for (u32 i = 0; i < KEY_KEY_CODES_COUNT; ++i)
 		KeyIsDown[i] = false;
 }
@@ -318,23 +320,41 @@ bool InputController::OnEvent(const SEvent& event) {
 	{
 		auto smgr = SceneManager::Instance();
 		smgr->cameraMode = ( smgr->cameraMode + 1 ) % smgr->cameraArr.size( );
-		CInGame::Instance( )->GetSceneManager( )->setActiveCamera(smgr->cameraArr[smgr->cameraMode]);
+		auto* activeCam = smgr->cameraArr[smgr->cameraMode];
+		CInGame::Instance( )->GetSceneManager( )->setActiveCamera(activeCam);
+		
+		if (smgr->cameraMode != 0) {
+			// Set 3rd person camera to look at player
+			core::vector3df playerPos = NetworkManager::Instance()->GetPlayerReplica()->position + core::vector3df(0, CAMERA_HEIGHT, 0);
+			activeCam->setTarget(playerPos);
+		}
+	}
+	else if (event.EventType == EET_KEY_INPUT_EVENT && event.KeyInput.Key == KEY_KEY_0 && event.KeyInput.PressedDown == false)
+	{
+		SceneManager::Instance()->showOtherPerspective = !SceneManager::Instance()->showOtherPerspective;
+		NetLogManager::Instance()->PrintDebug("Show Other Perspective: %s\n", SceneManager::Instance()->showOtherPerspective ? "ON" : "OFF");
+	}
+	else if ( event.EventType == EET_KEY_INPUT_EVENT && event.KeyInput.Key == KEY_KEY_B && event.KeyInput.PressedDown == false )
+	{
+		SceneManager::Instance( )->CreateObject(false, ObjectType::SuppliesBox);
+		NetLogManager::Instance( )->PrintDebug("Create Object \n");
 	}
 	else if (event.EventType == EET_KEY_INPUT_EVENT && event.KeyInput.PressedDown == true)
 	{
-		// Blender-like transformation controls for 1st person model (AT9mm)
-		scene::IAnimatedMeshSceneNode* node = SceneManager::Instance()->GetModelNode(SceneManager::Instance( )->currentWeaponIndex, true);
+		// Blender-like transformation controls for 3rd person weapon model (attached to FIRESPOT)
+		PlayerReplica* localPlayer = NetworkManager::Instance()->GetPlayerReplica();
+		scene::IAnimatedMeshSceneNode* node = (localPlayer) ? localPlayer->weaponNode : nullptr;
 		if (node)
 		{
 			core::vector3df pos = node->getPosition();
 			core::vector3df rot = node->getRotation();
 			bool changed = false;
-			float step = 10.0f;
-			float rotStep = 10.0f;
+			float step = 1.0f; // Scale down step for weapon fine-tuning
+			float rotStep = 5.0f;
 
 			if (KeyIsDown[KEY_LSHIFT]) { step *= 0.1f; rotStep *= 0.1f; }
 
-			// Translation: I/K (Y), J/L (X), U/O (Z)
+			// Translation (Relative to FIRESPOT joint): I/K (Y), J/L (X), U/O (Z)
 			if (event.KeyInput.Key == KEY_KEY_I) { pos.Y += step; changed = true; }
 			if (event.KeyInput.Key == KEY_KEY_K) { pos.Y -= step; changed = true; }
 			if (event.KeyInput.Key == KEY_KEY_J) { pos.X -= step; changed = true; }
@@ -342,20 +362,20 @@ bool InputController::OnEvent(const SEvent& event) {
 			if (event.KeyInput.Key == KEY_KEY_U) { pos.Z += step; changed = true; }
 			if (event.KeyInput.Key == KEY_KEY_O) { pos.Z -= step; changed = true; }
 
-			// Rotation: NumPad 8/2 (X), 4/6 (Y), 7/9 (Z)
-			if (event.KeyInput.Key == KEY_KEY_8) { rot.X += rotStep; changed = true; }
-			if (event.KeyInput.Key == KEY_KEY_2) { rot.X -= rotStep; changed = true; }
+			// Rotation: 8/2 (X), 4/6 (Y), 7/9 (Z)
+			if ( event.KeyInput.Key == KEY_KEY_8 ) { rot.X += rotStep; changed = true; }
+			if ( event.KeyInput.Key == KEY_KEY_2 ) { rot.X -= rotStep; changed = true; }
 			if (event.KeyInput.Key == KEY_KEY_4) { rot.Y += rotStep; changed = true; }
 			if (event.KeyInput.Key == KEY_KEY_6) { rot.Y -= rotStep; changed = true; }
-			if (event.KeyInput.Key == KEY_KEY_7) { rot.Z += rotStep; changed = true; }
-			if (event.KeyInput.Key == KEY_KEY_9) { rot.Z -= rotStep; changed = true; }
+			if ( event.KeyInput.Key == KEY_KEY_7 ) { rot.Z += rotStep; changed = true; }
+			if ( event.KeyInput.Key == KEY_KEY_9 ) { rot.Z -= rotStep; changed = true; }
 
 			if (changed)
 			{
 				node->setPosition(pos);
 				node->setRotation(rot);
-				NetLogManager::Instance()->PrintDebug("Model [%s] Pos: %.2f, %.2f, %.2f | Rot: %.2f, %.2f, %.2f\n", 
-					node->getName(), pos.X, pos.Y, pos.Z, rot.X, rot.Y, rot.Z);
+				NetLogManager::Instance()->PrintDebug("3rd Person Weapon Offset Pos: %.2f, %.2f, %.2f | Rot: %.2f, %.2f, %.2f\n", 
+					pos.X, pos.Y, pos.Z, rot.X, rot.Y, rot.Z);
 			}
 		}
 	}
@@ -374,8 +394,11 @@ bool InputController::OnEvent(const SEvent& event) {
 			CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
 		}
 		else if (event.EventType == EET_KEY_INPUT_EVENT) {
+			auto* smgr = SceneManager::Instance();
+			if (smgr->cameraMode != 0 && !smgr->cameraArr.empty()) {
+				smgr->cameraArr[0]->OnEvent(event);
+			}
 			CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
-			//if(event.KeyInput.Key == KEY_KEY_A || event.KeyInput.Key == KEY_KEY_D) CInGame::Instance()->GetDevice()->getSceneManager()->getActiveCamera()->OnEvent(event);
 		}
 		return true;
 	}

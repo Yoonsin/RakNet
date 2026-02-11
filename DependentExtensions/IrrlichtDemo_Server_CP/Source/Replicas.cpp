@@ -53,6 +53,7 @@ void BaseIrrlichtReplica::Update(RakNet::TimeMS curTime)
 PlayerReplica::PlayerReplica()
 {
 	model = 0;
+	weaponNode = nullptr;
 	rotationDeltaPerMS = 0.0f;
 	isMoving = false;
 	deathTimeout = 0;
@@ -66,6 +67,8 @@ PlayerReplica::PlayerReplica()
 	killCnt = 0;
 	deathCnt = 0;
 	shootCnt = 0;
+	weaponIndex = 0;
+	curAnim = WANT_IDLE;
 	nextExpectedAmCnt = 1;
 }
 PlayerReplica::~PlayerReplica()
@@ -110,31 +113,20 @@ void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream* constructionB
 	// Object was remotely created and all data loaded. Now we can make the object visible
 	scene::IAnimatedMesh* mesh = 0;
 	scene::ISceneManager* sm = CInGame::Instance()->GetSceneManager();
-	mesh = sm->getMesh(CInGame::Instance()->mediaPath + "sydney.md2");
+	mesh = sm->getMesh(CInGame::Instance()->mediaPath + "Character/sas.b3d");
 	model = sm->addAnimatedMeshSceneNode(mesh, 0);
-
-	//Collision Box (Debug)
-	//debugBox = new DebugBoxSceneNode(model,sm);
-	//debugBox->setDebugDataVisible(true); 
-	//debugBox->EnableDrawTriangles(true);
-	//scene::ITriangleSelector* selector = CreateSelectorFromTransformedBox(SceneManager::Instance()->GetSyndeyBoundingBox(), model->getAbsoluteTransformation(), sm, creatingSystemGUID);
-	//model->setTriangleSelector(selector);
-	//selector->drop();  // 참조 카운트 관리
-	//debugBox->SetSelector(model->getTriangleSelector());
 
 	model->setPosition(position);
 	model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
-	model->setScale(core::vector3df(2, 2, 2));
-	model->setMD2Animation(scene::EMAT_STAND);
-
-	curAnim = scene::EMAT_STAND;
-	//model->setMaterialTexture(0, CInGame::Instance()->GetDevice()->getVideoDriver()->getTexture(CInGame::Instance()->mediaPath + "sydney.bmp"));
-	//model->setMaterialFlag(video::EMF_LIGHTING, true);
-	//model->addShadowVolumeSceneNode();
-	//model->setAutomaticCulling(scene::EAC_BOX);
+	model->setScale(core::vector3df(1, 1, 1)); // SAS is bigger than sydney
+	
+	curAnim = WANT_IDLE;
 	
 	(isBot)? model->setVisible(true) : model->setVisible(false);
 	model->setAnimationEndCallback(this);
+	
+	UpdateWeaponNode();
+
 	wchar_t playerNameWChar[1024];
 	mbstowcs(playerNameWChar, playerName.C_String(), 1023);
 	// ensure wide-character string is null terminated (i.e. if playerName length is >= 1023)
@@ -146,6 +138,12 @@ void PlayerReplica::PostDeserializeConstruction(RakNet::BitStream* constructionB
 }
 void PlayerReplica::PreDestruction(RakNet::Connection_RM3* sourceConnection)
 {
+	for (unsigned int i = 0; i < weaponNodeCache.Size(); ++i) {
+		weaponNodeCache[i]->remove();
+	}
+	weaponNodeCache.Clear();
+	weaponNode = nullptr;
+
 	if (model)
 		model->remove();
 }
@@ -156,6 +154,9 @@ RM3SerializationResult PlayerReplica::Serialize(RakNet::SerializeParameters* ser
 	serializeParameters->outputBitstream[0].Write(rotationAroundYAxis);
 	serializeParameters->outputBitstream[0].Write(isMoving);
 	serializeParameters->outputBitstream[0].Write(gamePlatform);
+	
+	int currentW = (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) ? (int)SceneManager::Instance()->currentWeaponIndex : weaponIndex;
+	serializeParameters->outputBitstream[0].Write(currentW);
 
 	if (NetworkManager::Instance()->GetTopology() == SERVER) {
 		//서버에서는 전달만
@@ -194,6 +195,7 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters* deserializeParame
 	deserializeParameters->serializationBitstream[0].Read(rotationAroundYAxis);
 	deserializeParameters->serializationBitstream[0].Read(isMoving);
 	deserializeParameters->serializationBitstream[0].Read(gamePlatform);
+	deserializeParameters->serializationBitstream[0].Read(weaponIndex);
 
 	deserializeParameters->serializationBitstream[0].Read(isCreatedCamera);
 	if (isCreatedCamera) {
@@ -219,6 +221,85 @@ void PlayerReplica::Deserialize(RakNet::DeserializeParameters* deserializeParame
 		interpEndTime = curTime + (RakNet::TimeMS)INTERP_TIME_MS;
 	}
 }
+void PlayerReplica::CreateLocalModel() {
+	if (model) return;
+	scene::ISceneManager* sm = CInGame::Instance()->GetSceneManager();
+	scene::IAnimatedMesh* mesh = sm->getMesh(CInGame::Instance()->mediaPath + "Character/sas.b3d");
+	model = sm->addAnimatedMeshSceneNode(mesh, 0);
+
+	model->setPosition(core::vector3df(0,-121.0f,27.0f));
+	model->setRotation(core::vector3df(0, 0, 0));
+	model->setScale(core::vector3df(2, 2, 2));
+	//X축, Z축 회전하면 안됨
+	
+	curAnim = WeaponAnimType::WANT_IDLE;
+	model->setVisible(false); // Initially hidden for local player
+	model->setAnimationEndCallback(this);
+	UpdateWeaponNode();
+}
+
+void PlayerReplica::UpdateWeaponNode() {
+	if (!model) return;
+
+	// Hide all cached weapons first
+	for (unsigned int i = 0; i < weaponNodeCache.Size(); ++i) {
+		weaponNodeCache[i]->setVisible(false);
+	}
+
+	if (weaponIndex >= 0 && (u32)weaponIndex < SceneManager::Instance()->CharModelArr.size()) {
+		// Check if this weapon is already in cache
+		if (weaponNodeCache.Has(weaponIndex)) {
+			weaponNode = weaponNodeCache.Get(weaponIndex);
+		}
+		else {
+			// Not in cache, create a new one by cloning the template
+			ModelInfo& wInfo = SceneManager::Instance()->CharModelArr[weaponIndex].second;
+			if (wInfo.Node) {
+				scene::ISceneManager* sm = CInGame::Instance()->GetSceneManager();
+				scene::ISceneNode* attachPoint = model->getJointNode("FIRESPOT");
+				
+				// Use clone() to copy all properties including materials/textures
+				weaponNode = (scene::IAnimatedMeshSceneNode*)wInfo.Node->clone(attachPoint ? attachPoint : model, sm);
+				
+				if (attachPoint) {
+					core::vector3df weaponPos(0, 0, 0);
+					core::vector3df weaponRot(0, 180, 0);
+
+					switch (wInfo.type) {
+					case AT9mm: weaponPos.set(2.10f, -0.20f, -0.50f); weaponRot.set(0.00f, 180.00f, 0.00f); break;
+					case G3: weaponPos.set(2.20f, 0.60f, -2.10f); weaponRot.set(0.00f, 180.00f, 0.00f); break;
+					case Ingram: weaponPos.set(2.10f, -0.10f, -0.50f); weaponRot.set(0.00f, 180.00f, 0.00f); break;
+					case LMG23: weaponPos.set(2.00f, 1.00f, -3.00f); weaponRot.set(0.00f, 180.00f, 0.00f); break;
+					case M79: weaponPos.set(2.00f, -0.40f, 0.00f); weaponRot.set(0.00f, 180.00f, 0.00f); break;
+					case MSG90: weaponPos.set(2.00f, 0.40f, -0.20f); weaponRot.set(0.00f, 180.00f, 0.00f); break;
+					case Shorty: weaponPos.set(1.90f, -0.30f, 0.00f); weaponRot.set(0.00f, 187.00f, 0.00f); break;
+					case Sporting12: weaponPos.set(2.10f, 0.00f, -3.70f); weaponRot.set(0.00f, 182.50f, 0.00f); break;
+					case Grenade: weaponPos.set(2.90f, -0.10f, 0.50f); weaponRot.set(0.00f, 180.00f, 0.00f); break;
+					case Panzerfaust: weaponPos.set(3.40f, -4.70f, 2.80f); weaponRot.set(3.00f, 165.00f, 10.00f); break;
+					case Knife: weaponPos.set(2.20f, -2.80f, -1.50f); weaponRot.set(-193.50f, 180.00f, 0.00f); break;
+					}
+
+					weaponNode->setPosition(weaponPos);
+					weaponNode->setRotation(weaponRot);
+				}
+				
+				weaponNode->setScale(core::vector3df(1));
+				weaponNode->setMaterialFlag(video::EMF_LIGHTING, false);
+				
+				// Store in cache
+				weaponNodeCache.Set(weaponIndex, weaponNode);
+			}
+		}
+
+		if (weaponNode) {
+			weaponNode->setVisible(true);
+		}
+	}
+	else {
+		weaponNode = nullptr;
+	}
+}
+
 void PlayerReplica::Update(RakNet::TimeMS curTime)
 {
 	if (NetworkManager::Instance()->GetTopology() == SERVER) {
@@ -253,27 +334,67 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 				}
 			}
 		}
+
+		// Knife Trace logic on server
+		if (curAnim == scene::EMAT_ATTACK) {
+			core::vector3df currentKnifeStart = position + core::vector3df(0, 30, 0); // Approx hand/knife base
+			core::vector3df currentKnifeEnd = currentKnifeStart + core::vector3df(cos(rotationAroundYAxis * core::DEGTORAD), 0, sin(rotationAroundYAxis * core::DEGTORAD)) * 50.0f;
+
+			if (previousKnifeStart != core::vector3df(0, 0, 0)) {
+				CollisionManager::Instance()->DrawDebugArea(previousKnifeStart, previousKnifeEnd, currentKnifeStart, currentKnifeEnd, video::SColor(255, 0, 255, 128), 500);
+			}
+
+			previousKnifeStart = currentKnifeStart;
+			previousKnifeEnd = currentKnifeEnd;
+
+			CollisionManager::Instance()->BulletHitDetected(creatingSystemGUID, 0, Knife);
+		}
+		else {
+			previousKnifeStart = core::vector3df(0, 0, 0);
+		}
 	}
 
 	//Set Animation
-	if (creatingSystemGUID != NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
-		if ((NetworkManager::Instance()->GetTopology() == SERVER) ? IsDead() : isDead)
-		{
-			UpdateAnimation(scene::EMAT_DEATH_FALLBACK);
-			model->setLoopMode(false);
+	if (model) {
+		// Sync weapon index for local player
+		if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
+			int currentW = (int)SceneManager::Instance()->currentWeaponIndex;
+			if (weaponIndex != currentW) {
+				ModelInfo & wInfo = SceneManager::Instance( )->CharModelArr[weaponIndex].second; 
+				if ( wInfo.Node ) wInfo.Node->setVisible(false); // Hide previous weapon node
+				weaponIndex = currentW;
+				UpdateWeaponNode();
+			}
 		}
-		else if (curAnim != scene::EMAT_ATTACK)
-		{
-			if (isMoving)
-			{
-				UpdateAnimation(scene::EMAT_RUN);
-				model->setLoopMode(true);
-			}
-			else
-			{
-				UpdateAnimation(scene::EMAT_STAND);
-				model->setLoopMode(true);
-			}
+
+		if (curAnim != WANT_FIRE) {
+			if (isMoving) curAnim = WANT_MOVE;
+			else curAnim = WANT_IDLE;
+		}
+
+		bool dead = (NetworkManager::Instance()->GetTopology() == SERVER) ? IsDead() : isDead;
+		GunType gunType = AT9mm;
+		if (weaponIndex >= 0 && (u32)weaponIndex < SceneManager::Instance()->CharModelArr.size()) {
+			gunType = SceneManager::Instance()->CharModelArr[weaponIndex].first.type;
+		}
+
+		int direction = 0; // Forward/Default
+		if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS)) {
+			if (InputController::Instance()->IsKeyDown(KEY_KEY_A) || InputController::Instance()->IsKeyDown(KEY_LEFT)) direction = 1;
+			else if (InputController::Instance()->IsKeyDown(KEY_KEY_D) || InputController::Instance()->IsKeyDown(KEY_RIGHT)) direction = 2;
+		}
+
+		AnimRange sasAnim = SceneManager::GetSASAnim(gunType, (WeaponAnimType)curAnim, isMoving, dead, direction);
+		
+		// We use a custom comparison because sasAnim doesn't have EMD2_ANIMATION_TYPE
+		// For simplicity, we'll check frame ranges
+		s32 currentStart = model->getStartFrame();
+		s32 currentEnd = model->getEndFrame();
+
+		if (currentStart != sasAnim.start || currentEnd != sasAnim.end) {
+			model->setFrameLoop(sasAnim.start, sasAnim.end);
+			model->setLoopMode(sasAnim.loop);
+			model->setAnimationSpeed(30);
 		}
 	}
 
@@ -312,8 +433,27 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	// 이동 적용
 	if (creatingSystemGUID == NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
 	{
-			NetworkManager::Instance()->GetPlayerReplica()->position = CInGame::Instance()->GetSceneManager()->getActiveCamera()->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
-			NetworkManager::Instance()->GetPlayerReplica()->rotationAroundYAxis = CInGame::Instance()->GetSceneManager()->getActiveCamera()->getRotation().Y - 90.0f;
+			auto* fpsCam = SceneManager::Instance()->cameraArr.empty() ? nullptr : SceneManager::Instance()->cameraArr[0];
+			if (fpsCam) {
+				NetworkManager::Instance()->GetPlayerReplica()->position = fpsCam->getPosition() - irr::core::vector3df(0, CAMERA_HEIGHT, 0);
+				NetworkManager::Instance()->GetPlayerReplica()->rotationAroundYAxis = fpsCam->getRotation().Y - 90.0f;
+			}
+
+			if (model) {
+				if (fpsCam && model->getParent() == fpsCam) {
+					// 3rd person model is parented to the 1st person camera.
+					// To keep the character upright in world space, we must compensate for the parent's X and Z rotation.
+					core::vector3df camRot = fpsCam->getRotation();
+					core::vector3df modelRot = model->getRotation();
+					modelRot.X = -camRot.X; // Neutralize Pitch
+					modelRot.Z = -camRot.Z; // Neutralize Roll
+					model->setRotation(modelRot);
+				}
+				else {
+					model->setPosition(position);
+					model->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
+				}
+			}
 
 			if (NetworkManager::Instance()->GetPlayerBotReplica()) {
 				NetworkManager::Instance()->GetPlayerBotReplica()->botModel->setPosition(NetworkManager::Instance()->GetPlayerBotReplica()->position);
@@ -411,10 +551,8 @@ void PlayerReplica::Update(RakNet::TimeMS curTime)
 	}
 }
 
-void PlayerReplica::UpdateAnimation(irr::scene::EMD2_ANIMATION_TYPE anim)
+void PlayerReplica::UpdateAnimation(WeaponAnimType anim)
 {
-	if (anim != curAnim && model)
-		model->setMD2Animation(anim);
 	curAnim = anim;
 }
 float PlayerReplica::GetRotationDifference(float r1, float r2)
@@ -428,26 +566,16 @@ float PlayerReplica::GetRotationDifference(float r1, float r2)
 }
 void PlayerReplica::OnAnimationEnd(scene::IAnimatedMeshSceneNode* node)
 {
-	if (curAnim == scene::EMAT_ATTACK)
+	if (curAnim == WANT_FIRE)
 	{
-		if (isMoving)
-		{
-			UpdateAnimation(scene::EMAT_RUN);
-			if (model)model->setLoopMode(true);
-		}
-		else
-		{
-			UpdateAnimation(scene::EMAT_STAND);
-			if (model)model->setLoopMode(true);
-		}
+		UpdateAnimation(WANT_IDLE);
 	}
 }
 void PlayerReplica::PlayAttackAnimation(void)
 {
 	if ((NetworkManager::Instance()->GetTopology() == SERVER) ? IsDead() == false : isDead == false)
 	{
-		UpdateAnimation(scene::EMAT_ATTACK);
-		if (model)model->setLoopMode(false);
+		UpdateAnimation(WANT_FIRE);
 	}
 }
 bool PlayerReplica::IsDead(void) const
@@ -499,6 +627,7 @@ RM3SerializationResult PlayerBotReplica::Serialize(RakNet::SerializeParameters* 
 	serializeParameters->outputBitstream[0].Write(rotationAroundYAxis);
 	serializeParameters->outputBitstream[0].Write(isMoving);
 	serializeParameters->outputBitstream[0].Write(gamePlatform);
+	serializeParameters->outputBitstream[0].Write(weaponIndex);
 
 	if (NetworkManager::Instance()->GetTopology() == SERVER) {
 		serializeParameters->outputBitstream[0].Write(++MethodManager::Instance()->um_cnt);
@@ -519,6 +648,7 @@ void PlayerBotReplica::Deserialize(RakNet::DeserializeParameters* deserializePar
 	deserializeParameters->serializationBitstream[0].Read(rotationAroundYAxis);
 	deserializeParameters->serializationBitstream[0].Read(isMoving);
 	deserializeParameters->serializationBitstream[0].Read(gamePlatform);
+	deserializeParameters->serializationBitstream[0].Read(weaponIndex);
 
 	if (NetworkManager::Instance()->GetTopology() != SERVER) {
 		deserializeParameters->serializationBitstream[0].Read(MethodManager::Instance()->um_cnt);
@@ -545,19 +675,15 @@ void PlayerBotReplica::CreateBotModel()
 {
 	scene::IAnimatedMesh* mesh = 0;
 	scene::ISceneManager* sm = CInGame::Instance()->GetSceneManager();
-	mesh = sm->getMesh(CInGame::Instance()->mediaPath + "sydney.md2");
+	mesh = sm->getMesh(CInGame::Instance()->mediaPath + "Character/sas.b3d");
 	botModel = sm->addAnimatedMeshSceneNode(mesh, 0);
+	model = botModel; // Link to base class pointer
 
 	botModel->setPosition(position);
 	botModel->setRotation(core::vector3df(0, rotationAroundYAxis, 0));
-	botModel->setScale(core::vector3df(2, 2, 2));
-	botModel->setMD2Animation(scene::EMAT_STAND);
-
-	curAnim = scene::EMAT_STAND;
-	botModel->setMaterialTexture(0, CInGame::Instance()->GetDevice()->getVideoDriver()->getTexture(IRRLICHT_MEDIA_PATH "sydney.bmp"));
-	botModel->setMaterialFlag(video::EMF_LIGHTING, true);
-	botModel->addShadowVolumeSceneNode();
-	botModel->setAutomaticCulling(scene::EAC_BOX);
+	botModel->setScale(core::vector3df(1, 1, 1));
+	
+	botModel->setMaterialFlag(video::EMF_LIGHTING, false);
 	botModel->setVisible(true);
 	botModel->setAnimationEndCallback(this);
 }
@@ -565,6 +691,8 @@ void PlayerBotReplica::CreateBotModel()
 BallReplica::BallReplica()
 {
 	creationTime = RakNet::GetTimeMS();
+	gunType = AT9mm;
+	shotStartTime = creationTime;
 }
 BallReplica::~BallReplica()
 {
@@ -584,6 +712,9 @@ void BallReplica::SerializeConstruction(RakNet::BitStream* constructionBitstream
 	BaseIrrlichtReplica::SerializeConstruction(constructionBitstream, destinationConnection);
 	constructionBitstream->Write(shotDirection);
 	constructionBitstream->Write(bulletCount);
+	constructionBitstream->Write(gunType);
+	constructionBitstream->Write(shotStartTime);
+	constructionBitstream->Write(shotLifetime);
 
 	if (MethodManager::Instance()->IsMethodActive(METHOD_2) == false) return;
 	if (NetworkManager::Instance()->GetTopology() == SERVER) return;
@@ -614,6 +745,9 @@ bool BallReplica::DeserializeConstruction(RakNet::BitStream* constructionBitstre
 		return false;
 	constructionBitstream->Read(shotDirection);
 	constructionBitstream->Read(bulletCount);
+	constructionBitstream->Read(gunType);
+	constructionBitstream->Read(shotStartTime);
+	constructionBitstream->Read(shotLifetime);
 
 
 	if (creatingSystemGUID != NetworkManager::Instance()->GetPeer()->GetGuidFromSystemAddress(RakNet::UNASSIGNED_SYSTEM_ADDRESS))
@@ -724,7 +858,8 @@ void BallReplica::PostDeserializeConstruction(RakNet::BitStream* constructionBit
 	if (MethodManager::Instance()->IsMethodActive(METHOD_2))
 		return;
 
-	CollisionManager::Instance()->BulletHitDetected(creatingSystemGUID, 0);
+	if (GetTraceType(gunType) == GTT_HITSCAN)
+		CollisionManager::Instance()->BulletHitDetected(creatingSystemGUID, 0, gunType);
 }
 void BallReplica::PreDestruction(RakNet::Connection_RM3* sourceConnection)
 {
@@ -752,6 +887,43 @@ void BallReplica::Update(RakNet::TimeMS curTime)
 			BroadcastDestruction();
 			delete this;
 			return;
+		}
+	}
+
+	// Server-side projectile simulation
+	if (NetworkManager::Instance()->IsServer()) {
+		GunTraceType traceType = GetTraceType(gunType);
+		if (traceType == GTT_PROJECTILE) {
+			const f32 gravity = -0.5f; // Simulation gravity
+			f32 timeElapsed = (f32)(curTime - shotStartTime);
+			f32 prevTime = (f32)(curTime - shotStartTime - 16); // Assuming 60fps
+			if (prevTime < 0) prevTime = 0;
+
+			auto getPosAt = [&](f32 t) {
+				core::vector3df pos = position + shotDirection * t * SHOT_SPEED;
+				pos.Y += 0.5f * gravity * t * t;
+				return pos;
+			};
+
+			core::vector3df currentPos = getPosAt(timeElapsed);
+			core::vector3df prevPos = getPosAt(prevTime);
+			CollisionManager::Instance()->DrawDebugLine(core::line3d<f32>(prevPos, currentPos), video::SColor(255, 0, 255, 0), 100);
+
+			if (curTime >= shotLifetime) {
+				core::vector3df explosionPos = currentPos;
+				
+				// Explosion Circle
+				CollisionManager::Instance()->DrawDebugCircle(explosionPos, 100.0f, core::vector3df(0, 1, 0), video::SColor(255, 255, 128, 0), 2000);
+
+				CollisionManager::Instance()->BulletHitDetected(creatingSystemGUID, 0, gunType, explosionPos, core::vector3df(1, 0, 0));
+				CollisionManager::Instance()->BulletHitDetected(creatingSystemGUID, 0, gunType, explosionPos, core::vector3df(-1, 0, 0));
+				CollisionManager::Instance()->BulletHitDetected(creatingSystemGUID, 0, gunType, explosionPos, core::vector3df(0, 0, 1));
+				CollisionManager::Instance()->BulletHitDetected(creatingSystemGUID, 0, gunType, explosionPos, core::vector3df(0, 0, -1));
+
+				BroadcastDestruction();
+				delete this;
+				return;
+			}
 		}
 	}
 }

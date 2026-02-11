@@ -30,6 +30,7 @@ void PacketHandler::DestroyInstance() {
 }
 
 PacketHandler::PacketHandler() {
+	if ( instance == nullptr ) instance = this;
 	testPacketCount = 0;
 	testRountCount = 0;
 	testStartTime = 0;

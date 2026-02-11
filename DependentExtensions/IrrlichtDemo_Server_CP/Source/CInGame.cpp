@@ -110,7 +110,8 @@ void CInGame::Activate()
 	device = createDeviceEx(param);
 
 #else
-	core::dimension2d<u32> resolution(640, 480); //mini
+	//core::dimension2d<u32> resolution(640, 480); //mini
+	core::dimension2d<u32> resolution(1280, 720); //16:9 
 	//core::dimension2d<u32> resolution(1440, 900); //16:10 (WSXGA)
 	irr::SIrrlichtCreationParameters params;
 	params.DriverType = driverType;
@@ -141,6 +142,7 @@ void CInGame::Activate()
 	device->getFileSystem( )->addFileArchive(mediaPath + "Character/");
 	device->getFileSystem( )->addFileArchive(mediaPath + "Map/");
 	device->getFileSystem( )->addFileArchive(mediaPath + "Effect/");
+	device->getFileSystem( )->addFileArchive(mediaPath + "Background/");
 	device->getFileSystem( )->addFileArchive(mediaPath + "HUD/");
 	
 #ifdef __ANDROID__
@@ -199,7 +201,7 @@ void CInGame::Run()
 	HUDManager::Instance()->Activate();
 	NetworkManager::Instance()->Activate(); // RakNet startup
 	SceneManager::Instance()->Activate();
-	SceneManager::Instance()->CalculateSyndeyBoundingBox();
+	SceneManager::Instance()->CalculatePlayerBoundingBox();
 	
 	const std::chrono::milliseconds targetFrameTime(16);
 	while (device->run())
@@ -258,7 +260,13 @@ void CInGame::shoot()
 	BallReplica *br = new BallReplica;
 	br->position=camPosition;
 	br->shotDirection=camAt;
+	br->gunType = SceneManager::Instance()->GetCurrentWeaponType();
+	br->shotStartTime = RakNet::GetTimeMS();
 	br->shotLifetime=RakNet::GetTimeMS() + SceneManager::Instance()->shootFromOrigin(camPosition, camAt, gamePlatform);
+
+	// Client-side debug line
+	core::vector3df end = camPosition + (camAt * 1000.0f); // Default far
+	CollisionManager::Instance()->DrawDebugLine(core::line3d<f32>(camPosition, end), video::SColor(255, 0, 255, 0));
 
 	NetworkManager::Instance()->GetReplicaManager()->Reference(br);
 
@@ -321,8 +329,8 @@ void CInGame::SetTransformCamera(scene::ICameraSceneNode* camera, GamePlatform p
 		//initPos = core::vector3df(-321.72, 217.01, -286.69);
 		//initTarget = core::vector3df(160.16, 193.23, -289.48);
 		//zero
-		initPos = core::vector3df(0, 100, 0);
-		initTarget = core::vector3df(0, 100, 100);
+		initPos = core::vector3df(200, 300, 200);
+		initTarget = core::vector3df(0, 0, 0);
 	}
 		  break;
 	case GamePlatform::Server: {

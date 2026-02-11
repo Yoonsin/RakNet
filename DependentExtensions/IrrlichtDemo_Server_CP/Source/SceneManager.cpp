@@ -3,9 +3,72 @@
 #include "CInGame.h"
 #include "HUDManager.h"
 #include "InputController.h"
+#include "CollisionManager.h"
 
 using namespace RakNet;
 using namespace irr;
+
+AnimRange SceneManager::GetSASAnim(GunType gun, WeaponAnimType anim, bool isMoving, bool isDead, int direction) {
+	if (isDead) return AnimRange(524, 532, false);
+
+	switch (gun) {
+	case AT9mm:
+	case Ingram:
+		if (!isMoving) return AnimRange(574, 597, true);
+		if (direction == 1) return AnimRange(624, 642, true); // Left
+		if (direction == 2) return AnimRange(644, 662, true); // Right
+		return AnimRange(664, 681, true); // Run
+	case G3:
+	case LMG23:
+		if (!isMoving) return AnimRange(963, 986, true);
+		if (direction == 1) return AnimRange(1013, 1031, true);
+		if (direction == 2) return AnimRange(1033, 1051, true);
+		return AnimRange(1053, 1070, true); // Run
+	case Grenade:
+		if ( !isMoving ) return AnimRange(211, 234, true);
+		if ( direction == 1 ) return AnimRange(261, 279, true);
+		if ( direction == 2 ) return AnimRange(281, 299, true);
+		return AnimRange(301, 318, true); // Run
+		//return AnimRange(320, 355, true); attack
+	case M79:
+	case MSG90:
+		if (!isMoving) return AnimRange(1352, 1375, true);
+		if (direction == 1) return AnimRange(1402, 1420, true);
+		if (direction == 2) return AnimRange(1422, 1440, true);
+		return AnimRange(1442, 1459, true); // Run
+	case Panzerfaust:
+		if (!isMoving) return AnimRange(2130, 2153, true);
+		if (direction == 1) return AnimRange(2180, 2198, true);
+		if (direction == 2) return AnimRange(2200, 2218, true);
+		return AnimRange(2220, 2237, true); // Run
+	case Shorty:
+	case Sporting12:
+		if (!isMoving) return AnimRange(1741, 1764, true);
+		if (direction == 1) return AnimRange(1791, 1809, true);
+		if (direction == 2) return AnimRange(1811, 1829, true);
+		return AnimRange(1831, 1848, true); // Run
+
+	case Knife:
+		if (anim == WANT_FIRE) {
+			if (!isMoving) return AnimRange(2597, 2616, true);
+			if (direction == 1) return AnimRange(2644, 2660, true);
+			if (direction == 2) return AnimRange(2662, 2675, true);
+			return AnimRange(2678, 2692, true); // Run
+		}
+		else {
+			if (!isMoving) return AnimRange(2499, 2518, true);
+			if (direction == 1) return AnimRange(2546, 2562, true);
+			if (direction == 2) return AnimRange(2564, 2577, true);
+			return AnimRange(2580, 2594, true); // Run
+		}
+
+	default: // SAS None
+		if ( !isMoving ) return AnimRange(211, 234, true);
+		if ( direction == 1 ) return AnimRange(261, 279, true);
+		if ( direction == 2 ) return AnimRange(281, 299, true);
+		return AnimRange(301, 318, true); // Run
+	}
+}
 
 SceneManager* SceneManager::instance = nullptr;
 SceneManager* SceneManager::Instance() {
@@ -19,6 +82,7 @@ void SceneManager::DestroyInstance() {
 	}
 }
 SceneManager::SceneManager() {
+	if ( instance == nullptr ) instance = this;
 }
 
 SceneManager::~SceneManager() {
@@ -180,6 +244,53 @@ void ConvertUnsupportedNodes(scene::ISceneManager* smgr) {
 		holder->remove();
 	}
 }
+
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// Item Pickup Animator (Unreal-style Trigger/Overlap)
+// ----------------------------------------------------------------------------
+class CItemPickupAnimator : public scene::ISceneNodeAnimator {
+public:
+	CItemPickupAnimator(scene::ISceneManager* smgr, const core::stringc& message) 
+		: Manager(smgr), PickupMessage(message) {}
+
+	virtual void animateNode(scene::ISceneNode* node, u32 timeMs) override {
+		if (!node || !Manager) return;
+
+		scene::ICameraSceneNode* cam = Manager->getActiveCamera();
+		if (!cam) return;
+
+		// 플레이어(카메라)의 Bounding Box와 아이템의 Bounding Box가 겹치는지 체크 (Overlap)
+		if (node->getTransformedBoundingBox().intersectsWithBox(cam->getTransformedBoundingBox())) {
+			if (PickupMessage.size() > 0) {
+				HUDManager::Instance()->PushMessage(RakNet::RakString(PickupMessage.c_str()));
+			}
+			
+			NetLogManager::Instance( )->PrintDebug(RakNet::RakString("Item picked up: %s", PickupMessage.c_str( )));
+			// OnAnimate 루프 도중 노드가 즉시 삭제되면 댕글링 포인터로 인한 크래시가 발생함
+			// 따라서 노드를 숨기고 다음 프레임 직전에 안전하게 삭제되도록 DeleteAnimator를 추가함
+			//node->setVisible(false);
+			scene::ISceneNodeAnimator* del = Manager->createDeleteAnimator(0);
+			if (del)
+			{
+				node->addAnimator(del);
+				del->drop();
+			}
+		}
+	}
+
+	virtual scene::ISceneNodeAnimator* createClone(scene::ISceneNode* node, scene::ISceneManager* newManager = 0) override {
+		return new CItemPickupAnimator(newManager ? newManager : Manager, PickupMessage);
+	}
+
+	virtual bool isEventReceiverEnabled() const override { return false; }
+	virtual scene::ESCENE_NODE_ANIMATOR_TYPE getType() const override { return (scene::ESCENE_NODE_ANIMATOR_TYPE )MAKE_IRR_ID('p', 'k', 'a', 'n'); }
+
+private:
+	scene::ISceneManager* Manager;
+	core::stringc PickupMessage;
+};
 
 // ----------------------------------------------------------------------------
 
@@ -373,9 +484,9 @@ void SceneManager::Update() {
 	CreateParticleImpacts();
 
 	// Update FOV and Aiming
-	if (currentScene == 1 && cameraMode == 0) {
+	if (currentScene == 1) {
 		GunType curType = GetCurrentWeaponType();
-		isAiming = (curType == MSG90 && InputController::Instance()->IsRightMouseDown());
+		isAiming = (cameraMode == 0 && curType == MSG90 && InputController::Instance()->IsRightMouseDown());
 
 		targetFOV = isAiming ? 0.2f : 1.25f; // Zoom in if aiming
 
@@ -386,22 +497,89 @@ void SceneManager::Update() {
 		scene::ICameraSceneNode* cam = smgr->getActiveCamera();
 		if (cam) cam->setFOV(currentFOV);
 
-		// Weapon model visibility: Hide while scoped for full-screen scope effect
-		auto& model = CharModelArr[currentWeaponIndex].first;
-		if (model.Node) {
-			model.Node->setVisible(!isAiming);
+		// Visibility logic
+		bool show1stPerson = (cameraMode == 0 || showOtherPerspective);
+		bool show3rdPerson = (cameraMode != 0 || showOtherPerspective);
+
+		// Weapon model (1st person) visibility
+		auto& pair = CharModelArr[currentWeaponIndex];
+		if (pair.first.Node) pair.first.Node->setVisible(show1stPerson && !isAiming);
+		
+		// Handle 3rd person visibility for local player
+		PlayerReplica* localPlayer = NetworkManager::Instance()->GetPlayerReplica();
+		if (localPlayer) {
+			if (localPlayer->model) localPlayer->model->setVisible(show3rdPerson);
+			if (localPlayer->weaponNode) localPlayer->weaponNode->setVisible(show3rdPerson);
 		}
 	}
 
 	// Update Weapon Animations
-	if (currentScene == 1 && cameraMode == 0) {
+	if (currentScene == 1) {
+		PlayerReplica* localPlayer = NetworkManager::Instance()->GetPlayerReplica();
+		if (localPlayer && localPlayer->model) {
+
+			// Update 3rd person character model: Follow FPS camera position and Yaw (Keep upright)
+			scene::ICameraSceneNode* fpsCam = cameraArr[0];
+			if (fpsCam) {
+				// Remove from camera if it was parented
+				if (localPlayer->model->getParent() == fpsCam) {
+					localPlayer->model->setParent(smgr->getRootSceneNode());
+				}
+
+				// Manually sync position (offset by height)
+				localPlayer->model->setPosition(fpsCam->getPosition() - core::vector3df(0, 127.0f,0.0f));
+
+				// Only follow Y-axis rotation (Yaw), freeze X (Pitch) and Z (Roll)
+				core::vector3df camRot = fpsCam->getRotation();
+				localPlayer->model->setRotation(core::vector3df(0, camRot.Y, 0));
+			}
+
+			// Update 3rd person camera (Maya)
+			if (cameraMode != 0) {
+				scene::ICameraSceneNode* activeCam = smgr->getActiveCamera();
+				if (activeCam && fpsCam) {
+					core::vector3df target = fpsCam->getPosition();
+
+					// Follow Movement: Update Maya camera target and maintain orbit offset
+					core::vector3df currentOffset = activeCam->getPosition() - activeCam->getTarget();
+					activeCam->setTarget(target);
+					activeCam->setPosition(target + currentOffset);
+				}
+			}
+
+			// 3rd Person Character Animation Update (Local Player)
+			bool isDead = localPlayer->IsDead();
+			bool isMoving = InputController::Instance()->IsMovementKeyDown();
+			int direction = 0; // 0: Fwd/Bwd, 1: Left, 2: Right
+			if (InputController::Instance()->IsKeyDown(KEY_KEY_A) || InputController::Instance()->IsKeyDown(KEY_LEFT)) direction = 1;
+			else if (InputController::Instance()->IsKeyDown(KEY_KEY_D) || InputController::Instance()->IsKeyDown(KEY_RIGHT)) direction = 2;
+
+			WeaponAnimType animType = WANT_IDLE;
+			if (isMoving) animType = WANT_MOVE;
+
+			// If 1st person is playing a high priority animation, we might want to reflect it
+			if (IsHighPriorityAnimPlaying()) {
+				animType = currentAnimType;
+			}
+
+			AnimRange sasRange = GetSASAnim(GetCurrentWeaponType(), animType, isMoving, isDead, direction);
+
+			if (localPlayer->model->getStartFrame() != sasRange.start || localPlayer->model->getEndFrame() != sasRange.end) {
+				NetLogManager::Instance( )->PrintDebug("3rd Person Animation Change: Start %d, End %d, Loop %d, gun Idx : %d \n", sasRange.start, sasRange.end, sasRange.loop, GetCurrentWeaponType());
+				localPlayer->model->setFrameLoop(sasRange.start, sasRange.end);
+				localPlayer->model->setLoopMode(sasRange.loop);
+				localPlayer->model->setAnimationSpeed(30);
+			}
+		}
+
+		// 1st Person Weapon Animation Update
 		bool finished = false;
 		bool chainCock = false;
-		auto& model = CharModelArr[currentWeaponIndex].first;
-		if (model.Node && !isAiming) { // Only animate if not aiming (scoped)
-			const AnimRange& range = model.animations[currentAnimType];
+		auto& hudModel = CharModelArr[currentWeaponIndex].first;
+		if (hudModel.Node && !isAiming) { // Only animate if not aiming (scoped)
+			const AnimRange& range = hudModel.animations[currentAnimType];
 			if (!range.loop && currentAnimType != WANT_IDLE && currentAnimType != WANT_MOVE && currentAnimType != WANT_COUNT) {
-				if (model.Node->getFrameNr() >= (f32)range.end - 0.5f) {
+				if (hudModel.Node->getFrameNr() >= (f32)range.end - 0.5f) {
 					finished = true;
 					if (currentAnimType == WANT_RELOAD) chainCock = true;
 				}
@@ -424,6 +602,18 @@ void SceneManager::Update() {
 		}
 	}
 
+	// Debug Draw Collision Ellipsoid
+	//if (currentScene == 1 && fpsCamResponse) {
+	//	core::vector3df radius = fpsCamResponse->getEllipsoidRadius();
+	//	core::vector3df translation = fpsCamResponse->getEllipsoidTranslation();
+	//	scene::ISceneNode* node = fpsCamResponse->getTargetNode();
+	//	if (node) {
+	//		// Irrlicht's CollisionResponseAnimator uses simple vector addition for translation (Axis-Aligned)
+	//		core::vector3df center = node->getAbsolutePosition() + translation;
+	//		CollisionManager::Instance()->DrawDebugEllipsoid(center, radius, video::SColor(255, 255, 255, 0), 0);
+	//	}
+	//}
+
 	driver->beginScene(timeForThisScene != -1, true, backColor);
 	smgr->drawAll();
 	guienv->drawAll();
@@ -432,56 +622,125 @@ void SceneManager::Update() {
 
 }
 
+// ----------------------------------------------------------------------------
+// Billboard UV Animator for Sprite Sheets (e.g. 4x4 decal.png)
+// ----------------------------------------------------------------------------
+class CBillboardUVAnimator : public scene::ISceneNodeAnimator {
+public:
+	CBillboardUVAnimator(u32 rows, u32 cols, u32 timePerFrame, u32 startTime)
+		: Rows(rows), Cols(cols), TimePerFrame(timePerFrame), StartTime(startTime) {
+		TotalFrames = Rows * Cols;
+	}
+
+	virtual void animateNode(scene::ISceneNode* node, u32 timeMs) override {
+		u32 elapsed = timeMs - StartTime;
+		u32 frame = elapsed / TimePerFrame;
+
+		if (frame >= TotalFrames) {
+			return;
+		}
+
+		u32 row = frame / Cols;
+		u32 col = frame % Cols;
+
+		f32 width = 1.0f / (f32)Cols;
+		f32 height = 1.0f / (f32)Rows;
+
+		f32 tx = (f32)col * width;
+		f32 ty = (f32)row * height;
+
+		// 텍스처 매트릭스를 활용한 UV 애니메이션 (구버전 Irrlicht 호환)
+		video::SMaterial& mat = node->getMaterial(0);
+		core::matrix4& texMat = mat.getTextureMatrix(0);
+
+		texMat.makeIdentity();
+		texMat.setTextureScale(width, height);
+		texMat.setTextureTranslate(tx, ty);
+	}
+
+	virtual scene::ISceneNodeAnimator* createClone(scene::ISceneNode* node, scene::ISceneManager* newManager = 0) override {
+		return new CBillboardUVAnimator(Rows, Cols, TimePerFrame, StartTime);
+	}
+
+	virtual bool isEventReceiverEnabled() const override { return false; }
+	virtual scene::ESCENE_NODE_ANIMATOR_TYPE getType() const override { return (scene::ESCENE_NODE_ANIMATOR_TYPE)MAKE_IRR_ID('u', 'v', 'a', 'n'); }
+
+private:
+	u32 Rows, Cols;
+	u32 TotalFrames;
+	u32 TimePerFrame;
+	u32 StartTime;
+};
+
 void SceneManager::CreateParticleImpacts()
 {
 	u32 now = device->getTimer()->getTime();
 	scene::ISceneManager* sm = device->getSceneManager();
 
-	for (s32 i = 0; i < (s32)Impacts.size(); ++i)
+	for (s32 i = 0; i < (s32)Impacts.size(); ++i) {
 		if (now > Impacts[i].when)
 		{
-			// create smoke particle system
-			scene::IParticleSystemSceneNode* pas = 0;
+			// 1. 벽 충돌 데칼 이펙트 (decal.png 애니메이션 시트 사용)
+			scene::IBillboardSceneNode* bill = sm->addBillboardSceneNode(0, core::dimension2d<f32>(20, 20), Impacts[i].pos);
+			if (bill) {
+				bill->setMaterialFlag(video::EMF_LIGHTING, false);
+				bill->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
+				bill->setMaterialTexture(0, driver->getTexture(CInGame::Instance()->mediaPath + "Effect/decal.png"));
+				bill->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
 
-			pas = sm->addParticleSystemSceneNode(false, 0, -1, Impacts[i].pos);
-			pas->setParticleSize(core::dimension2d<f32>(10.0f, 10.0f));
+				// 4x4 그리드, 프레임당 30ms (총 약 0.5초)
+				CBillboardUVAnimator* uvAnim = new CBillboardUVAnimator(4, 4, 30, now);
+				bill->addAnimator(uvAnim);
+				uvAnim->drop();
 
-			scene::IParticleEmitter* em = pas->createBoxEmitter(
-				core::aabbox3d<f32>(-5, -5, -5, 5, 5, 5),
-				Impacts[i].outVector, 20, 40, video::SColor(0, 255, 255, 255), video::SColor(0, 255, 255, 255),
-				1200, 1600, 20);
+				// 애니메이션 시간 맞춰 자동 삭제
+				scene::ISceneNodeAnimator* del = sm->createDeleteAnimator(4 * 4 * 30);
+				bill->addAnimator(del);
+				del->drop();
+			}
 
-			pas->setEmitter(em);
-			em->drop();
+			// 2. 기존 연기 파티클 생성 (주석 해제 및 최적화)
+			scene::IParticleSystemSceneNode* pas = sm->addParticleSystemSceneNode(false, 0, -1, Impacts[i].pos);
+			if (pas) {
+				pas->setParticleSize(core::dimension2d<f32>(5.0f, 5.0f));
 
-			scene::IParticleAffector* paf = campFire->createFadeOutParticleAffector();
-			pas->addAffector(paf);
-			paf->drop();
+				// 충돌 지점 노멀 방향(outVector)으로 튀게 설정
+				scene::IParticleEmitter* em = pas->createBoxEmitter(
+					core::aabbox3d<f32>(-2, -2, -2, 2, 2, 2),
+					Impacts[i].outVector, 10, 20, video::SColor(0, 255, 255, 255), video::SColor(0, 255, 255, 255),
+					500, 800, 30);
 
-			pas->setMaterialFlag(video::EMF_LIGHTING, false);
-			pas->setMaterialTexture(0, device->getVideoDriver()->getTexture(CInGame::Instance()->mediaPath + "smoke.bmp"));
-#ifdef __ANDROID__
-			pas->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
-#else
-			pas->setMaterialType(video::EMT_TRANSPARENT_VERTEX_ALPHA);
-#endif //__ANDROID__
+				pas->setEmitter(em);
+				em->drop();
 
-			scene::ISceneNodeAnimator* anim = sm->createDeleteAnimator(2000);
-			pas->addAnimator(anim);
-			anim->drop();
+				scene::IParticleAffector* paf = pas->createFadeOutParticleAffector();
+				pas->addAffector(paf);
+				paf->drop();
 
-			// delete entry
+				pas->setMaterialFlag(video::EMF_LIGHTING, false);
+				pas->setMaterialTexture(0, driver->getTexture(CInGame::Instance()->mediaPath + "Effect/smoke.bmp"));
+				pas->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
+
+				scene::ISceneNodeAnimator* anim = sm->createDeleteAnimator(1000);
+				pas->addAnimator(anim);
+				anim->drop();
+			}
+
+			// 처리된 엔트리 삭제
 			Impacts.erase(i);
 			i--;
 		}
+	}
 }
 
-void SceneManager::CalculateSyndeyBoundingBox(void)
+
+void SceneManager::CalculatePlayerBoundingBox(void)
 {
 	// Find the extents of the player character's model (for networking collision checks)
 	scene::IAnimatedMesh* mesh = 0;
 	scene::ISceneManager* sm = device->getSceneManager();
-	mesh = sm->getMesh(CInGame::Instance()->mediaPath + "sydney.md2");
+	mesh = sm->getMesh(CInGame::Instance()->mediaPath + "Character/sas.b3d");
+	if (!mesh) return;
 	irr::scene::IAnimatedMeshSceneNode* model;
 	model = sm->addAnimatedMeshSceneNode(mesh, 0);
 	model->setScale(core::vector3df(1, 1, 1));
@@ -496,11 +755,102 @@ void SceneManager::CalculateSyndeyBoundingBox(void)
 	maxEdgeExtended.X += BALL_DIAMETER;///2
 	maxEdgeExtended.Y += BALL_DIAMETER * 1.25;
 	maxEdgeExtended.Z += BALL_DIAMETER * 0.2;
-	syndeyBoundingBox.MinEdge = minEdgeExtended;
-	syndeyBoundingBox.MaxEdge = maxEdgeExtended;
+	playerBoundingBox.MinEdge = minEdgeExtended;
+	playerBoundingBox.MaxEdge = maxEdgeExtended;
 	model->remove();
 };
-const core::aabbox3df& SceneManager::GetSyndeyBoundingBox(void) const { return syndeyBoundingBox; }
+const core::aabbox3df& SceneManager::GetPlayerBoundingBox(void) const { return playerBoundingBox; }
+
+void SceneManager::CreateObject(bool hasServerAuthority, ObjectType type) 
+{
+	scene::ISceneManager * sm = device->getSceneManager( );
+	scene::ICameraSceneNode * cam = sm->getActiveCamera( );
+	
+	core::stringc meshFileName;
+	core::stringc texFileName;
+
+	// 표에 따른 메시 및 텍스처 매칭
+	switch (type)
+	{
+	case Obstacle:
+		meshFileName = "babyblock_a.b3d";
+		texFileName = "babyblock_a.png";
+		break;
+	case SuppliesBox:
+		meshFileName = "crate.b3d";
+		texFileName = "crate.png";
+		break;
+	case Turret:
+		meshFileName = "item_i.b3d";
+		texFileName = "item_i.png";
+		break;
+	case Wall:
+		meshFileName = "Brick_basement.b3d";
+		texFileName = "Brick_basement.png";
+		break;
+	case HealPack:
+		meshFileName = "toolbox.b3d";
+		texFileName = "toolbox.png";
+		break;
+	case Car:
+		meshFileName = "humvee.b3d";
+		texFileName = "humvee.png";
+		break;
+	default:
+		meshFileName = "crate.b3d";
+		texFileName = "crate.png";
+		break;
+	}
+
+	core::stringc mediaPath = CInGame::Instance()->mediaPath + "BackGround/";
+	scene::IAnimatedMesh* mesh = sm->getMesh(mediaPath + meshFileName);
+	video::ITexture* tex = driver->getTexture(mediaPath + texFileName);
+
+	if (!mesh) return;
+
+	scene::IAnimatedMeshSceneNode* model = sm->addAnimatedMeshSceneNode(mesh, 0);
+	model->setID(OBJECT_ID_OFFSET + (s32)type);
+	model->setScale(core::vector3df(1, 1, 1));
+	model->setPosition(core::vector3df(0, 0, 0));
+	model->setRotation(core::vector3df(0, 0, 0));
+
+	if (cam) {
+		// 카메라 앞 방향으로 소환
+		core::vector3df pos = cam->getAbsolutePosition();
+		core::vector3df target = cam->getTarget() - pos;
+		target.normalize();
+		model->setPosition(pos + ( target * 100.0f ));
+		model->setRotation(core::vector3df(0, cam->getRotation( ).Y, 0));
+
+		if(type==HealPack ) model->setPosition(pos + ( target * 300.0f ));
+		else if ( type == Car ) { model->setPosition(pos + ( target * 500.0f )); model->setScale(core::vector3df(2));}
+		else if ( type == Obstacle ) model->setScale(core::vector3df(10));
+	}
+	
+	model->getMaterial(0).setTexture(0, tex);
+	model->setVisible(true);
+	model->setMaterialFlag(video::EMF_LIGHTING, false);
+
+	// 아이템 습득형 오브젝트(Trigger) 처리
+	if (type == HealPack)
+	{
+		scene::ISceneNodeAnimator* anim = new CItemPickupAnimator(sm, "HealPack Restored!");
+		model->addAnimator(anim);
+		anim->drop();
+	}
+	else
+	{
+		// 이동 및 사격 충돌 판정을 위해 selector 생성 및 metaSelector에 추가
+		scene::ITriangleSelector* selector = sm->createTriangleSelector(model->getMesh(), model);
+		if (selector)
+		{
+			model->setTriangleSelector(selector);
+			if (metaSelector)
+				metaSelector->addTriangleSelector(selector);
+			selector->drop();
+		}
+	}
+}
 
 void SceneManager::CreateCamera( )
 {
@@ -558,10 +908,7 @@ void SceneManager::CreateCamera( )
 		CInGame::Instance()->SetTransformCamera(camera, CInGame::Instance()->gamePlatform);
 
 		core::vector3df gravity = core::vector3df(0, -10.f, 0);
-		scene::ISceneNodeAnimatorCollisionResponse* collider =
-			smgr->createCollisionResponseAnimator(
-				metaSelector, camera, core::vector3df(25, CAMERA_HEIGHT, 25), gravity, core::vector3df(0, 45, 0), 0.005f);
-
+		scene::ISceneNodeAnimatorCollisionResponse* collider = smgr->createCollisionResponseAnimator(metaSelector, camera, core::vector3df(35, CAMERA_HEIGHT+20, 35), gravity, core::vector3df(0, 50, 0), 0.005f);
 		camera->addAnimator(collider);
 		collider->drop();
 
@@ -587,7 +934,7 @@ void SceneManager::CreateCamera( )
 			CharModelArr[currentWeaponIndex].first.Node->setRotation(core::vector3df(0, -180, 0));
 			CharModelArr[currentWeaponIndex].first.Node->setVisible(true); // 1st person model visible
 		}
-
+		NetworkManager::Instance()->GetPlayerReplica()->UpdateWeaponNode();
 		// Debug Draw Bounding Box
 		//camera->setDebugDataVisible(scene::EDS_BBOX);
 		//CharModelArr[AT9mm].first.Node->setDebugDataVisible(scene::EDS_BBOX);
@@ -597,6 +944,39 @@ void SceneManager::CreateCamera( )
 		cameraArr.push_back(mayaCam);
 		smgr->setActiveCamera(camera);
 }
+
+// ----------------------------------------------------------------------------
+// Billboard Flash Animator for repeating muzzle flashes
+// ----------------------------------------------------------------------------
+class CBillboardFlashAnimator : public scene::ISceneNodeAnimator {
+public:
+	CBillboardFlashAnimator(u32 duration, u32 repeats, u32 startTime)
+		: Duration(duration), Repeats(repeats), StartTime(startTime) {
+		TotalTime = Duration * Repeats;
+	}
+
+	virtual void animateNode(scene::ISceneNode* node, u32 timeMs) override {
+		u32 elapsed = timeMs - StartTime;
+		if (elapsed >= TotalTime) {
+			node->setVisible(false);
+			return;
+		}
+
+		// 반복 횟수에 따른 깜빡임 (각 주기 내에서 절반만 표시)
+		u32 cycleTime = Duration;
+		node->setVisible((elapsed % cycleTime) < (cycleTime / 2));
+	}
+
+	virtual scene::ISceneNodeAnimator* createClone(scene::ISceneNode* node, scene::ISceneManager* newManager = 0) override {
+		return new CBillboardFlashAnimator(Duration, Repeats, StartTime);
+	}
+
+	virtual bool isEventReceiverEnabled() const override { return false; }
+	virtual scene::ESCENE_NODE_ANIMATOR_TYPE getType() const override { return (scene::ESCENE_NODE_ANIMATOR_TYPE)MAKE_IRR_ID('f', 'l', 'a', 'n'); }
+
+private:
+	u32 Duration, Repeats, StartTime, TotalTime;
+};
 
 void SceneManager::LoadCharacterData()
 {
@@ -608,6 +988,11 @@ void SceneManager::LoadCharacterData()
 		std::string mesh3rd;
 		core::array<std::string> tex3rd;
 		AnimRange animations[WANT_COUNT];
+		// 플래시 설정 추가
+		bool useFlash = true;
+		u32 flashDuration = 50;
+		u32 flashRepeat = 1;
+		u32 flashDelay = 0;
 	};
 
 	core::array<GunConfig> gunConfigs;
@@ -616,163 +1001,123 @@ void SceneManager::LoadCharacterData()
 		d.animations[t] = AnimRange(s, e, l);
 	};
 
-	// AT9mm: gun - ammo - hand
+	// AT9mm: 권총 - 슬라이드 후퇴와 맞추기 위해 20ms 지연
 	{
 		GunConfig d; d.type = AT9mm; d.mesh1st = "HUD_AT9mm.b3d";
 		d.tex1st.push_back("AT9mm_gun.png"); d.tex1st.push_back("AT9mm_ammo.png"); d.tex1st.push_back("hand.png");
 		d.mesh3rd = "W_AT9mm.b3d"; d.tex3rd.push_back("AT9mm_gun.png");
-		setA(d, WANT_SELECT, 0, 31);
-		setA(d, WANT_IDLE, 32, 76, true);
-		setA(d, WANT_MOVE, 77, 101, true);
-		setA(d, WANT_FIRE, 102, 105);
-		setA(d, WANT_RELOAD, 106, 106);
-		setA(d, WANT_COCK, 107, 185);
-		setA(d, WANT_PUTAWAY, 186, 205);
+		setA(d, WANT_SELECT, 0, 31); setA(d, WANT_IDLE, 32, 76, true); setA(d, WANT_MOVE, 77, 101, true);
+		setA(d, WANT_FIRE, 102, 105); setA(d, WANT_RELOAD, 106, 106); setA(d, WANT_COCK, 107, 185); setA(d, WANT_PUTAWAY, 186, 205);
+		d.flashDuration = 40; d.flashDelay = 15;
 		gunConfigs.push_back(d);
 	}
 
-	// G3: hand - gun - ammo
+	// G3: 소총 - 가스 작동식 느낌을 위해 30ms 지연
 	{
 		GunConfig d; d.type = G3; d.mesh1st = "HUD_G3.b3d";
 		d.tex1st.push_back("hand.png"); d.tex1st.push_back("G3_gun.png"); d.tex1st.push_back("G3_ammo.png");
 		d.mesh3rd = "W_G3.b3d"; d.tex3rd.push_back("G3_gun.png");
-		setA(d, WANT_SELECT, 0, 38);
-		setA(d, WANT_IDLE, 39, 83, true);
-		setA(d, WANT_MOVE, 84, 108, true);
-		setA(d, WANT_FIRE, 109, 126);
-		setA(d, WANT_RELOAD, 127, 127);
-		setA(d, WANT_COCK, 128, 235);
-		setA(d, WANT_PUTAWAY, 235, 258);
+		setA(d, WANT_SELECT, 0, 38); setA(d, WANT_IDLE, 39, 83, true); setA(d, WANT_MOVE, 84, 108, true);
+		setA(d, WANT_FIRE, 109, 126); setA(d, WANT_RELOAD, 127, 127); setA(d, WANT_COCK, 128, 235); setA(d, WANT_PUTAWAY, 235, 258);
+		d.flashDuration = 60; d.flashDelay = 25;
 		gunConfigs.push_back(d);
 	}
 
-	// Ingram: gun - ammo - hand
+	// Ingram: SMG - 매우 빠른 발사, 10ms 지연
 	{
 		GunConfig d; d.type = Ingram; d.mesh1st = "HUD_Ingram.b3d";
 		d.tex1st.push_back("Ingram_gun.png"); d.tex1st.push_back("Ingram_ammo.png"); d.tex1st.push_back("hand.png");
 		d.mesh3rd = "W_Ingram.b3d"; d.tex3rd.push_back("Ingram_gun.png");
-		setA(d, WANT_SELECT, 0, 37);
-		setA(d, WANT_IDLE, 38, 82, true);
-		setA(d, WANT_MOVE, 83, 107, true);
-		setA(d, WANT_FIRE, 108, 125);
-		setA(d, WANT_RELOAD, 126, 165);
-		setA(d, WANT_COCK, 166, 205);
-		setA(d, WANT_PUTAWAY, 206, 225);
+		setA(d, WANT_SELECT, 0, 37); setA(d, WANT_IDLE, 38, 82, true); setA(d, WANT_MOVE, 83, 107, true);
+		setA(d, WANT_FIRE, 108, 125); setA(d, WANT_RELOAD, 126, 165); setA(d, WANT_COCK, 166, 205); setA(d, WANT_PUTAWAY, 206, 225);
+		d.flashDuration = 30; d.flashRepeat = 2; d.flashDelay = 10;
 		gunConfigs.push_back(d);
 	}
 
-	// LMG23: hand - gun
+	// LMG23: 기관총 - 묵직한 발사, 40ms 지연
 	{
 		GunConfig d; d.type = LMG23; d.mesh1st = "HUD_LMG23.b3d";
 		d.tex1st.push_back("hand.png"); d.tex1st.push_back("LMG23_gun.png");
 		d.mesh3rd = "W_LMG23.b3d"; d.tex3rd.push_back("LMG23_gun.png");
-		setA(d, WANT_SELECT, 0, 38);
-		setA(d, WANT_IDLE, 39, 83, true);
-		setA(d, WANT_MOVE, 84, 108, true);
-		setA(d, WANT_FIRE, 109, 126);
-		setA(d, WANT_RELOAD, 127, 169);
-		setA(d, WANT_COCK, 170, 204);
-		setA(d, WANT_PUTAWAY, 205, 228);
+		setA(d, WANT_SELECT, 0, 38); setA(d, WANT_IDLE, 39, 83, true); setA(d, WANT_MOVE, 84, 108, true);
+		setA(d, WANT_FIRE, 109, 126); setA(d, WANT_RELOAD, 127, 169); setA(d, WANT_COCK, 170, 204); setA(d, WANT_PUTAWAY, 205, 228);
+		d.flashDuration = 40; d.flashRepeat = 3; d.flashDelay = 35;
 		gunConfigs.push_back(d);
 	}
 
-	// M79: hand - gun - ammo
+	// M79: 유탄발사기 - 큰 박동, 50ms 지연
 	{
 		GunConfig d; d.type = M79; d.mesh1st = "HUD_M79.b3d";
 		d.tex1st.push_back("hand.png"); d.tex1st.push_back("M79_gun.png"); d.tex1st.push_back("M79_ammo.png");
 		d.mesh3rd = "W_M79.b3d"; d.tex3rd.push_back("M79_gun.png");
-		setA(d, WANT_SELECT, 0, 22);
-		setA(d, WANT_IDLE, 23, 67, true);
-		setA(d, WANT_MOVE, 68, 92, true);
-		setA(d, WANT_FIRE, 93, 101);
-		setA(d, WANT_RELOAD, 102, 186);
-		setA(d, WANT_PUTAWAY, 187, 209);
+		setA(d, WANT_SELECT, 0, 22); setA(d, WANT_IDLE, 23, 67, true); setA(d, WANT_MOVE, 68, 92, true);
+		setA(d, WANT_FIRE, 93, 101); setA(d, WANT_RELOAD, 102, 186); setA(d, WANT_PUTAWAY, 187, 209);
+		d.flashDuration = 80; d.flashDelay = 45;
 		gunConfigs.push_back(d);
 	}
 
-	// MSG90: hand - gun - ammo
+	// MSG90: 스나이퍼 - 30ms 지연
 	{
 		GunConfig d; d.type = MSG90; d.mesh1st = "HUD_MSG90.b3d";
 		d.tex1st.push_back("hand.png"); d.tex1st.push_back("MSG90_gun.png"); d.tex1st.push_back("MSG90_ammo.png");
 		d.mesh3rd = "W_MSG90.b3d"; d.tex3rd.push_back("MSG90_gun.png");
-		setA(d, WANT_SELECT, 0, 38);
-		setA(d, WANT_IDLE, 39, 83, true);
-		setA(d, WANT_MOVE, 84, 108, true);
-		setA(d, WANT_FIRE, 110, 115);
-		setA(d, WANT_RELOAD, 117, 117);
-		setA(d, WANT_COCK, 118, 224);
-		setA(d, WANT_PUTAWAY, 225, 248);
+		setA(d, WANT_SELECT, 0, 38); setA(d, WANT_IDLE, 39, 83, true); setA(d, WANT_MOVE, 84, 108, true);
+		setA(d, WANT_FIRE, 110, 115); setA(d, WANT_RELOAD, 117, 117); setA(d, WANT_COCK, 118, 224); setA(d, WANT_PUTAWAY, 225, 248);
+		d.flashDuration = 80; d.flashDelay = 25;
 		gunConfigs.push_back(d);
 	}
 
-	// Shorty: hand - gun
+	// Shorty: 샷건 - 40ms 지연
 	{
 		GunConfig d; d.type = Shorty; d.mesh1st = "HUD_Shorty.b3d";
 		d.tex1st.push_back("hand.png"); d.tex1st.push_back("Shorty_gun.png");
 		d.mesh3rd = "W_Shorty.b3d"; d.tex3rd.push_back("Shorty_gun.png");
-		setA(d, WANT_SELECT, 0, 25);
-		setA(d, WANT_IDLE, 26, 71, true);
-		setA(d, WANT_MOVE, 72, 96, true);
-		setA(d, WANT_FIRE, 97, 134);
-		setA(d, WANT_RELOAD, 135, 184);
-		setA(d, WANT_COCK, 135, 266);
-		setA(d, WANT_PUTAWAY, 267, 291);
+		setA(d, WANT_SELECT, 0, 25); setA(d, WANT_IDLE, 26, 71, true); setA(d, WANT_MOVE, 72, 96, true);
+		setA(d, WANT_FIRE, 97, 134); setA(d, WANT_RELOAD, 135, 184); setA(d, WANT_COCK, 135, 266); setA(d, WANT_PUTAWAY, 267, 291);
+		d.flashDuration = 80; d.flashDelay = 35;
 		gunConfigs.push_back(d);
 	}
 
-	// Sporting12: gun - hand
+	// Sporting12: 샷건 - 40ms 지연
 	{
 		GunConfig d; d.type = Sporting12; d.mesh1st = "HUD_Sporting12.b3d";
 		d.tex1st.push_back("Sporting12_gun.png"); d.tex1st.push_back("hand.png");
 		d.mesh3rd = "W_Sporting12.b3d"; d.tex3rd.push_back("Sporting12_gun.png");
-		setA(d, WANT_SELECT, 0, 22);
-		setA(d, WANT_IDLE, 23, 67, true);
-		setA(d, WANT_MOVE, 68, 92, true);
-		setA(d, WANT_FIRE, 93, 99);
-		setA(d, WANT_RELOAD, 100, 252);
-		setA(d, WANT_COCK, 253, 296);
-		setA(d, WANT_PUTAWAY, 297, 316);
+		setA(d, WANT_SELECT, 0, 22); setA(d, WANT_IDLE, 23, 67, true); setA(d, WANT_MOVE, 68, 92, true);
+		setA(d, WANT_FIRE, 93, 99); setA(d, WANT_RELOAD, 100, 252); setA(d, WANT_COCK, 253, 296); setA(d, WANT_PUTAWAY, 297, 316);
+		d.flashDuration = 80; d.flashDelay = 35;
 		gunConfigs.push_back(d);
 	}
 
-	// Grenade: gun
+	// Grenade: 수류탄 - 플래시 없음 (폭발 효과는 나중에)
 	{
 		GunConfig d; d.type = Grenade; d.mesh1st = "HUD_Grenade.b3d";
 		d.tex1st.push_back("Grenade_gun.png");
-		d.mesh3rd = "W_Grenade.b3d"; d.tex3rd.push_back("Grenade.png");
-		setA(d, WANT_SELECT, 0, 14);
-		setA(d, WANT_IDLE, 16, 64, true);
-		setA(d, WANT_MOVE, 66, 94, true);
-		setA(d, WANT_FIRE, 96, 139);
-		setA(d, WANT_RELOAD, 1, 14);
-		setA(d, WANT_PUTAWAY, 141, 154);
+		d.mesh3rd = "W_Grenade.b3d"; d.tex3rd.push_back("Grenade_gun.png");
+		setA(d, WANT_SELECT, 0, 14); setA(d, WANT_IDLE, 16, 64, true); setA(d, WANT_MOVE, 66, 94, true);
+		setA(d, WANT_FIRE, 96, 139); setA(d, WANT_RELOAD, 1, 14); setA(d, WANT_PUTAWAY, 141, 154);
+		d.useFlash = false;
 		gunConfigs.push_back(d);
 	}
 
-	// Knife: gun
-	{
-		GunConfig d; d.type = Knife; d.mesh1st = "HUD_Knife.b3d";
-		d.tex1st.push_back("Knife_gun.png");
-		d.mesh3rd = "W_Knife.b3d"; d.tex3rd.push_back("Knife.png");
-		setA(d, WANT_SELECT, 0, 14);
-		setA(d, WANT_IDLE, 16, 64, true);
-		setA(d, WANT_MOVE, 66, 94, true);
-		setA(d, WANT_FIRE, 96, 114);
-		setA(d, WANT_PUTAWAY, 116, 129);
-		gunConfigs.push_back(d);
-	}
-
-	// Panzerfaust: gun
+	// Panzerfaust: 판저파우스트 - 100ms 지연
 	{
 		GunConfig d; d.type = Panzerfaust; d.mesh1st = "HUD_Panzerfaust.b3d";
 		d.tex1st.push_back("Panzerfaust_gun.png");
-		d.mesh3rd = "W_Panzerfaust.b3d"; d.tex3rd.push_back("Panzerfaust.png");
-		setA(d, WANT_SELECT, 0, 33);
-		setA(d, WANT_IDLE, 35, 83, true);
-		setA(d, WANT_MOVE, 85, 113, true);
-		setA(d, WANT_FIRE, 184, 225);
-		setA(d, WANT_RELOAD, 125, 182);
-		setA(d, WANT_PUTAWAY, 251, 283);
+		d.mesh3rd = "W_Panzerfaust.b3d"; d.tex3rd.push_back("Panzerfaust_gun.png");
+		setA(d, WANT_SELECT, 0, 33); setA(d, WANT_IDLE, 35, 83, true); setA(d, WANT_MOVE, 85, 113, true);
+		setA(d, WANT_FIRE, 184, 225); setA(d, WANT_RELOAD, 125, 182); setA(d, WANT_PUTAWAY, 251, 283);
+		d.flashDuration = 150; d.flashDelay = 90;
+		gunConfigs.push_back(d);
+	}
+
+	// Knife: 칼 - 플래시 없음
+	{
+		GunConfig d; d.type = Knife; d.mesh1st = "HUD_Knife.b3d";
+		d.tex1st.push_back("Knife_gun.png"); d.mesh3rd = "W_Knife.b3d"; d.tex3rd.push_back("Knife_gun.png");
+		setA(d, WANT_SELECT, 0, 14); setA(d, WANT_IDLE, 16, 64, true); setA(d, WANT_MOVE, 66, 94, true);
+		setA(d, WANT_FIRE, 96, 114); setA(d, WANT_PUTAWAY, 116, 129);
+		d.useFlash = false;
 		gunConfigs.push_back(d);
 	}
 
@@ -787,6 +1132,12 @@ void SceneManager::LoadCharacterData()
 			info.meshFile = file;
 			info.textureFiles = texs;
 			for (int a = 0; a < WANT_COUNT; ++a) info.animations[a] = anims[a];
+			
+			// 플래시 설정 복사
+			info.useFlash = cfg.useFlash;
+			info.flashDuration = cfg.flashDuration;
+			info.flashRepeatCount = cfg.flashRepeat;
+			info.flashDelay = cfg.flashDelay;
 
 			// Search in Asset/Character directory
 			core::stringc path = CInGame::Instance()->mediaPath + "Character/" + file.c_str();
@@ -798,7 +1149,6 @@ void SceneManager::LoadCharacterData()
 					core::stringc texPath = CInGame::Instance()->mediaPath + "Character/" + texs[j].c_str();
 					video::ITexture* tex = driver->getTexture(texPath);
 					if (tex && info.Node->getMaterialCount() > j) {
-						// 각 부위(Mesh Buffer)의 0번 텍스처 레이어에 할당
 						info.Node->getMaterial(j).setTexture(0, tex);
 					}
 				}
@@ -814,6 +1164,8 @@ void SceneManager::LoadCharacterData()
 		CharModelArr.push_back(std::make_pair(m1st, m3rd));
 	}
 }
+
+
 
 void SceneManager::SwitchToNextScene()
 {
@@ -1144,30 +1496,62 @@ RakNet::TimeMS SceneManager::shootFromOrigin(core::vector3df camPosition, core::
 {
 	scene::ISceneManager* sm = device->getSceneManager();
 	scene::ICameraSceneNode* camera = sm->getActiveCamera();
-	// get line of camera
+	
+	// 1. 히트스캔 판정용 위치 (카메라 중심)
 	core::vector3df start = camPosition;
-	core::vector3df end = (camAt);
-	//end.normalize();
-	start += end * 8.0f;
-	end = start + (end * camera->getFarValue());
+	core::vector3df end = start + (camAt * camera->getFarValue());
+
+	// 2. 이펙트용 시작 위치 (총구 조인트)
+	core::vector3df visualStart = camPosition + (camAt * 15.0f); // 기본값: 카메라 약간 앞
+	bool fireSpotFound = false;
+	if (cameraMode == 0 && currentWeaponIndex < CharModelArr.size()) {
+		scene::IAnimatedMeshSceneNode* weaponNode = CharModelArr[currentWeaponIndex].first.Node;
+		if (weaponNode && weaponNode->isVisible()) {
+			// 여러 조인트 이름 대응 (AT9mm 등)
+			scene::IBoneSceneNode * fireSpot;
+			if ( CharModelArr[currentWeaponIndex].first.type == AT9mm) fireSpot = weaponNode->getJointNode("barrel");
+			else fireSpot = weaponNode->getJointNode("FIRESPOT");
+			
+			if (!fireSpot) fireSpot = weaponNode->getJointNode("fire");
+			if (!fireSpot) fireSpot = weaponNode->getJointNode("flash");
+
+			if (fireSpot) {
+				camera->updateAbsolutePosition( );
+				weaponNode->updateAbsolutePosition();
+				fireSpot->updateAbsolutePosition(); 
+
+				core::vector3df spotPos = fireSpot->getAbsolutePosition();
+				// NaN 체크 (NaN != NaN 성질 이용)
+				if (spotPos.X != spotPos.X || spotPos.Y != spotPos.Y || spotPos.Z != spotPos.Z) {
+					NetLogManager::Instance()->PrintDebug("Warning: FIRESPOT for weapon %d returned NaN. Using fallback position.\n", currentWeaponIndex);
+					fireSpotFound = false;
+				}
+				else {
+					visualStart = spotPos;
+					fireSpotFound = true;
+					// NetLogManager::Instance()->PrintDebug("Using FIRESPOT joint for visualStart at (%.2f, %.2f, %.2f)\n", visualStart.X, visualStart.Y, visualStart.Z);
+				}
+			}
+		}
+	}
 
 	bool wallHit = false;
 	core::vector3df wallHitPoint(0, 0, 0);
-	return shootFromOrigin(camPosition, camAt, start, end, wallHit, wallHitPoint, platform);
+	return shootFromOrigin(camPosition, camAt, start, end, visualStart, wallHit, wallHitPoint, platform);
 }
 
-RakNet::TimeMS SceneManager::shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint, GamePlatform platform)
+RakNet::TimeMS SceneManager::shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, core::vector3df start, core::vector3df end, core::vector3df visualStart, bool& wallHit, core::vector3df& wallHitPoint, GamePlatform platform)
 {
 	scene::ISceneManager* sm = device->getSceneManager();
 	scene::ICameraSceneNode* camera = sm->getActiveCamera();
 
-	if (!camera || !mapSelector)
+	if (!camera || !metaSelector)
 		return 0;
 
 	SParticleImpact imp;
 	imp.when = 0;
 	core::triangle3df triangle;
-	core::line3d<irr::f32> line(start, end);
+	core::line3d<irr::f32> line(start, end); // 히트스캔은 카메라 기반 start~end 사용
 
 	// get intersection point with map
 	const scene::ISceneNode* hitNode;
@@ -1175,91 +1559,121 @@ RakNet::TimeMS SceneManager::shootFromOrigin(core::vector3df camPosition, core::
 #ifdef __ANDROID__
 	scene::SCollisionHit hitResult;
 	bool flag = false;
-	if (sm->getSceneCollisionManager()->getCollisionPoint(hitResult, line, mapSelector)) {
+	if (sm->getSceneCollisionManager()->getCollisionPoint(hitResult, line, metaSelector)) {
 		end = hitResult.Intersection;
 		triangle = hitResult.Triangle;
 		hitNode = hitResult.Node;
 		flag = true;
+
+		// 오브젝트 파괴 로직
+		if (hitNode)
+		{
+			s32 id = hitNode->getID();
+			if (id >= OBJECT_ID_OFFSET + (s32)Obstacle && id <= OBJECT_ID_OFFSET + (s32)Wall)
+			{
+				scene::ISceneNode* node = const_cast<scene::ISceneNode*>(hitNode);
+				scene::ITriangleSelector* selector = node->getTriangleSelector();
+				if (selector && metaSelector)
+				{
+					metaSelector->removeTriangleSelector(selector);
+				}
+				node->remove();
+				hitNode = nullptr;
+			}
+		}
 	}
 
 	if (flag) {
-		// collides with wall
 		wallHit = true;
 		wallHitPoint = end;
-
-		core::vector3df out = triangle.getNormal();
-		out.setLength(0.03f);
-
-		imp.when = 1;
-		imp.outVector = out;
-		imp.pos = end;
+		if (hitNode) {
+			core::vector3df out = triangle.getNormal();
+			out.setLength(0.03f);
+			imp.when = 1;
+			imp.outVector = out;
+			imp.pos = end;
+		}
 	}
-	else {
-		// doesnt collide with wall
-		wallHit = false;
-		wallHitPoint = core::vector3df(0, 0, 0);
-
-		core::vector3df start = camPosition;
-		core::vector3df end = (camAt);
-		//end.normalize();
-		start += end * 8.0f;
-		end = start + (end * camera->getFarValue());
-	}
-
 #else
-	if (sm->getSceneCollisionManager()->getCollisionPoint(line, mapSelector, end, triangle, hitNode))
+	if (sm->getSceneCollisionManager()->getCollisionPoint(line, metaSelector, end, triangle, hitNode))
 	{
-		// collides with wall
 		wallHit = true;
 		wallHitPoint = end;
 
-		core::vector3df out = triangle.getNormal();
-		out.setLength(0.03f);
+		if (hitNode)
+		{
+			s32 id = hitNode->getID();
+			if (id >= OBJECT_ID_OFFSET + (s32)Obstacle && id <= OBJECT_ID_OFFSET + (s32)Wall)
+			{
+				scene::ISceneNode* node = const_cast<scene::ISceneNode*>(hitNode);
+				scene::ITriangleSelector* selector = node->getTriangleSelector();
+				if (selector && metaSelector)
+				{
+					metaSelector->removeTriangleSelector(selector);
+				}
+				node->remove();
+				hitNode = nullptr;
+			}
+		}
 
-		imp.when = 1;
-		imp.outVector = out;
-		imp.pos = end;
-	}
-	else
-	{
-		// doesnt collide with wall
-		wallHit = false;
-		wallHitPoint = core::vector3df(0, 0, 0);
-
-		core::vector3df start = camPosition;
-		core::vector3df end = (camAt);
-		//end.normalize();
-		start += end * 8.0f;
-		end = start + (end * camera->getFarValue());
+		if (hitNode)
+		{
+			core::vector3df out = triangle.getNormal();
+			out.setLength(0.03f);
+			imp.when = 1;
+			imp.outVector = out;
+			imp.pos = end;
+		}
 	}
 #endif // __ANDROID__
 
-	// create fire ball
+	// 1. 총구 화염 이펙트 (visualStart 위치 사용 및 무기별 설정 적용)
+	auto& weaponInfo = CharModelArr[currentWeaponIndex].first;
+	if (weaponInfo.useFlash) {
+		scene::IBillboardSceneNode* flash = sm->addBillboardSceneNode(0, core::dimension2d<f32>(30, 30), visualStart);
+		if (flash) {
+			flash->setMaterialFlag(video::EMF_LIGHTING, false);
+			flash->setMaterialTexture(0, driver->getTexture(CInGame::Instance()->mediaPath + "Effect/flash61.png"));
+			flash->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
+
+			// 무기별 설정에 따른 애니메이터 추가
+			CBillboardFlashAnimator* flashAnim = new CBillboardFlashAnimator(
+				weaponInfo.flashDuration, weaponInfo.flashRepeatCount, device->getTimer()->getTime());
+			flash->addAnimator(flashAnim);
+			flashAnim->drop();
+
+			// 총 지속 시간 후 삭제
+			scene::ISceneNodeAnimator* delFlash = sm->createDeleteAnimator(weaponInfo.flashDuration * weaponInfo.flashRepeatCount);
+			flash->addAnimator(delFlash);
+			delFlash->drop();
+		}
+	}
+
+	// 2. 투사체 모델 생성 (visualStart에서 시작하여 충돌지점 end까지 비행)
 	scene::ISceneNode* node = 0;
-	node = sm->addBillboardSceneNode(0,
-		core::dimension2d<f32>(BALL_DIAMETER - 10, BALL_DIAMETER - 10), start);
-
-	node->setMaterialFlag(video::EMF_LIGHTING, false);
-	if (platform == Holder) {
-		node->setMaterialTexture(0, device->getVideoDriver()->getTexture("fireball_green.bmp"));
+	scene::IAnimatedMesh* bulletMesh = sm->getMesh(CInGame::Instance()->mediaPath + "Effect/brass1.b3d");
+	if (bulletMesh) {
+		scene::IAnimatedMeshSceneNode* bulletNode = sm->addAnimatedMeshSceneNode(bulletMesh);
+		bulletNode->setPosition(visualStart);
+		bulletNode->setMaterialFlag(video::EMF_LIGHTING, false);
+		bulletNode->getMaterial(0).setTexture(0, driver->getTexture(CInGame::Instance()->mediaPath + "Effect/brass1_D2.png"));
+		core::vector3df dirVec = (end - visualStart);
+		bulletNode->setRotation(dirVec.getHorizontalAngle());
+		bulletNode->setScale(core::vector3df(1.0f)); 
+		node = bulletNode;
 	}
-	else if (platform == Shooter) {
-		node->setMaterialTexture(0, device->getVideoDriver()->getTexture("fireball_blue.bmp"));
-	}
-	else if (platform == Server) {
+	else {
+		node = sm->addBillboardSceneNode(0, core::dimension2d<f32>(BALL_DIAMETER - 10, BALL_DIAMETER - 10), visualStart);
+		node->setMaterialFlag(video::EMF_LIGHTING, false);
 		node->setMaterialTexture(0, device->getVideoDriver()->getTexture("fireball.bmp"));
+		node->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
 	}
 
-	node->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
-
-	f32 length = (f32)(end - start).getLength();
+	f32 length = (f32)(end - visualStart).getLength();
 	const f32 speed = SHOT_SPEED;
 	u32 time = (u32)(length / speed);
 
-	scene::ISceneNodeAnimator* anim = 0;
-
-	// set flight line
-	anim = sm->createFlyStraightAnimator(start, end, time);
+	scene::ISceneNodeAnimator* anim = sm->createFlyStraightAnimator(visualStart, end, time);
 	node->addAnimator(anim);
 	anim->drop();
 
@@ -1267,12 +1681,11 @@ RakNet::TimeMS SceneManager::shootFromOrigin(core::vector3df camPosition, core::
 	node->addAnimator(anim);
 	anim->drop();
 
-	if (imp.when)
-	{
-		// create impact note
+	if (imp.when) {
 		imp.when = device->getTimer()->getTime() + (time - 100);
 		Impacts.push_back(imp);
 	}
 
 	return (RakNet::TimeMS)time;
 }
+

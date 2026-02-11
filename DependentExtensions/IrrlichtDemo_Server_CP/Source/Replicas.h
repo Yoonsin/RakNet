@@ -84,10 +84,16 @@ public:
 	virtual RakNet::RM3ActionOnPopConnection QueryActionOnPopConnection(RakNet::Connection_RM3* droppedConnection) const;
 
 	virtual void Update(RakNet::TimeMS curTime);
-	void UpdateAnimation(irr::scene::EMD2_ANIMATION_TYPE anim);
+	void UpdateAnimation(WeaponAnimType anim);
 	float GetRotationDifference(float r1, float r2);
 	virtual void OnAnimationEnd(irr::scene::IAnimatedMeshSceneNode* node);
 	void PlayAttackAnimation(void);
+	void UpdateWeaponNode();
+	void CreateLocalModel();
+	irr::scene::IAnimatedMeshSceneNode* GetActiveWeaponNode() { return weaponNode; }
+
+	// Cache for 3rd person weapon nodes to avoid repeated creation/deletion
+	DataStructures::Map<int, irr::scene::IAnimatedMeshSceneNode*> weaponNodeCache;
 
 	// playerName is only sent in SerializeConstruction, since it doesn't change
 	RakNet::RakString playerName;
@@ -103,8 +109,9 @@ public:
 	bool isMoving;
 
 	// Only instantiated for remote systems, you never see yourself
-	irr::scene::IAnimatedMeshSceneNode* model;
-	irr::scene::EMD2_ANIMATION_TYPE curAnim;
+	irr::scene::IAnimatedMeshSceneNode* model; // Character body (sas.b3d)
+	irr::scene::IAnimatedMeshSceneNode* weaponNode; // Attached 3rd person weapon
+	WeaponAnimType curAnim;
 
 	// deathTimeout is set from the Server, and is used to determine if the player is dead
 	RakNet::TimeMS deathTimeout;
@@ -125,6 +132,9 @@ public:
 	irr::core::vector3df replicatedCameraRot;
 	irr::core::vector3df lastPos;
 
+	irr::core::vector3df previousKnifeStart;
+	irr::core::vector3df previousKnifeEnd;
+
 	DebugBoxSceneNode* debugBox;
 
 	bool isCreatedCamera;
@@ -141,6 +151,8 @@ public:
 	bool isTeleport;
 
 	int fps;
+
+	int weaponIndex;
 
 	irr::core::vector3df respawnPos;
 	irr::core::vector3df respawnTarget;
@@ -209,5 +221,7 @@ public:
 	RakNet::TimeMS shotLifetime;
 
 	int bulletCount;
+	GunType gunType;
+	RakNet::TimeMS shotStartTime;
 };
 

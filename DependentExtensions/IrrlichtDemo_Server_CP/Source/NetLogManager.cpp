@@ -33,7 +33,7 @@ void NetLogManager::DestroyInstance() {
 		instance = nullptr;
 	}
 }
-NetLogManager::NetLogManager() {}
+NetLogManager::NetLogManager() { if ( instance == nullptr ) instance = this; }
 NetLogManager::~NetLogManager() {
 }
 

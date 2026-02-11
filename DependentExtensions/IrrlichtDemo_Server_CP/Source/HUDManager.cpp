@@ -21,8 +21,9 @@ void HUDManager::DestroyInstance() {
     }
 }
 
-HUDManager::HUDManager() : driver(nullptr), guienv(nullptr), font(nullptr), isVisible(true) {}
+HUDManager::HUDManager() : driver(nullptr), guienv(nullptr), font(nullptr), isVisible(true) { if ( instance == nullptr ) instance = this; }
 HUDManager::~HUDManager() {
+
 }
 void HUDManager::Initialize(bool isHUDVisible) {
 	joy_stick = jump_button = fire_button = exit_button = statusText = killLogText = myNameText = holderPosText =  nullptr;

@@ -63,7 +63,7 @@ void NetworkManager::DestroyInstance() {
 	}
 }
 
-NetworkManager::NetworkManager() : rakPeer(nullptr), networkIDManager(nullptr), replicaManager3(nullptr), statisticsPlugin(nullptr), playerBotReplica(nullptr), playerReplica(nullptr) {}
+NetworkManager::NetworkManager() : rakPeer(nullptr), networkIDManager(nullptr), replicaManager3(nullptr), statisticsPlugin(nullptr), playerBotReplica(nullptr), playerReplica(nullptr) { if ( instance == nullptr ) instance = this; }
 
 NetworkManager::~NetworkManager() {
 	//    
@@ -123,6 +123,9 @@ void NetworkManager::Activate()
 		//if ( MethodManager::Instance( )->scenarioNum != ScenarioNum::SCENARIO_MOVE_BOT_FIXED ) {
 			playerReplica = new PlayerReplica;
 			playerReplica->gamePlatform = CInGame::Instance( )->gamePlatform;
+			playerReplica->CreateLocalModel();
+			//원래 Network 서버-연결 수립이 되면 플레이어 레플리카가 생기지만 지금은 임시로 클라이언트에서도 미리 생성
+			replicaManager3->Reference(playerReplica);
 		//}
 	}
 

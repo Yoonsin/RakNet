@@ -71,6 +71,18 @@ enum GunType {
     //TODO : Add Land Mine, Shield
 };
 
+enum GunTraceType {
+	GTT_HITSCAN,
+	GTT_PROJECTILE,
+	GTT_KNIFE
+};
+
+inline GunTraceType GetTraceType(GunType type) {
+	if (type == M79 || type == Grenade || type == Panzerfaust) return GTT_PROJECTILE;
+	if (type == Knife) return GTT_KNIFE;
+	return GTT_HITSCAN;
+}
+
 enum WeaponAnimType {
     WANT_IDLE,
     WANT_MOVE,
@@ -96,7 +108,24 @@ struct ModelInfo {
 	scene::IAnimatedMeshSceneNode* Node = nullptr;
     GunType type;
     AnimRange animations[WANT_COUNT];
+
+    // 머즐 플래시 설정
+    bool useFlash = true;
+    u32 flashDuration = 50;
+    u32 flashRepeatCount = 1;
+    u32 flashDelay = 0;
 };
+
+enum ObjectType {
+    Obstacle = 0,
+    SuppliesBox = 1,
+    Turret = 2,
+    Wall = 3,
+    HealPack = 4,
+    Car = 5,
+};
+
+const s32 OBJECT_ID_OFFSET = 10000;
 
 class SceneManager
 {
@@ -113,13 +142,15 @@ public:
     void LoadSceneData();
     void LoadQuakeScene( );
     void LoadPlaneScene( );
+    void CreateObject(bool hasServerAuthority, ObjectType type ); //hasServerAuthority
     void CreateCamera( );
     void SwitchToNextScene();
     void CreateParticleImpacts();
-    const core::aabbox3df& GetSyndeyBoundingBox(void) const;
-    void CalculateSyndeyBoundingBox(void);
+    const core::aabbox3df& GetPlayerBoundingBox(void) const;
+    void CalculatePlayerBoundingBox(void);
+    static AnimRange GetSASAnim(GunType gun, WeaponAnimType anim, bool isMoving, bool isDead = false, int direction = 0);
     RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, GamePlatform platform); // 레이캐스팅 (사격 판정용)
-    RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, core::vector3df start, core::vector3df end, bool& wallHit, core::vector3df& wallHitPoint, GamePlatform platform);
+    RakNet::TimeMS shootFromOrigin(core::vector3df camPosition, core::vector3df camAt, core::vector3df start, core::vector3df end, core::vector3df visualStart, bool& wallHit, core::vector3df& wallHitPoint, GamePlatform platform);
 
     scene::IAnimatedMeshSceneNode* GetModelNode(u32 index, bool isFirstPerson) {
         if (index < CharModelArr.size()) {
@@ -154,8 +185,10 @@ public:
     u32 currentWeaponIndex;
     WeaponAnimType currentAnimType;
     bool isAiming;
+    bool showOtherPerspective = false;
     float currentFOV;
     float targetFOV;
+    core::array<std::pair<ModelInfo, ModelInfo>> CharModelArr;
     void CycleWeapon(int delta);
 private:
     SceneManager();
@@ -172,7 +205,6 @@ private:
     scene::ISceneNode* skyboxNode;
     scene::IAnimatedMeshSceneNode* model1;
     scene::IAnimatedMeshSceneNode* model2;
-	core::array<std::pair<ModelInfo, ModelInfo>> CharModelArr;
     scene::IParticleSystemSceneNode* campFire;
     gui::IGUIInOutFader* inOutFader;
     video::SColor backColor;
@@ -184,7 +216,7 @@ private:
         core::vector3df outVector;
     };
     core::array<SParticleImpact> Impacts;
-    core::aabbox3df syndeyBoundingBox; // Bounding box of syndney.md2, extended by BALL_DIAMETER/2 for collision against shots
+    core::aabbox3df playerBoundingBox; // Bounding box of sas.b3d, extended by BALL_DIAMETER/2 for collision against shots
     IrrlichtDevice* device;
     video::IVideoDriver* driver;
     gui::IGUIEnvironment* guienv;
